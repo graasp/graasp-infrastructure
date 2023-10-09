@@ -1,11 +1,13 @@
 name: "Apply infrastructure on env"
 
-on: workflow_dispatch
-inputs:
-  environment:
-    description: 'Target environment'
-    type: environment
-    required: true
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: environment
+        required: true
+  push:
 
 jobs:
   plan:
