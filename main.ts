@@ -149,7 +149,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-etherpad`,
       "graasp_etherpad",
-      etherpadDbPassword.value,
+      etherpadDbPassword,
       vpc,
       backendSecurityGroup,
       {
@@ -178,9 +178,9 @@ class GraaspStack extends TerraformStack {
       hostPort: ETHERPAD_PORT,
       containerPort: ETHERPAD_PORT
     }], {
-      "DB_HOST": etherpadDb.instance.dbInstanceEndpointOutput,
+      "DB_HOST": etherpadDb.instance.dbInstanceAddressOutput,
       "DB_NAME": "graasp_etherpad",
-      "DB_PASS": etherpadDb.instance.password,
+      "DB_PASS": `\$\{${etherpadDb.instance.password}\}`,
       "DB_PORT": "5432",
       "DB_TYPE": "postgres",
       "DB_USER": "graasp_etherpad",
@@ -199,7 +199,7 @@ class GraaspStack extends TerraformStack {
       containerPort: MEILISEARCH_PORT
     }], {
       "MEILI_ENV": "production",
-      "MEILI_MASTER_KEY": meilisearchMasterKey.value,
+      "MEILI_MASTER_KEY": `\$\{${meilisearchMasterKey.value}\}`,
       "MEILI_NO_ANALYTICS": "true"
     }, environment);
 
