@@ -7,7 +7,6 @@ on:
         description: 'Target environment'
         type: environment
         required: true
-  push:
 
 jobs:
   plan:
@@ -38,8 +37,6 @@ jobs:
 
       - name: plan
         run: npx cdktf plan graasp-${{ inputs.environment }}
-        env:
-          TERRAFORM_CLOUD_TOKEN: ${{ secrets.TF_API_TOKEN }}
         env:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
@@ -73,8 +70,6 @@ jobs:
 
       - name: plan
         run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
-        env:
-          TERRAFORM_CLOUD_TOKEN: ${{ secrets.TF_API_TOKEN }}
         env:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
