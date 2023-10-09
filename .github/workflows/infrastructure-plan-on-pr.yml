@@ -10,9 +10,6 @@ jobs:
   terraform:
     name: "Terraform CDK Diff"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./infra
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -45,7 +42,6 @@ jobs:
           updateComment: false # make a new comment
           stackName: graasp-dev
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          workingDirectory: ./infra
         env:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
