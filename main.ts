@@ -151,7 +151,7 @@ class GraaspStack extends TerraformStack {
       "graasp_etherpad",
       etherpadDbPassword,
       vpc,
-      backendSecurityGroup,
+      etherpadSecurityGroup,
       {
         availabilityZone: vpc.azs?.[2]
       }
