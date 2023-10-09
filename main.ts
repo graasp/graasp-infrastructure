@@ -205,7 +205,7 @@ class GraaspStack extends TerraformStack {
 
     // backend
     cluster.addService("graasp",
-      { containerDefinitions: graaspDummyBackendDefinition },
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
       { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageCPUUtilization" }, targetValue: 70, scaleInCooldown: 30, scaleOutCooldown: 300},
@@ -213,7 +213,7 @@ class GraaspStack extends TerraformStack {
     );
     
     cluster.addService("graasp-library",
-      { containerDefinitions: graaspDummyBackendDefinition },
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
       { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageMemoryUtilization" }, targetValue: 80, scaleInCooldown: 10, scaleOutCooldown: 300},
@@ -221,7 +221,7 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService("etherpad",
-      { containerDefinitions: etherpadDefinition, cpu: "256", memory: "512" },
+      { containerDefinitions: etherpadDefinition, cpu: "256", memory: "512", dummy: false },
       etherpadSecurityGroup,
       undefined,
       undefined,
@@ -229,7 +229,7 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService("meilisearch",
-      { containerDefinitions: meilisearchDefinition, cpu: "256", memory: "512" }, // TODO: container def
+      { containerDefinitions: meilisearchDefinition, cpu: "256", memory: "512", dummy: false }, // TODO: container def
       meilisearchSecurityGroup,
       {name: "graasp-meilisearch", port: MEILISEARCH_PORT}
     );

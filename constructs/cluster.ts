@@ -20,6 +20,7 @@ type TaskDefinitionConfiguration = {
   containerDefinitions: string,
   cpu?: string,
   memory?: string,
+  dummy: boolean
 }
 
 
@@ -173,6 +174,9 @@ export class Cluster extends Construct {
           namespace: this.namespace.arn,
           service: internalNamespaceExpose ? [{portName: `${name}-${internalNamespaceExpose.port}-tcp`, clientAlias: { dnsName: internalNamespaceExpose.name, port: internalNamespaceExpose.port }, discoveryName: internalNamespaceExpose.name}] : undefined
         },
+        lifecycle: taskDefinitionConfig.dummy ? {
+          ignoreChanges: ["task_definition"]
+        } : undefined
       });
 
       if (appautoscalingConfig) {
