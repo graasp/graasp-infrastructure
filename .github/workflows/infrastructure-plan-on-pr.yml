@@ -9,6 +9,7 @@ permissions:
 jobs:
   terraform:
     name: "Terraform CDK Diff"
+    environment: dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
