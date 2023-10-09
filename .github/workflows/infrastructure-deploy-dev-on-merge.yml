@@ -45,7 +45,9 @@ jobs:
           terraformVersion: 1.5.7
           mode: auto-approve-apply
           stackName: graasp-dev
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
           commentOnPr: false
+          updateComment: false
         env:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
