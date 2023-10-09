@@ -149,7 +149,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-etherpad`,
       "graasp_etherpad",
-      etherpadDbPassword.value,
+      etherpadDbPassword,
       vpc,
       backendSecurityGroup,
       {
@@ -178,9 +178,9 @@ class GraaspStack extends TerraformStack {
       hostPort: ETHERPAD_PORT,
       containerPort: ETHERPAD_PORT
     }], {
-      "DB_HOST": etherpadDb.instance.dbInstanceEndpointOutput,
+      "DB_HOST": etherpadDb.instance.dbInstanceAddressOutput,
       "DB_NAME": "graasp_etherpad",
-      "DB_PASS": etherpadDb.instance.password,
+      "DB_PASS": `\$\{${etherpadDb.instance.password}\}`,
       "DB_PORT": "5432",
       "DB_TYPE": "postgres",
       "DB_USER": "graasp_etherpad",
@@ -199,13 +199,13 @@ class GraaspStack extends TerraformStack {
       containerPort: MEILISEARCH_PORT
     }], {
       "MEILI_ENV": "production",
-      "MEILI_MASTER_KEY": meilisearchMasterKey.value,
+      "MEILI_MASTER_KEY": `\$\{${meilisearchMasterKey.value}\}`,
       "MEILI_NO_ANALYTICS": "true"
     }, environment);
 
     // backend
     cluster.addService("graasp",
-      { containerDefinitions: graaspDummyBackendDefinition },
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
       { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageCPUUtilization" }, targetValue: 70, scaleInCooldown: 30, scaleOutCooldown: 300},
@@ -213,7 +213,7 @@ class GraaspStack extends TerraformStack {
     );
     
     cluster.addService("graasp-library",
-      { containerDefinitions: graaspDummyBackendDefinition },
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
       { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageMemoryUtilization" }, targetValue: 80, scaleInCooldown: 10, scaleOutCooldown: 300},
@@ -221,7 +221,7 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService("etherpad",
-      { containerDefinitions: etherpadDefinition, cpu: "256", memory: "512" },
+      { containerDefinitions: etherpadDefinition, cpu: "256", memory: "512", dummy: false },
       etherpadSecurityGroup,
       undefined,
       undefined,
@@ -229,7 +229,7 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService("meilisearch",
-      { containerDefinitions: meilisearchDefinition, cpu: "256", memory: "512" }, // TODO: container def
+      { containerDefinitions: meilisearchDefinition, cpu: "256", memory: "512", dummy: false }, // TODO: container def
       meilisearchSecurityGroup,
       {name: "graasp-meilisearch", port: MEILISEARCH_PORT}
     );
