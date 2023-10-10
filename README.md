@@ -55,11 +55,42 @@ cdtf deploy
 
 # Migrate existing data
 
-For moving production data when recreating the production environment in Zurich.
+Even if we can easily create a whole infrastructure with this repository, this infrastructure does not handle deployment. Deployment is handled by GitHub Actions, mostly to update task definitions and fill S3 buckets. Currently, there are a lot of secrets set in GitHub Actions that must be updated for the deployments to work, which takes more time that creating the infrastructure itself. Also, RDS database migration is not straightforward.
 
+These are instructions for creating a new env and updating the deployment process to point to the new environment.
+
+For the first infrastructure creation, I suggest working locally by creating a new keypair for the `terraform` **user** in the production account. Then you can use the cdktf CLI to deploy the infrastructure and check for any errors.
+
+You need to export some variables before running cdktf:
+
+```bash
+export AWS_ACCESS_KEY_ID="yourkey"
+export AWS_SECRET_ACCESS_KEY="yoursecret"
+
+# use the passwords that will be really used!
+export TF_VAR_GRAASP_DB_PASSWORD="password" 
+export TF_VAR_ETHERPAD_DB_PASSWORD="password"
+export TF_VAR_MEILISEARCH_MASTER_KEY="masterkey"
+```
+
+Then you can run cdktf for the environment you want i.e.
+```bash
+yarn run cdktf plan 'graasp-staging' # this command won't change anything
+```
+
+Once everything is created properly, you can let the CI handle the infrastructure changes.
+
+In order to create a new environment and migrate the data, follow these instructions:
+
+* Down the production to prevent data changes
+* Remove the alternate domain names from all the old cloudfront distributions (or temporarily modify the infra code to use different alternate names)
+    * The alternate domains must be available because the infrastructure will use them for the new cloudfront distribution.
 * Create the new environment (You then have 2 environments in parallel)
+* Update the task definition file for your environment in `.aws` in graasp and library (update family name, graasp container name, executionRoleArn and awslogs-region)
 * Update the CI/CD secrets for deployments to point to new S3 buckets, ECS cluster/service...
     * Graasp core
+        * ECR_REPOSITORY_{ENV} (if needed)
+        * CONTAINER_NAME_GRAASP_{ENV}
         * AWS_REGION_{ENV}
         * DB_HOST
         * DB_PASSWORD
@@ -72,21 +103,78 @@ For moving production data when recreating the production environment in Zurich.
         * S3_FILE_ITEM_BUCKET_{ENV}
         * S3_FILE_ITEM_REGION
         * MEILISEARCH_MASTER_KEY
-        
-* Down the production to prevent data changes
-* Copy the file item bucket content to the new one (`aws s3 sync s3://old-name s3://new-name`)
-* Copy RDS content to the new database (can we restore snapshot to another RDS in a new region?)
+    * Library
+        * AWS_REGION_{ENV}
+        * ECS_CLUSTER_GRAASP_EXPLORE_{ENV}
+        * ECS_SERVICE_GRAASP_EXPLORE_{ENV}
+        * CONTAINER_NAME_GRAASP_EXPLORE_{ENV} ("graasp-library")
+    * Builder
+        * AWS_REGION_{ENV}
+        * AWS_S3_BUCKET_NAME_GRAASP_COMPOSE_{ENV}
+        * CLOUDFRONT_DISTRIBUTION_GRAASP_COMPOSE_{ENV}
+        * VITE_H5P_INTEGRATION_URL (i.e `https://{bucket domain}/h5p-integration/index.html`)
+    * Player
+        * AWS_REGION_{ENV}
+        * AWS_S3_BUCKET_NAME_GRAASP_PERFORM_{ENV}
+        * CLOUDFRONT_DISTRIBUTION_GRAASP_PERFORM_{ENV}
+        * VITE_GRAASP_H5P_INTEGRATION_URL (i.e `https://{bucket domain}/h5p-integration/index.html`)
+    * Auth
+        * AWS_REGION_{ENV}
+        * AWS_S3_BUCKET_NAME_GRAASP_AUTH_{ENV}
+        * CLOUDFRONT_DISTRIBUTION_GRAASP_AUTH_{ENV}
+    * Account
+        * AWS_REGION_{ENV}
+        * AWS_S3_BUCKET_NAME_GRAASP_ACCOUNT_{ENV}
+        * CLOUDFRONT_DISTRIBUTION_GRAASP_ACCOUNT_{ENV}
+    * Analytics
+        * AWS_REGION_{ENV}
+        * AWS_S3_BUCKET_NAME_GRAASP_RESEARCH_{ENV}
+        * CLOUDFRONT_DISTRIBUTION_GRAASP_RESEARCH_{ENV}
+    * Admin
+        * No GitHub action currently, in development
+    * Apps
+        * Sync existing bucket to new bucket
+            * i.e. `aws s3 sync s3://graasp-apps-development s3://graasp-dev-apps --acl public-read --follow-symlinks`
+            * **If the buckets are in different region you will need more arguments:** `aws s3 sync s3://graasp-apps-staging s3://graasp-staging-apps --acl public-read --follow-symlinks --source-region eu-central-1 --region eu-central-2``
+            * Update CI deploy for apps
+                * AWS_S3_BUCKET_NAME_APPS_{ENV} (organization secret)
+                * CLOUDFRONT_DISTRIBUTION_APPS_{ENV} (organization secret)
+    * assets
+        * Sync existing bucket to new bucket
+            * i.e. `aws s3 sync s3://graasp-assets-development s3://graasp-dev-assets --acl public-read --follow-symlinks`
+    * file-items
+        * Sync existing bucket to new bucket
+            * i.e. `aws s3 sync s3://graasp-s3-file-items-development s3://graasp-dev-file-items --follow-symlinks`
+    * h5p
+        * Sync existing bucket to new bucket
+            * i.e. `aws s3 sync s3://graasp-s3-h5p-development s3://graasp-dev-h5p --follow-symlinks`
+        * There are multiple hardcoded reference to the bucket url in `h5p-integration/index.html`, make sure to replace those with the new name or h5p won't work.
+* Copy RDS content to the new database (for both databases)
+    * **AWS unfortunately doesn't allow to restore a snapshot to an existing database, so we have to restore it manually and then sync it with our Terraform state.**
+    * Make a snapshot of the existing database
+    * If you already ran Terraform, you will have an empty new database, rename it or delete it
+    * (Copy the snapshot to the new region, if the new database is in a different region)
+        * https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html
+    * For Etherpad, you might as well upgrade the snapshot to Postgres 15 before restoring.
+        * Also Etherpad seems to use 400gb of IOPS storage sometimes, reducing storage space in not possible in RDS, so in staging, I restored the database manually with dumps: https://docs.aws.amazon.com/dms/latest/sbs/chap-manageddatabases.postgresql-rds-postgresql-full-load-pd_dump.html
+    * Restore this snapshot to a new database with the same name expected by Terraform (for example "graasp-dev")
+        * Make sure to configure the database as close to the Terraform configuration as possible (security groups etc... use the existing ones)
+    * Now we have to import this new database to the existing terraform state (see example for dev environment)
+        * `cd cdktf.out/stacks/graasp-dev`
+        * `terraform state list` (look for you database)
+        * `terraform state rm module.graasp-dev-postgres_db_F1D5DB7A.module.db_instance.aws_db_instance.this[0]`
+        * `terraform import module.graasp-dev-postgres_db_F1D5DB7A.module.db_instance.aws_db_instance.this[0] <your database identifier>` (i.e "graasp-dev-etherpad")
+    * Now that the snapshotted database has been imported, you can run `yarn run cdktf deploy` again to align the configuration with the infrastructure as code.
+    * Reboot the database if needed (check parameter group options)
 * Update Route53 records to points to the new Cloudfronts and load balancer.
-
 * Check that everything is working correctly
+    * Etherpad
+    * H5P
+    * apps
+    * Meilisearch
+    * File upload
+    * ...
 * Delete the old infrastructure
-
-## What to update in CI
-
-Once the infrastructure is created, we need to update the deployment pipeline to point to the new resources (new ECS cluster, new S3 buckets, cloudfronts...). This should only be done once, just to match the new name of the resources.
-
-* Take one of the stack (production for example) and identify all the repositories, deployment are dispatched to these repositories, so their secrets must be update for the deployment to work.
-* Update the access keys in the secrets for the repo, if deployment must be done by a new AWS user.
 
 # Architecture
 
@@ -111,10 +199,10 @@ If something has been created manually on AWS, you can import it into the terraf
 For example for importing an existing ECR repository:
 
 ```bash
-cdktf diff # synth and look at plan
+yarn run cdktf plan # synth and look at plan
 cat cdktf.out/stacks/[your stack]/cdk.tf.json jq '.resource.aws_ecr_repository'
 # Find the "terraform id" of the resource you want to import to
 # Here it would be something like "aws_ecr_repository.graasp-iac-development-ecr"
 terraform import aws_ecr_repository.graasp-iac-development-ecr graasp # Import to terraform id from target id (here graasp ecr repo, but can often be an AWS ARN)
-cdktf diff # your plan should stop trying to create the resource.
+yarn run cdktf plan # your plan should stop trying to create the resource.
 ```

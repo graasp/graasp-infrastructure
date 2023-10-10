@@ -12,10 +12,12 @@ export class PostgresDB extends Construct {
       scope: Construct,
       name: string,
       dbName: string,
+      dbUsername: string,
       dbPassword: TerraformVariable,
       vpc: Vpc,
       allowedSecurityGroup: SecurityGroup,
-      configOverride?: Partial<RdsConfig>
+      addReplica: boolean,
+      configOverride?: Partial<RdsConfig>,
     ) {
       super(scope, `${name}-postgres`);
   
@@ -54,7 +56,7 @@ export class PostgresDB extends Construct {
         
         dbName: dbName,
         port: String(dbPort),
-        username: 'graasp',
+        username: dbUsername,
         password: dbPassword.value,
         manageMasterUserPassword: false,
   
@@ -77,5 +79,27 @@ export class PostgresDB extends Construct {
         ...defaultConfig,
         ...configOverride
       });
+
+      if (addReplica) {
+        new Rds(this, "db-replica", {
+          ...defaultConfig,
+          ...configOverride,
+          replicateSourceDb: this.instance.dbInstanceIdentifierOutput,
+          skipFinalSnapshot: true,
+          copyTagsToSnapshot: false,
+          snapshotIdentifier: undefined,
+
+          // handled by replication
+          dbName: undefined,
+          password: undefined,
+          createMonitoringRole: false,
+          createDbSubnetGroup: false,
+          dbSubnetGroupName: undefined,
+
+          identifier: `${name}-replica`,
+          availabilityZone: vpc.azs?.[2],
+          monitoringRoleArn: this.instance.enhancedMonitoringIamRoleArnOutput
+        });
+      }
     }
   }

@@ -7,6 +7,8 @@ import { VpcSecurityGroupIngressRule } from "@cdktf/provider-aws/lib/vpc-securit
 import { Fn } from "cdktf";
 import { DataAwsAcmCertificate } from "@cdktf/provider-aws/lib/data-aws-acm-certificate";
 import { allowAllEgressRule } from "./security_group";
+import { LbListenerRule } from "@cdktf/provider-aws/lib/lb-listener-rule";
+import { EnvironmentConfig, subdomainForEnv } from "../utils";
 
 export class LoadBalancer extends Construct {
     lb: Lb;
@@ -14,7 +16,7 @@ export class LoadBalancer extends Construct {
     vpc: Vpc;
     securityGroup: SecurityGroup;
   
-    constructor(scope: Construct, name: string, vpc: Vpc, certificate: DataAwsAcmCertificate) {
+    constructor(scope: Construct, name: string, vpc: Vpc, certificate: DataAwsAcmCertificate, env: EnvironmentConfig) {
       super(scope, `${name}-load-balancer`);
       this.vpc = vpc;
 
@@ -109,6 +111,30 @@ export class LoadBalancer extends Construct {
         ],
         sslPolicy: "ELBSecurityPolicy-2016-08",
         certificateArn: certificate.arn
+      });
+
+      new LbListenerRule(this, `${name}-shortener`, {
+        listenerArn: this.lbl.arn,
+        priority: 10,
+        action: [
+          {
+            type: "redirect",
+            redirect: {
+              host: subdomainForEnv("api", env),
+              path: "/status",
+              statusCode: "HTTP_302",
+              protocol: "HTTPS"
+            }
+          },
+        ],
+  
+        condition: [
+          {
+            hostHeader: {
+              values: [subdomainForEnv("go", env)],
+            },
+          },
+        ],
       });
     }
   }

@@ -1,7 +1,7 @@
 import { Construct } from "constructs";
 import { EcsCluster } from "@cdktf/provider-aws/lib/ecs-cluster";
 import { EcsTaskDefinition } from "@cdktf/provider-aws/lib/ecs-task-definition";
-import { EcsService } from "@cdktf/provider-aws/lib/ecs-service";
+import { EcsService, EcsServiceLoadBalancer } from "@cdktf/provider-aws/lib/ecs-service";
 import { Fn } from "cdktf";
 import { Vpc } from "../.gen/modules/vpc";
 import { SecurityGroup } from "@cdktf/provider-aws/lib/security-group";
@@ -84,7 +84,7 @@ export class Cluster extends Construct {
         });
     }
 
-    public addService(name: string, taskDefinitionConfig: TaskDefinitionConfiguration, serviceSecurityGroup: SecurityGroup, internalNamespaceExpose?: {name: string, port: number}, appautoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration, loadBalancerConfig?: {loadBalancer: LoadBalancer, priority: number, port: number, host: string}) {
+    public addService(name: string, desiredCount: number, taskDefinitionConfig: TaskDefinitionConfiguration, serviceSecurityGroup: SecurityGroup, internalNamespaceExpose?: {name: string, port: number}, appautoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration, loadBalancerConfig?: {loadBalancer: LoadBalancer, priority: number, port: number, containerPort: number, host: string, healtcheckPath: string}) {
       new CloudwatchLogGroup(this, `${name}-loggroup`, {
         name: `/ecs/${name}`,
         retentionInDays: 30,
@@ -106,6 +106,8 @@ export class Cluster extends Construct {
         // }
       });
 
+      let ecsServiceLoadBalancerOptions: EcsServiceLoadBalancer[] | undefined;
+
       // If exposed on load balancer
       if (loadBalancerConfig) {
         const targetGroup = new LbTargetGroup(this, `${name}-target-group`, {
@@ -117,13 +119,21 @@ export class Cluster extends Construct {
           vpcId: this.vpc.vpcIdOutput,
           healthCheck: {
             enabled: true,
-            path: "/status",
+            path: loadBalancerConfig.healtcheckPath,
             healthyThreshold: 5,
             unhealthyThreshold: 2,
             timeout: 5,
             interval: 30,
           }
         });
+
+        ecsServiceLoadBalancerOptions = [
+          {
+            containerPort: loadBalancerConfig.containerPort,
+            containerName: name,
+            targetGroupArn: targetGroup.arn,
+          },
+        ];
     
         // Makes the listener forward requests from subpath to the target group
         new LbListenerRule(this, `${name}-rule`, {
@@ -153,7 +163,7 @@ export class Cluster extends Construct {
         name,
         launchType: "FARGATE",
         cluster: this.cluster.id,
-        desiredCount: 1,
+        desiredCount: desiredCount,
         deploymentMinimumHealthyPercent: 100,
         deploymentMaximumPercent: 200,
         taskDefinition: task.arn,
@@ -162,13 +172,7 @@ export class Cluster extends Construct {
           assignPublicIp: true,
           securityGroups: [serviceSecurityGroup.id],
         },
-        // loadBalancer: [
-        //   {
-        //     containerPort: 80,
-        //     containerName: name,
-        //     targetGroupArn: targetGroup.arn,
-        //   },
-        // ],
+        loadBalancer: ecsServiceLoadBalancerOptions,
         serviceConnectConfiguration: {
           enabled: true,
           namespace: this.namespace.arn,
@@ -181,7 +185,7 @@ export class Cluster extends Construct {
 
       if (appautoscalingConfig) {
         const scalingTarget = new AppautoscalingTarget(this, `${name}-service-autoscaling-target`, {
-          minCapacity: 1, maxCapacity: 8, resourceId: `service/${this.cluster.name}/${service.name}`, scalableDimension: "ecs:service:DesiredCount", serviceNamespace: "ecs"});
+          minCapacity: desiredCount, maxCapacity: 8, resourceId: `service/${this.cluster.name}/${service.name}`, scalableDimension: "ecs:service:DesiredCount", serviceNamespace: "ecs"});
         new AppautoscalingPolicy(this, `${name}-service-autoscaling-policy`, {
           name: service.name, policyType: "TargetTrackingScaling", resourceId: scalingTarget.resourceId, scalableDimension: scalingTarget.scalableDimension, serviceNamespace: scalingTarget.serviceNamespace,
           targetTrackingScalingPolicyConfiguration: appautoscalingConfig
