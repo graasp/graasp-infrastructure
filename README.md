@@ -57,12 +57,27 @@ cdtf deploy
 
 For moving production data when recreating the production environment in Zurich.
 
-* Create the new environment
+* Create the new environment (You then have 2 environments in parallel)
+* Update the CI/CD secrets for deployments to point to new S3 buckets, ECS cluster/service...
+    * Graasp core
+        * AWS_REGION_{ENV}
+        * DB_HOST
+        * DB_PASSWORD
+        * DB_READ_REPLICA_HOSTS
+        * ECS_CLUSTER_GRAASP_{ENV}
+        * ECS_SERVICE_GRAASP_{ENV}
+        * H5P_CONTENT_BUCKET_{ENV}
+        * H5P_CONTENT_REGION_{ENV}
+        * REDIS_HOST_{ENV}
+        * S3_FILE_ITEM_BUCKET_{ENV}
+        * S3_FILE_ITEM_REGION
+        * MEILISEARCH_MASTER_KEY
+        
 * Down the production to prevent data changes
 * Copy the file item bucket content to the new one (`aws s3 sync s3://old-name s3://new-name`)
 * Copy RDS content to the new database (can we restore snapshot to another RDS in a new region?)
 * Update Route53 records to points to the new Cloudfronts and load balancer.
-* Update the CI/CD secrets for deployments to point to new S3 buckets, ECS cluster/service...
+
 * Check that everything is working correctly
 * Delete the old infrastructure
 
