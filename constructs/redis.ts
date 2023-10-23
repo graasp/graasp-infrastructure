@@ -5,15 +5,16 @@ import { securityGroupOnlyAllowAnotherSecurityGroup } from "./security_group";
 import { Vpc } from "../.gen/modules/vpc";
 import { SecurityGroup } from "@cdktf/provider-aws/lib/security-group";
 import { Token } from "cdktf";
+import { ElasticacheReplicationGroup } from "@cdktf/provider-aws/lib/elasticache-replication-group";
 
 export class GraaspRedis extends Construct {
-    public instance: ElasticacheCluster;
   
     constructor(
       scope: Construct,
       id: string,
       vpc: Vpc,
       allowedSecurityGroup: SecurityGroup,
+      addReplication: boolean,
     ) {
       super(scope, `${id}-redis`);
   
@@ -24,17 +25,35 @@ export class GraaspRedis extends Construct {
       subnetIds: Token.asList(vpc.publicSubnetsOutput),
     })
 
-    this.instance = new ElasticacheCluster(this, `${id}-redis`, {
-      clusterId: `${id}-redis`,
-      engine: "redis",
-      engineVersion: "6.0",
-      nodeType: "cache.t2.micro",
-      numCacheNodes: 1,
-      parameterGroupName: "default.redis6.x",
-      port: 6379,
-      subnetGroupName: redisSubnetGroup.name,
-      securityGroupIds: [redisSecurityGroup.id]
-    })
+    if (addReplication) {
+      new ElasticacheReplicationGroup(this, `${id}-redis`, {
+        applyImmediately: true,
+        replicationGroupId: `${id}-redis`,
+        description: `${id}-redis`,
+        engine: "redis",
+        engineVersion: "6.2",
+        nodeType: "cache.t3.micro",
+        numNodeGroups: 1,
+        replicasPerNodeGroup: 2,
+        parameterGroupName: "default.redis6.x",
+        port: 6379,
+        subnetGroupName: redisSubnetGroup.name,
+        securityGroupIds: [redisSecurityGroup.id], 
+      })
+    } else {
+      new ElasticacheCluster(this, `${id}-redis`, {
+        applyImmediately: true,
+        clusterId: `${id}-redis`,
+        engine: "redis",
+        engineVersion: "6.2",
+        nodeType: "cache.t2.micro",
+        numCacheNodes: 1,
+        parameterGroupName: "default.redis6.x",
+        port: 6379,
+        subnetGroupName: redisSubnetGroup.name,
+        securityGroupIds: [redisSecurityGroup.id], 
+      })
+    }
 
     // Default already exist?
 

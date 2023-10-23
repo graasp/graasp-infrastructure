@@ -1,10 +1,11 @@
 import { CloudfrontDistribution } from "@cdktf/provider-aws/lib/cloudfront-distribution";
 import { DataAwsAcmCertificate } from "@cdktf/provider-aws/lib/data-aws-acm-certificate";
 import { Construct } from "constructs";
+import { EnvironmentConfig, subdomainForEnv } from "../utils";
 
 const CACHING_OPTIMIZED_ID = "658327ea-f89d-4fab-a63d-7e88639e58f6"; // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
 
-export function makeCloudfront(scope: Construct, id: string, targetName: string, s3domain: string, certificate: DataAwsAcmCertificate) {
+export function makeCloudfront(scope: Construct, id: string, targetName: string, s3domain: string, certificate: DataAwsAcmCertificate, env: EnvironmentConfig) {
     // TODO: add alternate domain name, and clean description
     return new CloudfrontDistribution(scope, `${id}-cloudfront`, {
         comment: targetName,
@@ -13,15 +14,9 @@ export function makeCloudfront(scope: Construct, id: string, targetName: string,
           {
             originId: targetName, // origin ids can be freely chosen
             domainName: s3domain, // we serve the website hosted by S3 here
-            // customOriginConfig:
-            //   {
-            //     originProtocolPolicy: "http-only", // the CDN terminates the SSL connection, we can use http internally
-            //     httpPort: 80,
-            //     httpsPort: 443,
-            //     originSslProtocols: ["TLSv1.2", "TLSv1.1", "TLSv1"],
-            //   },
           }
         ],
+        aliases: [subdomainForEnv(`${targetName}`, env)],
         defaultCacheBehavior: {
             cachePolicyId: CACHING_OPTIMIZED_ID, 
             allowedMethods: ["GET", "HEAD"],
