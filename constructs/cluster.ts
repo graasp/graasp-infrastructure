@@ -101,9 +101,9 @@ export class Cluster extends Construct {
         containerDefinitions: taskDefinitionConfig.containerDefinitions,
         
 
-        // lifecycle: {
-        //     ignoreChanges: "all"
-        // }
+        lifecycle: {
+            ignoreChanges: taskDefinitionConfig.dummy ? "all" : undefined
+        }
       });
 
       let ecsServiceLoadBalancerOptions: EcsServiceLoadBalancer[] | undefined;
