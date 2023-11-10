@@ -5,7 +5,7 @@ import { Rds, RdsConfig } from '../.gen/modules/rds';
 import { TerraformVariable, Token } from 'cdktf';
 import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
-import { GraaspGatekeeper } from './gatekeeper';
+import { Ec2 } from './ec2';
 
 export class PostgresDB extends Construct {
   public instance: Rds;
@@ -36,7 +36,24 @@ export class PostgresDB extends Construct {
 
     // allow a gatekeeper for manual migrations
     if (createGateKeeper) {
-      const gateKeeper = new GraaspGatekeeper(this, `${name}-gatekeeper`, vpc);
+      const gatekeeperKeyName = new TerraformVariable(
+        scope,
+        'GRAASP_DB_GATEKEEPER_KEY_NAME',
+        {
+          nullable: false,
+          type: 'string',
+          description: 'Keyname for the keypair for graasp db gatekeeper',
+          sensitive: true,
+        }
+      );
+
+      const gateKeeper = new Ec2(
+        this,
+        `${name}-gatekeeper`,
+        vpc,
+        gatekeeperKeyName
+      );
+
       // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons
       // See note on https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#protocol
       new VpcSecurityGroupIngressRule(scope, `allow-gatekeeper`, {

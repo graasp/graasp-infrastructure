@@ -4,19 +4,34 @@ import { Vpc } from '../.gen/modules/vpc';
 import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
+import { TerraformVariable } from 'cdktf';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
-export class GraaspGatekeeper extends Construct {
+export class Ec2 extends Construct {
   ec2: Instance;
   securityGroup: SecurityGroup;
 
-  constructor(scope: Construct, name: string, vpc: Vpc) {
+  constructor(
+    scope: Construct,
+    name: string,
+    vpc: Vpc,
+    gatekeeperKeyName: TerraformVariable,
+    // amazon linux 2023 64bit x86
+    ami = 'ami-0a485299eeb98b979'
+  ) {
     super(scope, name);
 
-    this.ec2 = new Instance(this, name, {
-      ami: 'ami-0a485299eeb98b979', // amazon linux 2023 64bit x86
+    // todo: check this works + how to download a key pair from aws
+    // const keyPair = new KeyPair(this, `${name}-key-pair`, {
+    //   keyName: `${name}-key-pair`,
+    //   publicKey: publicKey.value,
+    // });
+
+    this.ec2 = new Instance(this, `${name}-ec2`, {
+      ami,
       instanceType: 't2.micro',
+      keyName: gatekeeperKeyName.value,
     });
 
     this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {

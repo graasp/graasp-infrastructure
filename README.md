@@ -72,6 +72,7 @@ export AWS_SECRET_ACCESS_KEY="yoursecret"
 export TF_VAR_GRAASP_DB_PASSWORD="password"
 export TF_VAR_ETHERPAD_DB_PASSWORD="password"
 export TF_VAR_MEILISEARCH_MASTER_KEY="masterkey"
+export TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME="gatekeeper-keyname"
 ```
 
 You can run `export -p` to show the active variables.

@@ -1,4 +1,4 @@
-name: "Apply Stack after PR is Merged"
+name: 'Apply Stack after PR is Merged'
 
 on:
   push:
@@ -12,16 +12,14 @@ permissions:
 
 jobs:
   terraform:
-    name: "Terraform CDK Diff"
+    name: 'Terraform CDK Diff'
     environment: dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
-        with:
-          node-version: 18
 
       - name: Install dependencies
         run: yarn install
@@ -52,3 +50,4 @@ jobs:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
           TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
