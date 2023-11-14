@@ -5,7 +5,7 @@ import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { TerraformVariable } from 'cdktf';
-import { DataAwsSubnet } from '@cdktf/provider-aws/lib/data-aws-subnet';
+import { DataAwsSubnets } from '@cdktf/provider-aws/lib/data-aws-subnets';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
@@ -29,8 +29,7 @@ export class Ec2 extends Construct {
     //   publicKey: publicKey.value,
     // });
 
-    // choose a random subnet in the given vpc
-    const subnet = new DataAwsSubnet(this, 'ec2-subnet', {
+    const subnets = new DataAwsSubnets(this, 'ec2-subnet', {
       filter: [
         {
           name: `vpc-id`,
@@ -43,10 +42,11 @@ export class Ec2 extends Construct {
       ami,
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
-      subnetId: subnet.id,
+      // choose a random subnet in the given vpc
+      subnetId: subnets.ids[0],
     });
 
-    this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
+    this.securityGroup = new SecurityGroup(scope, name, {
       vpcId: vpc.vpcIdOutput,
       name,
       lifecycle: {
