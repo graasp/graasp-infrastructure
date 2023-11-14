@@ -34,6 +34,9 @@ export class Ec2 extends Construct {
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
       associatePublicIpAddress,
+      tags: {
+        Name: name,
+      },
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
     });
