@@ -208,6 +208,15 @@ In order to create a new environment and migrate the data, follow these instruct
   - Meilisearch
   - File upload
   - ...
+- EC2
+  - Install psql
+
+```shell
+  sudo yum update
+  sudo yum install postgresql15
+  psql --version
+```
+
 - Delete the old infrastructure
 
 # Architecture
