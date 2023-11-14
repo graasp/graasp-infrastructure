@@ -4,7 +4,7 @@ import { Vpc } from '../.gen/modules/vpc';
 import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
-import { TerraformVariable, Token } from 'cdktf';
+import { Fn, TerraformVariable, Token } from 'cdktf';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
@@ -33,7 +33,7 @@ export class Ec2 extends Construct {
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
       // choose a random subnet in the given vpc
-      subnetId: Token.asList(vpc.publicSubnetsOutput)[0],
+      subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
     });
 
     this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
