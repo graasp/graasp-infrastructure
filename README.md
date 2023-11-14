@@ -82,7 +82,7 @@ You can run `export -p` to show the active variables.
 # Run
 
 ```bash
- # generates stack for the defined environments
+ # generates stacks for the defined environments
 cdktf synth
  # show diff with currently deployed on aws
 cdktf diff <stack-name>
