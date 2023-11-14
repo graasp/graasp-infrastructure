@@ -51,7 +51,9 @@ export class PostgresDB extends Construct {
         this,
         `${name}-gatekeeper`,
         vpc,
-        gatekeeperKeyName
+        gatekeeperKeyName,
+        undefined,
+        true
       );
 
       // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons

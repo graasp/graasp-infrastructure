@@ -18,7 +18,8 @@ export class Ec2 extends Construct {
     vpc: Vpc,
     gatekeeperKeyName: TerraformVariable,
     // amazon linux 2023 64bit x86
-    ami = 'ami-0a485299eeb98b979'
+    ami = 'ami-0a485299eeb98b979',
+    associatePublicIpAddress = false
   ) {
     super(scope, name);
 
@@ -32,6 +33,7 @@ export class Ec2 extends Construct {
       ami,
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
+      associatePublicIpAddress,
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
     });
