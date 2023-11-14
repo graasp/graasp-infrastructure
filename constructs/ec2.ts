@@ -29,6 +29,14 @@ export class Ec2 extends Construct {
     //   publicKey: publicKey.value,
     // });
 
+    this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
+      vpcId: vpc.vpcIdOutput,
+      name,
+      lifecycle: {
+        createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
+      },
+    });
+
     this.ec2 = new Instance(this, `${name}-ec2`, {
       ami,
       instanceType: 't2.micro',
@@ -39,14 +47,7 @@ export class Ec2 extends Construct {
       },
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
-    });
-
-    this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
-      vpcId: vpc.vpcIdOutput,
-      name,
-      lifecycle: {
-        createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
-      },
+      securityGroups: [this.securityGroup.id],
     });
 
     // allow ssh from anywhere
