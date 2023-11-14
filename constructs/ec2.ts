@@ -5,6 +5,7 @@ import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { TerraformVariable } from 'cdktf';
+import { DataAwsSubnet } from '@cdktf/provider-aws/lib/data-aws-subnet';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
@@ -28,15 +29,26 @@ export class Ec2 extends Construct {
     //   publicKey: publicKey.value,
     // });
 
+    // choose a random subnet in the given vpc
+    const subnet = new DataAwsSubnet(this, 'ec2-subnet', {
+      filter: [
+        {
+          name: `vpc-id`,
+          values: [vpc.vpcIdOutput],
+        },
+      ],
+    });
+
     this.ec2 = new Instance(this, `${name}-ec2`, {
       ami,
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
+      subnetId: subnet.id,
     });
 
     this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
       vpcId: vpc.vpcIdOutput,
-      name: `${name}-security-group`,
+      name,
       lifecycle: {
         createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
       },
