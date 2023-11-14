@@ -4,8 +4,7 @@ import { Vpc } from '../.gen/modules/vpc';
 import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
-import { TerraformVariable } from 'cdktf';
-import { DataAwsSubnets } from '@cdktf/provider-aws/lib/data-aws-subnets';
+import { TerraformVariable, Token } from 'cdktf';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
@@ -29,24 +28,15 @@ export class Ec2 extends Construct {
     //   publicKey: publicKey.value,
     // });
 
-    const subnets = new DataAwsSubnets(this, 'ec2-subnet', {
-      filter: [
-        {
-          name: `vpc-id`,
-          values: [vpc.vpcIdOutput],
-        },
-      ],
-    });
-
     this.ec2 = new Instance(this, `${name}-ec2`, {
       ami,
       instanceType: 't2.micro',
       keyName: gatekeeperKeyName.value,
       // choose a random subnet in the given vpc
-      subnetId: subnets.ids[0],
+      subnetId: Token.asList(vpc.publicSubnetsOutput)[0],
     });
 
-    this.securityGroup = new SecurityGroup(scope, name, {
+    this.securityGroup = new SecurityGroup(scope, `${name}-security-group`, {
       vpcId: vpc.vpcIdOutput,
       name,
       lifecycle: {
@@ -57,7 +47,7 @@ export class Ec2 extends Construct {
     // allow ssh from anywhere
     // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons
     // See note on https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#protocol
-    new VpcSecurityGroupIngressRule(this, `allow-inbound-ssh`, {
+    new VpcSecurityGroupIngressRule(this, `${name}-allow-inbound-ssh`, {
       cidrIpv4: '0.0.0.0/0',
       fromPort: 22,
       ipProtocol: 'tcp',
