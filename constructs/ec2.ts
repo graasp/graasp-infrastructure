@@ -17,8 +17,7 @@ export class Ec2 extends Construct {
     name: string,
     vpc: Vpc,
     gatekeeperKeyName: TerraformVariable,
-    // amazon linux 2023 64bit x86
-    ami = 'ami-0a485299eeb98b979',
+    ami: string,
     associatePublicIpAddress = false
   ) {
     super(scope, name);

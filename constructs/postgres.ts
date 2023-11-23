@@ -46,13 +46,23 @@ export class PostgresDB extends Construct {
           sensitive: true,
         }
       );
+      const gatekeeperAmiId = new TerraformVariable(
+        scope,
+        'DB_GATEKEEPER_AMI_ID',
+        {
+          nullable: false,
+          type: 'string',
+          description: 'AMI id for graasp db gatekeeper',
+          sensitive: false,
+        }
+      );
 
       const gateKeeper = new Ec2(
         this,
         `${name}-gatekeeper`,
         vpc,
         gatekeeperKeyName,
-        undefined,
+        gatekeeperAmiId.value,
         true
       );
 
