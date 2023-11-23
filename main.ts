@@ -1,31 +1,43 @@
-import { Construct } from "constructs";
-import { App, S3Backend, TerraformStack, TerraformVariable } from "cdktf";
-import { AwsProvider, AwsProviderAssumeRole } from "@cdktf/provider-aws/lib/provider";
-import { Vpc } from "./.gen/modules/vpc";
-import { Cluster, createContainerDefinitions } from "./constructs/cluster";
-import { LoadBalancer } from "./constructs/load_balancer";
-import { PostgresDB } from "./constructs/postgres";
-import { GraaspS3Bucket } from "./constructs/bucket";
-import { makeCloudfront } from "./constructs/cloudfront";
-import { AllowedRegion, Environment, EnvironmentConfig, GraaspWebsiteConfig, envDomain, subdomainForEnv } from "./utils";
-import { DataAwsAcmCertificate } from "@cdktf/provider-aws/lib/data-aws-acm-certificate";
-import { DataAwsEcrRepository } from "@cdktf/provider-aws/lib/data-aws-ecr-repository";
-import { securityGroupOnlyAllowAnotherSecurityGroup } from "./constructs/security_group";
-import { GraaspRedis } from "./constructs/redis";
-import { CONFIG } from "./config";
+import { Construct } from 'constructs';
+import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
+import {
+  AwsProvider,
+  AwsProviderAssumeRole,
+} from '@cdktf/provider-aws/lib/provider';
+import { Vpc } from './.gen/modules/vpc';
+import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import { LoadBalancer } from './constructs/load_balancer';
+import { PostgresDB } from './constructs/postgres';
+import { GraaspS3Bucket } from './constructs/bucket';
+import { makeCloudfront } from './constructs/cloudfront';
+import {
+  AllowedRegion,
+  Environment,
+  EnvironmentConfig,
+  GraaspWebsiteConfig,
+  envDomain,
+  subdomainForEnv,
+} from './utils';
+import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
+import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
+import { securityGroupOnlyAllowAnotherSecurityGroup } from './constructs/security_group';
+import { GraaspRedis } from './constructs/redis';
+import { CONFIG } from './config';
 
-const DEFAULT_REGION = AllowedRegion.Francfort
-const CERTIFICATE_REGION = "us-east-1";
+const DEFAULT_REGION = AllowedRegion.Francfort;
+const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = {
-  "terraform-managed": "true"
-}
+  'terraform-managed': 'true',
+};
 
 const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
-  [Environment.DEV]: [{roleArn: "arn:aws:iam::299720865162:role/terraform"}],
-  [Environment.STAGING]: [{roleArn: "arn:aws:iam::348555061219:role/terraform"}],
+  [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
+  [Environment.STAGING]: [
+    { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
+  ],
   [Environment.PRODUCTION]: [],
-}
+};
 
 class GraaspStack extends TerraformStack {
   constructor(scope: Construct, id: string, environment: EnvironmentConfig) {
@@ -35,56 +47,64 @@ class GraaspStack extends TerraformStack {
     const LIBRARY_PORT = 3005;
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
-    
-    new AwsProvider(this, "AWS", {
+
+    new AwsProvider(this, 'AWS', {
       region: environment.region,
       assumeRole: ROLE_BY_ENV[environment.env],
-      defaultTags: [{tags: SHARED_TAGS}]
-    })
+      defaultTags: [{ tags: SHARED_TAGS }],
+    });
 
     // This is where the state is stored
     new S3Backend(this, {
-      bucket: "graasp-terraform-state",
+      bucket: 'graasp-terraform-state',
       key: id,
       region: AllowedRegion.Zurich,
       encrypt: true,
-      skipRegionValidation: true // Zurich region is invalid with current version https://github.com/hashicorp/terraform-provider-aws/issues/28072
+      skipRegionValidation: true, // Zurich region is invalid with current version https://github.com/hashicorp/terraform-provider-aws/issues/28072
     });
 
-    const certificateProvider = new AwsProvider(this, "AWS_US_EAST", {
+    const certificateProvider = new AwsProvider(this, 'AWS_US_EAST', {
       region: CERTIFICATE_REGION,
       assumeRole: ROLE_BY_ENV[environment.env],
-      defaultTags: [{tags: SHARED_TAGS}],
-      alias: "us_east"
-    })
+      defaultTags: [{ tags: SHARED_TAGS }],
+      alias: 'us_east',
+    });
 
-    const vpc = new Vpc(this, "vpc", {
+    const vpc = new Vpc(this, 'vpc', {
       name: id,
-      cidr: "172.32.0.0/16",
-      
+      cidr: '172.32.0.0/16',
+
       // Use 3 availability zones in our region
-      azs: ["a", "b", "c"].map((i) => `${environment.region}${i}`),
-      publicSubnets: ["172.32.1.0/24", "172.32.2.0/24", "172.32.3.0/24"],
+      azs: ['a', 'b', 'c'].map((i) => `${environment.region}${i}`),
+      publicSubnets: ['172.32.1.0/24', '172.32.2.0/24', '172.32.3.0/24'],
     });
 
     if (!vpc.azs || vpc.azs.length < 3) {
-      throw new Error("Must define at least 3 availibility zones in the VPC");
+      throw new Error('Must define at least 3 availibility zones in the VPC');
     }
 
     // Certificate used for accessing apps - Must be an existing valid certificate
-    const sslCertificateCloudfront = new DataAwsAcmCertificate(this, `${id}-acm-cert`, {
-      domain: envDomain(environment),
-      mostRecent: true,
-      types: ["AMAZON_ISSUED"],
-      provider: certificateProvider // ACM certificate must be in US region
-    })
+    const sslCertificateCloudfront = new DataAwsAcmCertificate(
+      this,
+      `${id}-acm-cert`,
+      {
+        domain: envDomain(environment),
+        mostRecent: true,
+        types: ['AMAZON_ISSUED'],
+        provider: certificateProvider, // ACM certificate must be in US region
+      }
+    );
 
     // Certificate needs to be in the same region than the load balancer, so we can't use the same than Cloudfront
-    const sslCertificate = new DataAwsAcmCertificate(this, `${id}-acm-cert-lb`, {
-      domain: envDomain(environment),
-      mostRecent: true,
-      types: ["AMAZON_ISSUED"],
-    })
+    const sslCertificate = new DataAwsAcmCertificate(
+      this,
+      `${id}-acm-cert-lb`,
+      {
+        domain: envDomain(environment),
+        mostRecent: true,
+        types: ['AMAZON_ISSUED'],
+      }
+    );
 
     const cluster = new Cluster(this, id, vpc);
     const loadBalancer = new LoadBalancer(
@@ -95,216 +115,357 @@ class GraaspStack extends TerraformStack {
       environment
     );
 
-    const backendSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(this, `${id}-backend`, vpc.vpcIdOutput, loadBalancer.securityGroup.id, BACKEND_PORT);
-    const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(this, `${id}-library`, vpc.vpcIdOutput, loadBalancer.securityGroup.id, LIBRARY_PORT);
-    const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(this, `${id}-etherpad`, vpc.vpcIdOutput, loadBalancer.securityGroup.id, ETHERPAD_PORT);
+    const backendSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-backend`,
+      vpc.vpcIdOutput,
+      loadBalancer.securityGroup.id,
+      BACKEND_PORT
+    );
+    const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-library`,
+      vpc.vpcIdOutput,
+      loadBalancer.securityGroup.id,
+      LIBRARY_PORT
+    );
+    const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-etherpad`,
+      vpc.vpcIdOutput,
+      loadBalancer.securityGroup.id,
+      ETHERPAD_PORT
+    );
 
-    const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(this, `${id}-meilisearch`, vpc.vpcIdOutput, backendSecurityGroup.id, MEILISEARCH_PORT);
+    const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-meilisearch`,
+      vpc.vpcIdOutput,
+      backendSecurityGroup.id,
+      MEILISEARCH_PORT
+    );
 
-    const dbPassword = new TerraformVariable(this, "GRAASP_DB_PASSWORD", {
+    const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
       nullable: false,
-      type: "string",
-      description: "Admin password for the graasp database",
+      type: 'string',
+      description: 'Admin password for the graasp database',
       sensitive: true,
     });
 
     new PostgresDB(
       this,
       id,
-      "graasp",
-      "graasp",
+      'graasp',
+      'graasp',
       dbPassword,
       vpc,
       backendSecurityGroup,
-      CONFIG[environment.env].enableGraaspDatabaseReplication
+      CONFIG[environment.env].enableGraaspDatabaseReplication,
+      undefined,
+      true
     );
 
-    const etherpadDbPassword = new TerraformVariable(this, "ETHERPAD_DB_PASSWORD", {
-      nullable: false,
-      type: "string",
-      description: "Admin password for the etherpad database",
-      sensitive: true,
-    });
+    const etherpadDbPassword = new TerraformVariable(
+      this,
+      'ETHERPAD_DB_PASSWORD',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Admin password for the etherpad database',
+        sensitive: true,
+      }
+    );
 
     const etherpadDb = new PostgresDB(
       this,
       `${id}-etherpad`,
-      "graasp_etherpad",
-      "graasp_etherpad",
+      'graasp_etherpad',
+      'graasp_etherpad',
       etherpadDbPassword,
       vpc,
       etherpadSecurityGroup,
       false,
       {
-        availabilityZone: vpc.azs?.[2]
+        availabilityZone: vpc.azs?.[2],
       }
     );
-    
+
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
     new DataAwsEcrRepository(this, `${id}-ecr`, {
-      name: "graasp",
+      name: 'graasp',
     });
     const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
-      name: "graasp/etherpad",
+      name: 'graasp/etherpad',
     });
     new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
-      name: "graasp/explore",
+      name: 'graasp/explore',
     });
 
     // Task for the backend
     // This is a dummy task that will be replaced by the CI/CD during deployment
     // Deployment is not managed by Terraform here.
-    const graaspDummyBackendDefinition = createContainerDefinitions("graasp", "busybox", "1.36", [{
-      hostPort: BACKEND_PORT,
-      containerPort: BACKEND_PORT
-    }], {},  environment, ["/bin/sh", "-c" ,"while true; do sleep 30; done"]);
+    const graaspDummyBackendDefinition = createContainerDefinitions(
+      'graasp',
+      'busybox',
+      '1.36',
+      [
+        {
+          hostPort: BACKEND_PORT,
+          containerPort: BACKEND_PORT,
+        },
+      ],
+      {},
+      environment,
+      ['/bin/sh', '-c', 'while true; do sleep 30; done']
+    );
 
-    const libraryDummyBackendDefinition = createContainerDefinitions("graasp-library", "busybox", "1.36", [{
-      hostPort: LIBRARY_PORT,
-      containerPort: LIBRARY_PORT
-    }], {},  environment, ["/bin/sh", "-c" ,"while true; do sleep 30; done"]);
-    
+    const libraryDummyBackendDefinition = createContainerDefinitions(
+      'graasp-library',
+      'busybox',
+      '1.36',
+      [
+        {
+          hostPort: LIBRARY_PORT,
+          containerPort: LIBRARY_PORT,
+        },
+      ],
+      {},
+      environment,
+      ['/bin/sh', '-c', 'while true; do sleep 30; done']
+    );
+
     // Definitions for third party services changes less often and are managed by Terraform.
-    const etherpadDefinition = createContainerDefinitions("etherpad", etherpadECR.repositoryUrl, "latest", [{
-      hostPort: ETHERPAD_PORT,
-      containerPort: ETHERPAD_PORT
-    }], {
-      "DB_HOST": etherpadDb.instance.dbInstanceAddressOutput,
-      "DB_NAME": "graasp_etherpad",
-      "DB_PASS": `\$\{${etherpadDb.instance.password}\}`,
-      "DB_PORT": "5432",
-      "DB_TYPE": "postgres",
-      "DB_USER": "graasp_etherpad",
-      "EDIT_ONLY": "true",
-      "PORT": ETHERPAD_PORT.toString(),
-      "MINIFY": "false"
-    }, environment);
+    const etherpadDefinition = createContainerDefinitions(
+      'etherpad',
+      etherpadECR.repositoryUrl,
+      'latest',
+      [
+        {
+          hostPort: ETHERPAD_PORT,
+          containerPort: ETHERPAD_PORT,
+        },
+      ],
+      {
+        DB_HOST: etherpadDb.instance.dbInstanceAddressOutput,
+        DB_NAME: 'graasp_etherpad',
+        DB_PASS: `\$\{${etherpadDb.instance.password}\}`,
+        DB_PORT: '5432',
+        DB_TYPE: 'postgres',
+        DB_USER: 'graasp_etherpad',
+        EDIT_ONLY: 'true',
+        PORT: ETHERPAD_PORT.toString(),
+        MINIFY: 'false',
+      },
+      environment
+    );
 
-    const meilisearchMasterKey = new TerraformVariable(this, "MEILISEARCH_MASTER_KEY", {
-      nullable: false,
-      type: "string",
-      description: "Meilisearch master key",
-      sensitive: true,
-    });
-    const meilisearchDefinition = createContainerDefinitions("meilisearch", "getmeili/meilisearch", "v1.2", [{
-      hostPort: MEILISEARCH_PORT,
-      containerPort: MEILISEARCH_PORT
-    }], {
-      "MEILI_ENV": "production",
-      "MEILI_MASTER_KEY": `\$\{${meilisearchMasterKey.value}\}`,
-      "MEILI_NO_ANALYTICS": "true"
-    }, environment);
+    const meilisearchMasterKey = new TerraformVariable(
+      this,
+      'MEILISEARCH_MASTER_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Meilisearch master key',
+        sensitive: true,
+      }
+    );
+    const meilisearchDefinition = createContainerDefinitions(
+      'meilisearch',
+      'getmeili/meilisearch',
+      'v1.2',
+      [
+        {
+          hostPort: MEILISEARCH_PORT,
+          containerPort: MEILISEARCH_PORT,
+        },
+      ],
+      {
+        MEILI_ENV: 'production',
+        MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
+        MEILI_NO_ANALYTICS: 'true',
+      },
+      environment
+    );
 
     // backend
-    cluster.addService("graasp",
+    cluster.addService(
+      'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
-      { containerDefinitions: graaspDummyBackendDefinition, dummy: true},
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
-      { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageCPUUtilization" }, targetValue: 70, scaleInCooldown: 30, scaleOutCooldown: 300},
-      { loadBalancer: loadBalancer, priority: 1, host: subdomainForEnv("api", environment), port: 80, containerPort: BACKEND_PORT, healtcheckPath: "/status" }
+      {
+        predefinedMetricSpecification: {
+          predefinedMetricType: 'ECSServiceAverageCPUUtilization',
+        },
+        targetValue: 70,
+        scaleInCooldown: 30,
+        scaleOutCooldown: 300,
+      },
+      {
+        loadBalancer: loadBalancer,
+        priority: 1,
+        host: subdomainForEnv('api', environment),
+        port: 80,
+        containerPort: BACKEND_PORT,
+        healtcheckPath: '/status',
+      }
     );
-    
-    cluster.addService("graasp-library",
+
+    cluster.addService(
+      'graasp-library',
       1,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
-      { predefinedMetricSpecification: { predefinedMetricType: "ECSServiceAverageMemoryUtilization" }, targetValue: 80, scaleInCooldown: 10, scaleOutCooldown: 300},
-      { loadBalancer: loadBalancer, priority: 2, host: subdomainForEnv("library", environment), port: 80, containerPort: LIBRARY_PORT, healtcheckPath: "/api/status" }
+      {
+        predefinedMetricSpecification: {
+          predefinedMetricType: 'ECSServiceAverageMemoryUtilization',
+        },
+        targetValue: 80,
+        scaleInCooldown: 10,
+        scaleOutCooldown: 300,
+      },
+      {
+        loadBalancer: loadBalancer,
+        priority: 2,
+        host: subdomainForEnv('library', environment),
+        port: 80,
+        containerPort: LIBRARY_PORT,
+        healtcheckPath: '/api/status',
+      }
     );
 
-    cluster.addService("etherpad",
+    cluster.addService(
+      'etherpad',
       1,
-      { containerDefinitions: etherpadDefinition, cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu, memory: CONFIG[environment.env].ecsConfig.etherpad.memory, dummy: false },
+      {
+        containerDefinitions: etherpadDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
+        memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
+        dummy: false,
+      },
       etherpadSecurityGroup,
       undefined,
       undefined,
-      { loadBalancer: loadBalancer, priority: 3, host: subdomainForEnv("etherpad", environment), port: 443, containerPort: ETHERPAD_PORT, healtcheckPath: "/" }
+      {
+        loadBalancer: loadBalancer,
+        priority: 3,
+        host: subdomainForEnv('etherpad', environment),
+        port: 443,
+        containerPort: ETHERPAD_PORT,
+        healtcheckPath: '/',
+      }
     );
 
-    cluster.addService("meilisearch",
+    cluster.addService(
+      'meilisearch',
       1,
-      { containerDefinitions: meilisearchDefinition, cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu, memory: CONFIG[environment.env].ecsConfig.meilisearch.memory, dummy: false }, // TODO: container def
+      {
+        containerDefinitions: meilisearchDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
+        memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
+        dummy: false,
+      }, // TODO: container def
       meilisearchSecurityGroup,
-      {name: "graasp-meilisearch", port: MEILISEARCH_PORT}
+      { name: 'graasp-meilisearch', port: MEILISEARCH_PORT }
     );
-    
+
     // S3 buckets
 
     // This has been copied from existing configuration, is it relevant?
     const FILE_ITEM_CORS = [
       {
-        allowedHeaders: ["*"],
-        allowedMethods: ["GET"], 
-        allowedOrigins: [`https://${subdomainForEnv("assets", environment)}`],
+        allowedHeaders: ['*'],
+        allowedMethods: ['GET'],
+        allowedOrigins: [`https://${subdomainForEnv('assets', environment)}`],
         exposeHeaders: [],
       },
       {
-        allowedHeaders: ["*"],
-        allowedMethods: ["HEAD", "PUT", "GET", "DELETE"],
-        allowedOrigins: ["null"],
+        allowedHeaders: ['*'],
+        allowedMethods: ['HEAD', 'PUT', 'GET', 'DELETE'],
+        allowedOrigins: ['null'],
         exposeHeaders: [],
       },
       {
-        allowedHeaders: ["*"],
-        allowedMethods: ["HEAD", "GET"],
-        allowedOrigins: ["*"],
+        allowedHeaders: ['*'],
+        allowedMethods: ['HEAD', 'GET'],
+        allowedOrigins: ['*'],
         exposeHeaders: [],
       },
     ];
-    const H5P_CORS = [{
-      allowedHeaders: ["*"],
-      allowedMethods: ["GET"],
-      allowedOrigins: [
-        `https://${subdomainForEnv("builder", environment)}`,
-        `https://${subdomainForEnv("player", environment)}`
-      ],
-      exposeHeaders: [],
-    }];
-    
+    const H5P_CORS = [
+      {
+        allowedHeaders: ['*'],
+        allowedMethods: ['GET'],
+        allowedOrigins: [
+          `https://${subdomainForEnv('builder', environment)}`,
+          `https://${subdomainForEnv('player', environment)}`,
+        ],
+        exposeHeaders: [],
+      },
+    ];
+
     const websites: Record<string, GraaspWebsiteConfig> = {
-      "account": { corsConfig: []},
-      "admin": { corsConfig: []},
-      "analytics": { corsConfig: []},
-      "apps": { corsConfig: []},
-      "assets": { corsConfig: []},
-      "auth": { corsConfig: []},
-      "builder": { corsConfig: []},
-      "maintenance": { corsConfig: []},
-      "player": { corsConfig: []},
-      "h5p": { corsConfig: H5P_CORS, bucketOwnership: "BucketOwnerEnforced"},
-  }
+      account: { corsConfig: [] },
+      admin: { corsConfig: [] },
+      analytics: { corsConfig: [] },
+      apps: { corsConfig: [] },
+      assets: { corsConfig: [] },
+      auth: { corsConfig: [] },
+      builder: { corsConfig: [] },
+      maintenance: { corsConfig: [] },
+      player: { corsConfig: [] },
+      h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
+    };
 
     for (const website of Object.entries(websites)) {
-      const bucket = new GraaspS3Bucket(this, `${id}-${website[0]}`, true, website[1].corsConfig, website[1].bucketOwnership);
+      const bucket = new GraaspS3Bucket(
+        this,
+        `${id}-${website[0]}`,
+        true,
+        website[1].corsConfig,
+        website[1].bucketOwnership
+      );
       if (!bucket.websiteConfiguration) {
-        throw new Error("Website bucket should have a website configuration");
+        throw new Error('Website bucket should have a website configuration');
       }
-      makeCloudfront(this, `${id}-${website[0]}`, website[0], bucket.bucket.bucketRegionalDomainName, sslCertificateCloudfront, environment)
+      makeCloudfront(
+        this,
+        `${id}-${website[0]}`,
+        website[0],
+        bucket.bucket.bucketRegionalDomainName,
+        sslCertificateCloudfront,
+        environment
+      );
     }
     // File item storage is private
     new GraaspS3Bucket(this, `${id}-file-items`, false, FILE_ITEM_CORS);
 
     // Redis cluster
-    new GraaspRedis(this, id, vpc, backendSecurityGroup, CONFIG[environment.env].enableRedisReplication);
+    new GraaspRedis(
+      this,
+      id,
+      vpc,
+      backendSecurityGroup,
+      CONFIG[environment.env].enableRedisReplication
+    );
   }
 }
 
 const app = new App();
 
 // Each stack has its own state stored in a pre created S3 Bucket
-new GraaspStack(app, "graasp-dev", {
+new GraaspStack(app, 'graasp-dev', {
   env: Environment.DEV,
-  subdomain: "dev",
-  region: DEFAULT_REGION
+  subdomain: 'dev',
+  region: DEFAULT_REGION,
 });
 
-new GraaspStack(app, "graasp-staging", {
+new GraaspStack(app, 'graasp-staging', {
   env: Environment.STAGING,
-  subdomain: "stage",
-  region: AllowedRegion.Zurich
+  subdomain: 'stage',
+  region: AllowedRegion.Zurich,
 });
-
 
 app.synth();
