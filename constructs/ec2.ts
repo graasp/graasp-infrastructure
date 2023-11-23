@@ -18,6 +18,7 @@ export class Ec2 extends Construct {
     vpc: Vpc,
     gatekeeperKeyName: TerraformVariable,
     ami: string,
+    instanceType: string,
     associatePublicIpAddress = false
   ) {
     super(scope, name);
@@ -38,7 +39,7 @@ export class Ec2 extends Construct {
 
     this.ec2 = new Instance(this, `${name}-ec2`, {
       ami,
-      instanceType: 't2.micro',
+      instanceType,
       keyName: gatekeeperKeyName.value,
       associatePublicIpAddress,
       tags: {
