@@ -468,4 +468,10 @@ new GraaspStack(app, 'graasp-staging', {
   region: AllowedRegion.Zurich,
 });
 
+new GraaspStack(app, 'graasp-prod', {
+  env: Environment.PRODUCTION,
+  subdomain: '',
+  region: AllowedRegion.Zurich,
+});
+
 app.synth();
