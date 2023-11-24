@@ -36,7 +36,9 @@ const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
   [Environment.STAGING]: [
     { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
   ],
-  [Environment.PRODUCTION]: [],
+  [Environment.PRODUCTION]: [
+    { roleArn: 'arn:aws:iam::592217263685:role/terraform' },
+  ],
 };
 
 class GraaspStack extends TerraformStack {
@@ -470,7 +472,6 @@ new GraaspStack(app, 'graasp-staging', {
 
 new GraaspStack(app, 'graasp-prod', {
   env: Environment.PRODUCTION,
-  subdomain: '',
   region: AllowedRegion.Zurich,
 });
 
