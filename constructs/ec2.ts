@@ -47,7 +47,7 @@ export class Ec2 extends Construct {
       },
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
-      securityGroups: [this.securityGroup.id],
+      vpcSecurityGroupIds: [this.securityGroup.id],
     });
 
     // allow ssh from anywhere
