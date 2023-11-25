@@ -19,6 +19,7 @@ export class PostgresDB extends Construct {
     vpc: Vpc,
     allowedSecurityGroup: SecurityGroup,
     addReplica: boolean,
+    backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
     createGateKeeper?: boolean
   ) {
@@ -93,7 +94,7 @@ export class PostgresDB extends Construct {
       identifier: `${name}`,
 
       engine: 'postgres',
-      engineVersion: '15.2',
+      engineVersion: '15.3',
       instanceClass: 'db.t3.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
@@ -128,7 +129,7 @@ export class PostgresDB extends Construct {
 
       maintenanceWindow: 'Sat:00:08-Sat:00:38',
       backupWindow: '21:30-22:00',
-      backupRetentionPeriod: 1, // day
+      backupRetentionPeriod,
       copyTagsToSnapshot: true,
 
       performanceInsightsEnabled: true,

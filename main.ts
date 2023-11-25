@@ -162,7 +162,8 @@ class GraaspStack extends TerraformStack {
       dbPassword,
       vpc,
       backendSecurityGroup,
-      CONFIG[environment.env].enableGraaspDatabaseReplication,
+      CONFIG[environment.env].dbConfig.graasp.enableReplication,
+      CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       true
     );
@@ -187,6 +188,7 @@ class GraaspStack extends TerraformStack {
       vpc,
       etherpadSecurityGroup,
       false,
+      CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
         availabilityZone: vpc.azs?.[2],
       }

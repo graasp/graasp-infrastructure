@@ -6,8 +6,16 @@ export type HardwareLimit = {
 };
 
 export type GraaspConfiguration = {
-  enableGraaspDatabaseReplication: boolean;
   enableRedisReplication: boolean;
+  dbConfig: {
+    graasp: {
+      enableReplication: boolean;
+      backupRetentionPeriod: number; // day
+    };
+    etherpad: {
+      backupRetentionPeriod: number; // day
+    };
+  };
   ecsConfig: {
     // graasp: HardwareLimit, // These do not make sense as the task definition are replaced by deployment.
     // library: HardwareLimit,
@@ -25,8 +33,16 @@ export type GraaspConfiguration = {
 
 export const CONFIG: Record<Environment, GraaspConfiguration> = {
   [Environment.DEV]: {
-    enableGraaspDatabaseReplication: false,
     enableRedisReplication: false,
+    dbConfig: {
+      graasp: {
+        enableReplication: false,
+        backupRetentionPeriod: 1,
+      },
+      etherpad: {
+        backupRetentionPeriod: 1,
+      },
+    },
     ecsConfig: {
       graasp: {
         taskCount: 1,
@@ -42,8 +58,16 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
   },
   [Environment.STAGING]: {
-    enableGraaspDatabaseReplication: true,
     enableRedisReplication: true,
+    dbConfig: {
+      graasp: {
+        enableReplication: true,
+        backupRetentionPeriod: 1,
+      },
+      etherpad: {
+        backupRetentionPeriod: 1,
+      },
+    },
     ecsConfig: {
       graasp: {
         taskCount: 2,
@@ -59,8 +83,16 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
   },
   [Environment.PRODUCTION]: {
-    enableGraaspDatabaseReplication: true,
     enableRedisReplication: true,
+    dbConfig: {
+      graasp: {
+        enableReplication: true,
+        backupRetentionPeriod: 7,
+      },
+      etherpad: {
+        backupRetentionPeriod: 7,
+      },
+    },
     ecsConfig: {
       graasp: {
         taskCount: 2,
