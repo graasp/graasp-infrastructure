@@ -1,11 +1,13 @@
-import { Construct } from 'constructs';
-import { Vpc } from '../.gen/modules/vpc';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
-import { Rds, RdsConfig } from '../.gen/modules/rds';
-import { TerraformVariable, Token } from 'cdktf';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
+import { TerraformVariable, Token } from 'cdktf';
+
+import { Construct } from 'constructs';
+
+import { Rds, RdsConfig } from '../.gen/modules/rds';
+import { Vpc } from '../.gen/modules/vpc';
 import { Ec2 } from './ec2';
+import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
 
 export class PostgresDB extends Construct {
   public instance: Rds;
@@ -21,7 +23,7 @@ export class PostgresDB extends Construct {
     addReplica: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
-    createGateKeeper?: boolean
+    createGateKeeper?: boolean,
   ) {
     super(scope, `${name}-postgres`);
 
@@ -32,7 +34,7 @@ export class PostgresDB extends Construct {
       `${name}-db`,
       vpc.vpcIdOutput,
       allowedSecurityGroup.id,
-      dbPort
+      dbPort,
     );
 
     // allow a gatekeeper for manual migrations
@@ -45,7 +47,7 @@ export class PostgresDB extends Construct {
           type: 'string',
           description: 'Keyname for the keypair for graasp db gatekeeper',
           sensitive: true,
-        }
+        },
       );
       const gatekeeperAmiId = new TerraformVariable(
         scope,
@@ -55,7 +57,7 @@ export class PostgresDB extends Construct {
           type: 'string',
           description: 'AMI id for graasp db gatekeeper',
           sensitive: false,
-        }
+        },
       );
 
       const gatekeeperInstanceType = new TerraformVariable(
@@ -66,7 +68,7 @@ export class PostgresDB extends Construct {
           type: 'string',
           description: 'AMI instance type for graasp db gatekeeper',
           sensitive: false,
-        }
+        },
       );
 
       const gateKeeper = new Ec2(
@@ -76,7 +78,7 @@ export class PostgresDB extends Construct {
         gatekeeperKeyName,
         gatekeeperAmiId.value,
         gatekeeperInstanceType.value,
-        true
+        true,
       );
 
       // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons

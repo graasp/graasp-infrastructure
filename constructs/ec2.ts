@@ -1,10 +1,12 @@
-import { Construct } from 'constructs';
 import { Instance } from '@cdktf/provider-aws/lib/instance';
-import { Vpc } from '../.gen/modules/vpc';
-import { allowAllEgressRule } from './security_group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { Fn, TerraformVariable, Token } from 'cdktf';
+
+import { Construct } from 'constructs';
+
+import { Vpc } from '../.gen/modules/vpc';
+import { allowAllEgressRule } from './security_group';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 
@@ -19,7 +21,7 @@ export class Ec2 extends Construct {
     gatekeeperKeyName: TerraformVariable,
     ami: string,
     instanceType: string,
-    associatePublicIpAddress = false
+    associatePublicIpAddress = false,
   ) {
     super(scope, name);
 
