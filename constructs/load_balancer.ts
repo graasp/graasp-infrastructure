@@ -124,7 +124,7 @@ export class LoadBalancer extends Construct {
           type: 'redirect',
           redirect: {
             host: subdomainForEnv('api', env),
-            path: '/status',
+            path: '/items/short-links/#{path}',
             statusCode: 'HTTP_302',
             protocol: 'HTTPS',
           },
