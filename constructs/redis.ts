@@ -1,11 +1,13 @@
 import { ElasticacheCluster } from '@cdktf/provider-aws/lib/elasticache-cluster';
+import { ElasticacheReplicationGroup } from '@cdktf/provider-aws/lib/elasticache-replication-group';
 import { ElasticacheSubnetGroup } from '@cdktf/provider-aws/lib/elasticache-subnet-group';
-import { Construct } from 'constructs';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
-import { Vpc } from '../.gen/modules/vpc';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { Token } from 'cdktf';
-import { ElasticacheReplicationGroup } from '@cdktf/provider-aws/lib/elasticache-replication-group';
+
+import { Construct } from 'constructs';
+
+import { Vpc } from '../.gen/modules/vpc';
+import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
 
 export class GraaspRedis extends Construct {
   constructor(
@@ -13,7 +15,7 @@ export class GraaspRedis extends Construct {
     id: string,
     vpc: Vpc,
     allowedSecurityGroup: SecurityGroup,
-    addReplication: boolean
+    addReplication: boolean,
   ) {
     super(scope, `${id}-redis`);
 
@@ -22,7 +24,7 @@ export class GraaspRedis extends Construct {
       `${id}-redis`,
       vpc.vpcIdOutput,
       allowedSecurityGroup.id,
-      6379
+      6379,
     );
 
     const redisSubnetGroup = new ElasticacheSubnetGroup(
@@ -31,7 +33,7 @@ export class GraaspRedis extends Construct {
       {
         name: id,
         subnetIds: Token.asList(vpc.publicSubnetsOutput),
-      }
+      },
     );
 
     if (addReplication) {
