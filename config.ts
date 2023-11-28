@@ -1,79 +1,110 @@
-import { Environment } from "./utils"
+import { Environment } from './utils';
 
 export type HardwareLimit = {
-    cpu: string,
-    memory: string,
-  }
-  
+  cpu: string;
+  memory: string;
+};
+
 export type GraaspConfiguration = {
-    enableGraaspDatabaseReplication: boolean,
-    enableRedisReplication: boolean,
-    ecsConfig: {
-        // graasp: HardwareLimit, // These do not make sense as the task definition are replaced by deployment.
-        // library: HardwareLimit,
-        graasp: {
-            taskCount: number
-        }
-        etherpad: HardwareLimit,
-        meilisearch: HardwareLimit,
-    }
-}
+  enableRedisReplication: boolean;
+  dbConfig: {
+    graasp: {
+      enableReplication: boolean;
+      backupRetentionPeriod: number; // day
+    };
+    etherpad: {
+      backupRetentionPeriod: number; // day
+    };
+  };
+  ecsConfig: {
+    // graasp: HardwareLimit, // These do not make sense as the task definition are replaced by deployment.
+    // library: HardwareLimit,
+    graasp: {
+      taskCount: number;
+    };
+    etherpad: HardwareLimit;
+    meilisearch: HardwareLimit;
+  };
+};
 
 /*
     This config represents the configuration option that might change between environment.
 */
 
 export const CONFIG: Record<Environment, GraaspConfiguration> = {
-    [Environment.DEV]: {
-        enableGraaspDatabaseReplication: false,
-        enableRedisReplication: false,
-        ecsConfig: {
-            graasp: {
-                taskCount: 1
-            },
-            etherpad: {
-                cpu: "256",
-                memory: "512",
-            },
-            meilisearch: {
-                cpu: "256",
-                memory: "512",
-            }
-        }
+  [Environment.DEV]: {
+    enableRedisReplication: false,
+    dbConfig: {
+      graasp: {
+        enableReplication: false,
+        backupRetentionPeriod: 1,
+      },
+      etherpad: {
+        backupRetentionPeriod: 1,
+      },
     },
-    [Environment.STAGING]: {
-        enableGraaspDatabaseReplication: true,
-        enableRedisReplication: true,
-        ecsConfig: {
-            graasp: {
-                taskCount: 2
-            },
-            etherpad: {
-                cpu: "256",
-                memory: "512",
-            },
-            meilisearch: {
-                cpu: "512",
-                memory: "1024",
-            }
-        }
+    ecsConfig: {
+      graasp: {
+        taskCount: 1,
+      },
+      etherpad: {
+        cpu: '256',
+        memory: '512',
+      },
+      meilisearch: {
+        cpu: '256',
+        memory: '512',
+      },
     },
-    [Environment.PRODUCTION]: {
-        enableGraaspDatabaseReplication: false,
-        enableRedisReplication: false,
-        ecsConfig: {
-            graasp: {
-                taskCount: 2
-            },
-            etherpad: {
-                cpu: "256",
-                memory: "512",
-            },
-            meilisearch: {
-                cpu: "512",
-                memory: "1024",
-            }
-        }
+  },
+  [Environment.STAGING]: {
+    enableRedisReplication: true,
+    dbConfig: {
+      graasp: {
+        enableReplication: true,
+        backupRetentionPeriod: 1,
+      },
+      etherpad: {
+        backupRetentionPeriod: 1,
+      },
     },
-
-}
+    ecsConfig: {
+      graasp: {
+        taskCount: 2,
+      },
+      etherpad: {
+        cpu: '256',
+        memory: '512',
+      },
+      meilisearch: {
+        cpu: '512',
+        memory: '1024',
+      },
+    },
+  },
+  [Environment.PRODUCTION]: {
+    enableRedisReplication: true,
+    dbConfig: {
+      graasp: {
+        enableReplication: true,
+        backupRetentionPeriod: 7,
+      },
+      etherpad: {
+        backupRetentionPeriod: 7,
+      },
+    },
+    ecsConfig: {
+      graasp: {
+        taskCount: 2,
+      },
+      etherpad: {
+        cpu: '256',
+        memory: '512',
+      },
+      meilisearch: {
+        cpu: '512',
+        memory: '1024',
+      },
+    },
+  },
+};

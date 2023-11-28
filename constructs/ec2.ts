@@ -42,6 +42,9 @@ export class Ec2 extends Construct {
       instanceType,
       keyName: gatekeeperKeyName.value,
       associatePublicIpAddress,
+      lifecycle: {
+        ignoreChanges: ['associate_public_ip_address'],
+      },
       tags: {
         Name: name,
       },

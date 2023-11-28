@@ -36,7 +36,9 @@ const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
   [Environment.STAGING]: [
     { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
   ],
-  [Environment.PRODUCTION]: [],
+  [Environment.PRODUCTION]: [
+    { roleArn: 'arn:aws:iam::592217263685:role/terraform' },
+  ],
 };
 
 class GraaspStack extends TerraformStack {
@@ -160,7 +162,8 @@ class GraaspStack extends TerraformStack {
       dbPassword,
       vpc,
       backendSecurityGroup,
-      CONFIG[environment.env].enableGraaspDatabaseReplication,
+      CONFIG[environment.env].dbConfig.graasp.enableReplication,
+      CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       true
     );
@@ -185,6 +188,7 @@ class GraaspStack extends TerraformStack {
       vpc,
       etherpadSecurityGroup,
       false,
+      CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
         availabilityZone: vpc.azs?.[2],
       }
@@ -465,6 +469,11 @@ new GraaspStack(app, 'graasp-dev', {
 new GraaspStack(app, 'graasp-staging', {
   env: Environment.STAGING,
   subdomain: 'stage',
+  region: AllowedRegion.Zurich,
+});
+
+new GraaspStack(app, 'graasp-prod', {
+  env: Environment.PRODUCTION,
   region: AllowedRegion.Zurich,
 });
 

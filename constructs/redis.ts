@@ -1,58 +1,67 @@
-import { ElasticacheCluster } from "@cdktf/provider-aws/lib/elasticache-cluster";
-import { ElasticacheSubnetGroup } from "@cdktf/provider-aws/lib/elasticache-subnet-group";
-import { Construct } from "constructs";
-import { securityGroupOnlyAllowAnotherSecurityGroup } from "./security_group";
-import { Vpc } from "../.gen/modules/vpc";
-import { SecurityGroup } from "@cdktf/provider-aws/lib/security-group";
-import { Token } from "cdktf";
-import { ElasticacheReplicationGroup } from "@cdktf/provider-aws/lib/elasticache-replication-group";
+import { ElasticacheCluster } from '@cdktf/provider-aws/lib/elasticache-cluster';
+import { ElasticacheSubnetGroup } from '@cdktf/provider-aws/lib/elasticache-subnet-group';
+import { Construct } from 'constructs';
+import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
+import { Vpc } from '../.gen/modules/vpc';
+import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
+import { Token } from 'cdktf';
+import { ElasticacheReplicationGroup } from '@cdktf/provider-aws/lib/elasticache-replication-group';
 
 export class GraaspRedis extends Construct {
-  
-    constructor(
-      scope: Construct,
-      id: string,
-      vpc: Vpc,
-      allowedSecurityGroup: SecurityGroup,
-      addReplication: boolean,
-    ) {
-      super(scope, `${id}-redis`);
-  
-      const redisSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(this, `${id}-redis`, vpc.vpcIdOutput, allowedSecurityGroup.id, 6379);
+  constructor(
+    scope: Construct,
+    id: string,
+    vpc: Vpc,
+    allowedSecurityGroup: SecurityGroup,
+    addReplication: boolean
+  ) {
+    super(scope, `${id}-redis`);
 
-    const redisSubnetGroup = new ElasticacheSubnetGroup(this, `${id}-redis-subnet-group`, {
-      name: id,
-      subnetIds: Token.asList(vpc.publicSubnetsOutput),
-    })
+    const redisSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-redis`,
+      vpc.vpcIdOutput,
+      allowedSecurityGroup.id,
+      6379
+    );
+
+    const redisSubnetGroup = new ElasticacheSubnetGroup(
+      this,
+      `${id}-redis-subnet-group`,
+      {
+        name: id,
+        subnetIds: Token.asList(vpc.publicSubnetsOutput),
+      }
+    );
 
     if (addReplication) {
       new ElasticacheReplicationGroup(this, `${id}-redis`, {
         applyImmediately: true,
         replicationGroupId: `${id}-redis`,
         description: `${id}-redis`,
-        engine: "redis",
-        engineVersion: "6.2",
-        nodeType: "cache.t3.micro",
+        engine: 'redis',
+        engineVersion: '6.2',
+        nodeType: 'cache.t3.micro',
         numNodeGroups: 1,
         replicasPerNodeGroup: 2,
-        parameterGroupName: "default.redis6.x",
+        parameterGroupName: 'default.redis6.x',
         port: 6379,
         subnetGroupName: redisSubnetGroup.name,
-        securityGroupIds: [redisSecurityGroup.id], 
-      })
+        securityGroupIds: [redisSecurityGroup.id],
+      });
     } else {
       new ElasticacheCluster(this, `${id}-redis`, {
         applyImmediately: true,
         clusterId: `${id}-redis`,
-        engine: "redis",
-        engineVersion: "6.2",
-        nodeType: "cache.t2.micro",
+        engine: 'redis',
+        engineVersion: '6.2',
+        nodeType: 'cache.t3.micro',
         numCacheNodes: 1,
-        parameterGroupName: "default.redis6.x",
+        parameterGroupName: 'default.redis6.x',
         port: 6379,
         subnetGroupName: redisSubnetGroup.name,
-        securityGroupIds: [redisSecurityGroup.id], 
-      })
+        securityGroupIds: [redisSecurityGroup.id],
+      });
     }
 
     // Default already exist?
@@ -66,5 +75,5 @@ export class GraaspRedis extends Construct {
     //   userId: "default",
     //   userName: "default",
     // });
-    }
   }
+}
