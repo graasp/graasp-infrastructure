@@ -418,9 +418,10 @@ class GraaspStack extends TerraformStack {
       assets: { corsConfig: [] },
       auth: { corsConfig: [] },
       builder: { corsConfig: [] },
-      maintenance: { corsConfig: [] },
-      player: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
+      maintenance: { corsConfig: [] },
+      map: { corsConfig: [] },
+      player: { corsConfig: [] },
     };
 
     for (const website of Object.entries(websites)) {
