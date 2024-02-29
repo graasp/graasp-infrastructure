@@ -11,3 +11,4 @@ tsconfig.tsbuildinfo
 !setup.js
 .env.*
 .yarn/*
+.DS_Store
