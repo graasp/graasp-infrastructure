@@ -18,6 +18,8 @@ jobs:
         uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install dependencies
         run: yarn install
@@ -27,7 +29,7 @@ jobs:
 
       - name: Configure AWS Credentials
         id: configure-aws
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
@@ -54,7 +56,7 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: yarn install
@@ -64,7 +66,7 @@ jobs:
 
       - name: Configure AWS Credentials
         id: configure-aws
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}

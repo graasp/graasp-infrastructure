@@ -1,15 +1,22 @@
-import { Construct } from 'constructs';
-import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
+import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
+import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
 import {
   AwsProvider,
   AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
+import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
+
+import { Construct } from 'constructs';
+
 import { Vpc } from './.gen/modules/vpc';
+import { CONFIG } from './config';
+import { GraaspS3Bucket } from './constructs/bucket';
+import { makeCloudfront } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
-import { GraaspS3Bucket } from './constructs/bucket';
-import { makeCloudfront } from './constructs/cloudfront';
+import { GraaspRedis } from './constructs/redis';
+import { securityGroupOnlyAllowAnotherSecurityGroup } from './constructs/security_group';
 import {
   AllowedRegion,
   Environment,
@@ -18,11 +25,6 @@ import {
   envDomain,
   subdomainForEnv,
 } from './utils';
-import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
-import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './constructs/security_group';
-import { GraaspRedis } from './constructs/redis';
-import { CONFIG } from './config';
 
 const DEFAULT_REGION = AllowedRegion.Francfort;
 const CERTIFICATE_REGION = 'us-east-1';
@@ -94,7 +96,7 @@ class GraaspStack extends TerraformStack {
         mostRecent: true,
         types: ['AMAZON_ISSUED'],
         provider: certificateProvider, // ACM certificate must be in US region
-      }
+      },
     );
 
     // Certificate needs to be in the same region than the load balancer, so we can't use the same than Cloudfront
@@ -105,7 +107,7 @@ class GraaspStack extends TerraformStack {
         domain: envDomain(environment),
         mostRecent: true,
         types: ['AMAZON_ISSUED'],
-      }
+      },
     );
 
     const cluster = new Cluster(this, id, vpc);
@@ -114,7 +116,7 @@ class GraaspStack extends TerraformStack {
       id,
       vpc,
       sslCertificate,
-      environment
+      environment,
     );
 
     const backendSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
@@ -122,21 +124,21 @@ class GraaspStack extends TerraformStack {
       `${id}-backend`,
       vpc.vpcIdOutput,
       loadBalancer.securityGroup.id,
-      BACKEND_PORT
+      BACKEND_PORT,
     );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
       vpc.vpcIdOutput,
       loadBalancer.securityGroup.id,
-      LIBRARY_PORT
+      LIBRARY_PORT,
     );
     const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-etherpad`,
       vpc.vpcIdOutput,
       loadBalancer.securityGroup.id,
-      ETHERPAD_PORT
+      ETHERPAD_PORT,
     );
 
     const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
@@ -144,7 +146,7 @@ class GraaspStack extends TerraformStack {
       `${id}-meilisearch`,
       vpc.vpcIdOutput,
       backendSecurityGroup.id,
-      MEILISEARCH_PORT
+      MEILISEARCH_PORT,
     );
 
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
@@ -165,7 +167,7 @@ class GraaspStack extends TerraformStack {
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
-      true
+      true,
     );
 
     const etherpadDbPassword = new TerraformVariable(
@@ -176,7 +178,7 @@ class GraaspStack extends TerraformStack {
         type: 'string',
         description: 'Admin password for the etherpad database',
         sensitive: true,
-      }
+      },
     );
 
     const etherpadDb = new PostgresDB(
@@ -191,7 +193,7 @@ class GraaspStack extends TerraformStack {
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
         availabilityZone: vpc.azs?.[2],
-      }
+      },
     );
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
@@ -220,7 +222,7 @@ class GraaspStack extends TerraformStack {
       ],
       {},
       environment,
-      ['/bin/sh', '-c', 'while true; do sleep 30; done']
+      ['/bin/sh', '-c', 'while true; do sleep 30; done'],
     );
 
     const libraryDummyBackendDefinition = createContainerDefinitions(
@@ -235,7 +237,7 @@ class GraaspStack extends TerraformStack {
       ],
       {},
       environment,
-      ['/bin/sh', '-c', 'while true; do sleep 30; done']
+      ['/bin/sh', '-c', 'while true; do sleep 30; done'],
     );
 
     // Definitions for third party services changes less often and are managed by Terraform.
@@ -260,7 +262,7 @@ class GraaspStack extends TerraformStack {
         PORT: ETHERPAD_PORT.toString(),
         MINIFY: 'false',
       },
-      environment
+      environment,
     );
 
     const meilisearchMasterKey = new TerraformVariable(
@@ -271,7 +273,7 @@ class GraaspStack extends TerraformStack {
         type: 'string',
         description: 'Meilisearch master key',
         sensitive: true,
-      }
+      },
     );
     const meilisearchDefinition = createContainerDefinitions(
       'meilisearch',
@@ -288,7 +290,7 @@ class GraaspStack extends TerraformStack {
         MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
         MEILI_NO_ANALYTICS: 'true',
       },
-      environment
+      environment,
     );
 
     // backend
@@ -313,7 +315,7 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: BACKEND_PORT,
         healtcheckPath: '/status',
-      }
+      },
     );
 
     cluster.addService(
@@ -337,7 +339,7 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: LIBRARY_PORT,
         healtcheckPath: '/api/status',
-      }
+      },
     );
 
     cluster.addService(
@@ -359,7 +361,7 @@ class GraaspStack extends TerraformStack {
         port: 443,
         containerPort: ETHERPAD_PORT,
         healtcheckPath: '/',
-      }
+      },
     );
 
     cluster.addService(
@@ -372,7 +374,7 @@ class GraaspStack extends TerraformStack {
         dummy: false,
       }, // TODO: container def
       meilisearchSecurityGroup,
-      { name: 'graasp-meilisearch', port: MEILISEARCH_PORT }
+      { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );
 
     // S3 buckets
@@ -419,29 +421,30 @@ class GraaspStack extends TerraformStack {
       auth: { corsConfig: [] },
       builder: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
+      landing: { corsConfig: [] },
       maintenance: { corsConfig: [] },
       map: { corsConfig: [] },
       player: { corsConfig: [] },
     };
 
-    for (const website of Object.entries(websites)) {
+    for (const [website_name, website_config] of Object.entries(websites)) {
       const bucket = new GraaspS3Bucket(
         this,
-        `${id}-${website[0]}`,
-        true,
-        website[1].corsConfig,
-        website[1].bucketOwnership
+        `${id}-${website_name}`,
+        website_config.s3StaticSite ?? true,
+        website_config.corsConfig,
+        website_config.bucketOwnership,
       );
       if (!bucket.websiteConfiguration) {
         throw new Error('Website bucket should have a website configuration');
       }
       makeCloudfront(
         this,
-        `${id}-${website[0]}`,
-        website[0],
+        `${id}-${website_name}`,
+        website_name,
         bucket.bucket.bucketRegionalDomainName,
         sslCertificateCloudfront,
-        environment
+        environment,
       );
     }
     // File item storage is private
@@ -453,7 +456,7 @@ class GraaspStack extends TerraformStack {
       id,
       vpc,
       backendSecurityGroup,
-      CONFIG[environment.env].enableRedisReplication
+      CONFIG[environment.env].enableRedisReplication,
     );
   }
 }
