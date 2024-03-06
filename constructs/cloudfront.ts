@@ -14,7 +14,16 @@ export function makeCloudfront(
   s3domain: string,
   certificate: DataAwsAcmCertificate,
   env: EnvironmentConfig,
+  isUsingWebsiteEndpoint: boolean = false,
 ) {
+  // needed for pointing to the website endpoint of s3
+  const customOriginConfig = {
+    httpPort: 80,
+    httpsPort: 443,
+    originProtocolPolicy: 'http-only',
+    originSslProtocols: ['TLSv1'],
+  };
+
   // TODO: add alternate domain name, and clean description
   return new CloudfrontDistribution(scope, `${id}-cloudfront`, {
     comment: targetName,
@@ -23,6 +32,9 @@ export function makeCloudfront(
       {
         originId: targetName, // origin ids can be freely chosen
         domainName: s3domain, // we serve the website hosted by S3 here
+        customOriginConfig: isUsingWebsiteEndpoint
+          ? customOriginConfig
+          : undefined,
       },
     ],
     aliases: [subdomainForEnv(`${targetName}`, env)],
