@@ -278,7 +278,7 @@ class GraaspStack extends TerraformStack {
     const meilisearchDefinition = createContainerDefinitions(
       'meilisearch',
       'getmeili/meilisearch',
-      'v1.2',
+      'v1.8',
       [
         {
           hostPort: MEILISEARCH_PORT,
