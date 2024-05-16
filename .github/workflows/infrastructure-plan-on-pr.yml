@@ -34,10 +34,10 @@ jobs:
           aws-region: eu-central-2 # not really important because it is reconfigured by Terraform
 
       - name: Run Terraform CDK
-        uses: hashicorp/terraform-cdk-action@v0.1
+        uses: hashicorp/terraform-cdk-action@v4
         with:
-          cdktfVersion: 0.18.0
-          terraformVersion: 1.5.7
+          cdktfVersion: 0.20.0
+          terraformVersion: 1.8.3
           mode: plan-only
           commentOnPr: true
           updateComment: false # make a new comment
