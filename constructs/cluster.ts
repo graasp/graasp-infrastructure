@@ -102,7 +102,7 @@ export class Cluster extends Construct {
       port: number;
       containerPort: number;
       host: string;
-      healtcheckPath: string;
+      healthCheckPath: string;
     },
   ) {
     new CloudwatchLogGroup(this, `${name}-loggroup`, {
@@ -138,7 +138,7 @@ export class Cluster extends Construct {
         vpcId: this.vpc.vpcIdOutput,
         healthCheck: {
           enabled: true,
-          path: loadBalancerConfig.healtcheckPath,
+          path: loadBalancerConfig.healthCheckPath,
           healthyThreshold: 5,
           unhealthyThreshold: 2,
           timeout: 5,
