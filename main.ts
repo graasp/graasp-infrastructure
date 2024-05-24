@@ -84,7 +84,7 @@ class GraaspStack extends TerraformStack {
     });
 
     if (!vpc.azs || vpc.azs.length < 3) {
-      throw new Error('Must define at least 3 availibility zones in the VPC');
+      throw new Error('Must define at least 3 availability zones in the VPC');
     }
 
     // Certificate used for accessing apps - Must be an existing valid certificate
@@ -278,7 +278,7 @@ class GraaspStack extends TerraformStack {
     const meilisearchDefinition = createContainerDefinitions(
       'meilisearch',
       'getmeili/meilisearch',
-      'v1.2',
+      'v1.8',
       [
         {
           hostPort: MEILISEARCH_PORT,
@@ -314,7 +314,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('api', environment),
         port: 80,
         containerPort: BACKEND_PORT,
-        healtcheckPath: '/status',
+        healthCheckPath: '/status',
       },
     );
 
@@ -338,7 +338,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('library', environment),
         port: 80,
         containerPort: LIBRARY_PORT,
-        healtcheckPath: '/api/status',
+        healthCheckPath: '/api/status',
       },
     );
 
@@ -360,7 +360,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('etherpad', environment),
         port: 443,
         containerPort: ETHERPAD_PORT,
-        healtcheckPath: '/',
+        healthCheckPath: '/',
       },
     );
 
