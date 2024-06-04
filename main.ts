@@ -442,7 +442,7 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        bucket.bucket.websiteEndpoint,
+        bucket.websiteConfiguration.websiteEndpoint,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
