@@ -289,6 +289,7 @@ class GraaspStack extends TerraformStack {
         MEILI_ENV: 'production',
         MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
         MEILI_NO_ANALYTICS: 'true',
+        MEILI_EXPERIMENTAL_LOGS_MODE: 'json',
       },
       environment,
     );
