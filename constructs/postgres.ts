@@ -6,7 +6,6 @@ import { Construct } from 'constructs';
 
 import { Rds, RdsConfig } from '../.gen/modules/rds';
 import { Vpc } from '../.gen/modules/vpc';
-import { Ec2 } from './ec2';
 import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
 
 export class PostgresDB extends Construct {
@@ -23,7 +22,7 @@ export class PostgresDB extends Construct {
     addReplica: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
-    createGateKeeper?: boolean,
+    gateKeeperSecurityGroup?: SecurityGroup,
   ) {
     super(scope, `${name}-postgres`);
 
@@ -38,53 +37,11 @@ export class PostgresDB extends Construct {
     );
 
     // allow a gatekeeper for manual migrations
-    if (createGateKeeper) {
-      const gatekeeperKeyName = new TerraformVariable(
-        scope,
-        'GRAASP_DB_GATEKEEPER_KEY_NAME',
-        {
-          nullable: false,
-          type: 'string',
-          description: 'Keyname for the keypair for graasp db gatekeeper',
-          sensitive: true,
-        },
-      );
-      const gatekeeperAmiId = new TerraformVariable(
-        scope,
-        'DB_GATEKEEPER_AMI_ID',
-        {
-          nullable: false,
-          type: 'string',
-          description: 'AMI id for graasp db gatekeeper',
-          sensitive: false,
-        },
-      );
-
-      const gatekeeperInstanceType = new TerraformVariable(
-        scope,
-        'DB_GATEKEEPER_INSTANCE_TYPE',
-        {
-          nullable: false,
-          type: 'string',
-          description: 'AMI instance type for graasp db gatekeeper',
-          sensitive: false,
-        },
-      );
-
-      const gateKeeper = new Ec2(
-        this,
-        `${name}-gatekeeper`,
-        vpc,
-        gatekeeperKeyName,
-        gatekeeperAmiId.value,
-        gatekeeperInstanceType.value,
-        true,
-      );
-
+    if (gateKeeperSecurityGroup) {
       // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons
       // See note on https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#protocol
       new VpcSecurityGroupIngressRule(scope, `${name}-allow-gatekeeper`, {
-        referencedSecurityGroupId: gateKeeper.securityGroup.id, // allowed source security group
+        referencedSecurityGroupId: gateKeeperSecurityGroup.id, // allowed source security group
         fromPort: dbPort,
         ipProtocol: 'tcp',
         securityGroupId: dbSecurityGroup.id,

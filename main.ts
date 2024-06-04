@@ -4,6 +4,7 @@ import {
   AwsProvider,
   AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
+import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
 
 import { Construct } from 'constructs';
@@ -13,6 +14,7 @@ import { CONFIG } from './config';
 import { GraaspS3Bucket } from './constructs/bucket';
 import { makeCloudfront } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import { GraaspRedis } from './constructs/redis';
@@ -156,6 +158,17 @@ class GraaspStack extends TerraformStack {
       sensitive: true,
     });
 
+    const gatekeeper = new GateKeeper(this, 'graasp', vpc);
+    // allow communication between the gatekeeper and meilisearch
+    new VpcSecurityGroupIngressRule(this, `${id}-allow-gatekeeper`, {
+      referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
+      ipProtocol: 'tcp',
+      securityGroupId: meilisearchSecurityGroup.id,
+      // port range for ingress trafic
+      fromPort: MEILISEARCH_PORT,
+      toPort: MEILISEARCH_PORT,
+    });
+
     new PostgresDB(
       this,
       id,
@@ -167,7 +180,7 @@ class GraaspStack extends TerraformStack {
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
-      true,
+      gatekeeper.instance.securityGroup,
     );
 
     const etherpadDbPassword = new TerraformVariable(
@@ -373,7 +386,7 @@ class GraaspStack extends TerraformStack {
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
         memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
         dummy: false,
-      }, // TODO: container def
+      },
       meilisearchSecurityGroup,
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );

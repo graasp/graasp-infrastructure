@@ -21,9 +21,10 @@ export function securityGroupOnlyAllowAnotherSecurityGroup(
 
   new VpcSecurityGroupIngressRule(scope, `${id}-allow-load-balancer`, {
     referencedSecurityGroupId: allowedSecurityGroupId, // allowed source security group
-    fromPort: port,
     ipProtocol: 'tcp',
     securityGroupId: securityGroup.id,
+    // port range, here we specify only a single port
+    fromPort: port,
     toPort: port,
   });
 
