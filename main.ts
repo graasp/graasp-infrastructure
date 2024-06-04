@@ -160,14 +160,18 @@ class GraaspStack extends TerraformStack {
 
     const gatekeeper = new GateKeeper(this, 'graasp', vpc);
     // allow communication between the gatekeeper and meilisearch
-    new VpcSecurityGroupIngressRule(this, `${id}-allow-gatekeeper`, {
-      referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
-      ipProtocol: 'tcp',
-      securityGroupId: meilisearchSecurityGroup.id,
-      // port range for ingress trafic
-      fromPort: MEILISEARCH_PORT,
-      toPort: MEILISEARCH_PORT,
-    });
+    new VpcSecurityGroupIngressRule(
+      this,
+      `${id}-allow-gatekeeper-on-meilisearch`,
+      {
+        referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
+        ipProtocol: 'tcp',
+        securityGroupId: meilisearchSecurityGroup.id,
+        // port range for ingress trafic
+        fromPort: MEILISEARCH_PORT,
+        toPort: MEILISEARCH_PORT,
+      },
+    );
 
     new PostgresDB(
       this,

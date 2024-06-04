@@ -40,13 +40,17 @@ export class PostgresDB extends Construct {
     if (gateKeeperSecurityGroup) {
       // Do not use the `ingress` and `egress` directly on the SecurityGroup for limitations reasons
       // See note on https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#protocol
-      new VpcSecurityGroupIngressRule(scope, `${name}-allow-gatekeeper`, {
-        referencedSecurityGroupId: gateKeeperSecurityGroup.id, // allowed source security group
-        fromPort: dbPort,
-        ipProtocol: 'tcp',
-        securityGroupId: dbSecurityGroup.id,
-        toPort: dbPort,
-      });
+      new VpcSecurityGroupIngressRule(
+        scope,
+        `${name}-allow-gatekeeper-on-postgres`,
+        {
+          referencedSecurityGroupId: gateKeeperSecurityGroup.id, // allowed source security group
+          fromPort: dbPort,
+          ipProtocol: 'tcp',
+          securityGroupId: dbSecurityGroup.id,
+          toPort: dbPort,
+        },
+      );
     }
 
     const defaultConfig: RdsConfig = {
