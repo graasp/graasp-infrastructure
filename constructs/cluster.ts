@@ -113,8 +113,8 @@ export class Cluster extends Construct {
     const task = new EcsTaskDefinition(this, name, {
       family: name, // name used to group the definitions versions
 
-      cpu: taskDefinitionConfig.cpu ?? '1024',
-      memory: taskDefinitionConfig.memory ?? '3072',
+      cpu: taskDefinitionConfig.cpu ?? '256',
+      memory: taskDefinitionConfig.memory ?? '512',
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,
