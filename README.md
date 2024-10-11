@@ -249,3 +249,17 @@ cat cdktf.out/stacks/[your stack]/cdk.tf.json jq '.resource.aws_ecr_repository'
 terraform import aws_ecr_repository.graasp-iac-development-ecr graasp # Import to terraform id from target id (here graasp ecr repo, but can often be an AWS ARN)
 yarn run cdktf plan # your plan should stop trying to create the resource.
 ```
+
+## If deployments break
+
+It is possible that after some time deployments will break with an error similar to:
+```
+            │ Error: Failed to query available provider packages
+            │ 
+            │ Could not retrieve the list of available versions for provider hashicorp/aws:
+            │ no available releases match the given constraints >= 5.46.0, 5.49.0, >=
+            │ 5.59.0, >= 5.62.0
+
+```
+
+In this case the fix is usually to update the `@cdktf/provider-aws` dependency. Using `yarn upgrade-interactive` it is easy to do.
