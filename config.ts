@@ -70,15 +70,15 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
     ecsConfig: {
       graasp: {
-        taskCount: 2,
+        taskCount: 1,
       },
       etherpad: {
         cpu: '256',
         memory: '512',
       },
       meilisearch: {
-        cpu: '512',
-        memory: '1024',
+        cpu: '256',
+        memory: '512',
       },
     },
   },
