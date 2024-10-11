@@ -32,7 +32,7 @@ export class PostgresDB extends Construct {
       this,
       `${name}-db`,
       vpc.vpcIdOutput,
-      allowedSecurityGroup.id,
+      allowedSecurityGroup,
       dbPort,
     );
 

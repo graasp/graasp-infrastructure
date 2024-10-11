@@ -127,21 +127,21 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-backend`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancer.securityGroup,
       BACKEND_PORT,
     );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancer.securityGroup,
       LIBRARY_PORT,
     );
     const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-etherpad`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancer.securityGroup,
       ETHERPAD_PORT,
     );
 
@@ -149,7 +149,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-meilisearch`,
       vpc.vpcIdOutput,
-      backendSecurityGroup.id,
+      backendSecurityGroup,
       MEILISEARCH_PORT,
     );
 
@@ -157,7 +157,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-nudenet`,
       vpc.vpcIdOutput,
-      backendSecurityGroup.id,
+      backendSecurityGroup,
       NUDENET_PORT,
     );
 
@@ -165,7 +165,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-iframely`,
       vpc.vpcIdOutput,
-      backendSecurityGroup.id,
+      backendSecurityGroup,
       IFRAMELY_PORT,
     );
 
@@ -454,8 +454,6 @@ class GraaspStack extends TerraformStack {
       },
       nudenetSecurityGroup,
       { name: 'graasp-nudenet', port: NUDENET_PORT },
-      undefined,
-      undefined,
     );
 
     cluster.addService(

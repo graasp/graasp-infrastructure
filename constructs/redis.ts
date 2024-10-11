@@ -23,7 +23,7 @@ export class GraaspRedis extends Construct {
       this,
       `${id}-redis`,
       vpc.vpcIdOutput,
-      allowedSecurityGroup.id,
+      allowedSecurityGroup,
       6379,
     );
 

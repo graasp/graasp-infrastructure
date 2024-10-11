@@ -8,7 +8,7 @@ export function securityGroupOnlyAllowAnotherSecurityGroup(
   scope: Construct,
   id: string,
   vpcId: string,
-  allowedSecurityGroupId: string,
+  allowedSecurityGroup: SecurityGroup,
   port: number,
 ) {
   const securityGroup = new SecurityGroup(scope, `${id}-security-group`, {
@@ -19,14 +19,18 @@ export function securityGroupOnlyAllowAnotherSecurityGroup(
     },
   });
 
-  new VpcSecurityGroupIngressRule(scope, `${id}-allow-load-balancer`, {
-    referencedSecurityGroupId: allowedSecurityGroupId, // allowed source security group
-    ipProtocol: 'tcp',
-    securityGroupId: securityGroup.id,
-    // port range, here we specify only a single port
-    fromPort: port,
-    toPort: port,
-  });
+  new VpcSecurityGroupIngressRule(
+    scope,
+    `${id}-allow-${allowedSecurityGroup.name}`,
+    {
+      referencedSecurityGroupId: allowedSecurityGroup.id, // allowed source security group
+      ipProtocol: 'tcp',
+      securityGroupId: securityGroup.id,
+      // port range, here we specify only a single port
+      fromPort: port,
+      toPort: port,
+    },
+  );
 
   allowAllEgressRule(scope, id, securityGroup.id);
 
