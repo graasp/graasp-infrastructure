@@ -91,7 +91,7 @@ export class Cluster extends Construct {
         }),
       ),
       role: this.executionRole.id,
-    });
+    }).importFrom(`${executionRoleName}:allow-ecr-pull`);
 
     new IamRolePoliciesExclusive(
       this,
