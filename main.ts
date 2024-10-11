@@ -158,7 +158,7 @@ class GraaspStack extends TerraformStack {
       sensitive: true,
     });
 
-    const gatekeeper = new GateKeeper(this, 'graasp', vpc);
+    const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
     new VpcSecurityGroupIngressRule(
       this,
