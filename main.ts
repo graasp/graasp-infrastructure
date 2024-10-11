@@ -315,7 +315,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
-      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: false },
       backendSecurityGroup,
       undefined,
       {
