@@ -17,7 +17,7 @@ import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { ServiceDiscoveryHttpNamespace } from '@cdktf/provider-aws/lib/service-discovery-http-namespace';
-import { Fn } from 'cdktf';
+import { Fn, Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
@@ -37,7 +37,6 @@ export class Cluster extends Construct {
   vpc: Vpc;
   namespace: ServiceDiscoveryHttpNamespace;
   executionRole: IamRole;
-  executionRolePolicy: IamRolePolicy;
 
   constructor(scope: Construct, name: string, vpc: Vpc) {
     super(scope, name);
@@ -70,14 +69,10 @@ export class Cluster extends Construct {
       }),
     });
     const executionRolePoliciesName = `${name}-ecs-execution-role-policies`;
-    this.executionRolePolicy = new IamRolePolicy(
-      this,
-      executionRolePoliciesName,
-      {
-        name: 'allow-ecr-pull',
-        role: this.executionRole.id,
-        policy: JSON.stringify({
-          Version: '2012-10-17',
+    new IamRolePolicy(this, executionRolePoliciesName, {
+      name: 'allow-ecr-pull',
+      policy: Token.asString(
+        Fn.jsonencode({
           Statement: [
             {
               Effect: 'Allow',
@@ -92,16 +87,18 @@ export class Cluster extends Construct {
               Resource: '*',
             },
           ],
+          Version: '2012-10-17',
         }),
-      },
-    );
+      ),
+      role: this.executionRole.id,
+    });
 
     new IamRolePoliciesExclusive(
       this,
       `ecs-execution-role-exclusive-policies`,
       {
-        policyNames: [this.executionRolePolicy.id],
-        roleName: executionRoleName,
+        policyNames: [Token.asString(executionRolePoliciesName)],
+        roleName: Token.asString(executionRoleName),
       },
     );
   }
