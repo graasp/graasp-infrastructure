@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "get": "cdktf get",
-    "build": "tsc",
+    "build": "tsc --noEmit",
     "synth": "cdktf synth",
     "compile": "tsc --pretty",
     "watch": "tsc -w",

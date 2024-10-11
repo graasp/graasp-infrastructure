@@ -11,6 +11,8 @@ import {
 } from '@cdktf/provider-aws/lib/ecs-service';
 import { EcsTaskDefinition } from '@cdktf/provider-aws/lib/ecs-task-definition';
 import { IamRole } from '@cdktf/provider-aws/lib/iam-role';
+import { IamRolePoliciesExclusive } from '@cdktf/provider-aws/lib/iam-role-policies-exclusive';
+import { IamRolePolicy } from '@cdktf/provider-aws/lib/iam-role-policy';
 import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
@@ -35,6 +37,7 @@ export class Cluster extends Construct {
   vpc: Vpc;
   namespace: ServiceDiscoveryHttpNamespace;
   executionRole: IamRole;
+  executionRolePolicy: IamRolePolicy;
 
   constructor(scope: Construct, name: string, vpc: Vpc) {
     super(scope, name);
@@ -48,30 +51,9 @@ export class Cluster extends Construct {
       name: 'graasp',
     });
 
+    const executionRoleName = `${name}-ecs-execution-role`;
     this.executionRole = new IamRole(this, `ecs-execution-role`, {
-      name: `${name}-ecs-execution-role`,
-      inlinePolicy: [
-        {
-          name: 'allow-ecr-pull',
-          policy: JSON.stringify({
-            Version: '2012-10-17',
-            Statement: [
-              {
-                Effect: 'Allow',
-                Action: [
-                  'ecr:GetAuthorizationToken',
-                  'ecr:BatchCheckLayerAvailability',
-                  'ecr:GetDownloadUrlForLayer',
-                  'ecr:BatchGetImage',
-                  'logs:CreateLogStream',
-                  'logs:PutLogEvents',
-                ],
-                Resource: '*',
-              },
-            ],
-          }),
-        },
-      ],
+      name: executionRoleName,
       // this role shall only be used by an ECS task
       assumeRolePolicy: JSON.stringify({
         Version: '2012-10-17',
@@ -87,6 +69,41 @@ export class Cluster extends Construct {
         ],
       }),
     });
+    const executionRolePoliciesName = `${name}-ecs-execution-role-policies`;
+    this.executionRolePolicy = new IamRolePolicy(
+      this,
+      executionRolePoliciesName,
+      {
+        name: 'allow-ecr-pull',
+        role: this.executionRole.id,
+        policy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: [
+                'ecr:GetAuthorizationToken',
+                'ecr:BatchCheckLayerAvailability',
+                'ecr:GetDownloadUrlForLayer',
+                'ecr:BatchGetImage',
+                'logs:CreateLogStream',
+                'logs:PutLogEvents',
+              ],
+              Resource: '*',
+            },
+          ],
+        }),
+      },
+    );
+
+    new IamRolePoliciesExclusive(
+      this,
+      `ecs-execution-role-exclusive-policies`,
+      {
+        policyNames: [this.executionRolePolicy.id],
+        roleName: executionRoleName,
+      },
+    );
   }
 
   public addService(
