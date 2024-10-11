@@ -454,6 +454,8 @@ class GraaspStack extends TerraformStack {
       },
       nudenetSecurityGroup,
       { name: 'graasp-nudenet', port: NUDENET_PORT },
+      undefined,
+      undefined,
     );
 
     cluster.addService(

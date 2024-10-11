@@ -95,7 +95,7 @@ export class Cluster extends Construct {
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
-    appautoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
+    appAutoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
     loadBalancerConfig?: {
       loadBalancer: LoadBalancer;
       priority: number;
@@ -214,7 +214,7 @@ export class Cluster extends Construct {
         : undefined,
     });
 
-    if (appautoscalingConfig) {
+    if (appAutoscalingConfig) {
       const scalingTarget = new AppautoscalingTarget(
         this,
         `${name}-service-autoscaling-target`,
@@ -232,7 +232,7 @@ export class Cluster extends Construct {
         resourceId: scalingTarget.resourceId,
         scalableDimension: scalingTarget.scalableDimension,
         serviceNamespace: scalingTarget.serviceNamespace,
-        targetTrackingScalingPolicyConfiguration: appautoscalingConfig,
+        targetTrackingScalingPolicyConfiguration: appAutoscalingConfig,
       });
     }
 
