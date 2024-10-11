@@ -315,7 +315,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
-      { containerDefinitions: graaspDummyBackendDefinition, dummy: false }, // to change
+      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
       {
@@ -339,7 +339,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
-      { containerDefinitions: libraryDummyBackendDefinition, dummy: false }, // to change
+      { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
       {
