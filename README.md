@@ -263,3 +263,13 @@ It is possible that after some time deployments will break with an error similar
 ```
 
 In this case the fix is usually to update the `@cdktf/provider-aws` dependency. Using `yarn upgrade-interactive` it is easy to do.
+
+## Container does not exist in task definition
+
+If you have to delete a cluster and when re-deploying you see an error about the container not exisiting in the task definition you should:
+
+- switch the `dummy` property of the container definition for `graasp` and `library` off, so the deployment will create a new task definition that is up-to-date
+- deploy this
+- revert the change of `dummy` to true
+- deploy again (to make sure)
+- deploy the real task defintions for graasp and library from the specific repositories
