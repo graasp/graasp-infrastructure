@@ -11,7 +11,6 @@ import {
 } from '@cdktf/provider-aws/lib/ecs-service';
 import { EcsTaskDefinition } from '@cdktf/provider-aws/lib/ecs-task-definition';
 import { IamRole } from '@cdktf/provider-aws/lib/iam-role';
-import { IamRolePoliciesExclusive } from '@cdktf/provider-aws/lib/iam-role-policies-exclusive';
 import { IamRolePolicy } from '@cdktf/provider-aws/lib/iam-role-policy';
 import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
@@ -91,16 +90,7 @@ export class Cluster extends Construct {
         }),
       ),
       role: this.executionRole.id,
-    }).importFrom(`${executionRoleName}:allow-ecr-pull`);
-
-    new IamRolePoliciesExclusive(
-      this,
-      `ecs-execution-role-exclusive-policies`,
-      {
-        policyNames: [Token.asString(executionRolePoliciesName)],
-        roleName: Token.asString(executionRoleName),
-      },
-    );
+    });
   }
 
   public addService(
