@@ -645,13 +645,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cdktf/provider-aws@npm:19.37.0":
-  version: 19.37.0
-  resolution: "@cdktf/provider-aws@npm:19.37.0"
+"@cdktf/provider-aws@npm:19.36.0":
+  version: 19.36.0
+  resolution: "@cdktf/provider-aws@npm:19.36.0"
   peerDependencies:
     cdktf: ^0.20.0
     constructs: ^10.3.0
-  checksum: 10/b004f970244142c7e4e6abed044e6b2bbcf0a953c6b441e324fd33cf4c6230f3ec07c60c3b48fe9a7544b61accb91ea24e57f859e1de18dfaf720a211a300283
+  checksum: 10/4be9dc437e8a4eb41f4c93d0af5c9ef4464fe1a209d0e422c19a9fd2fe872cdc548e7f5d854b7a7d0662c2b1840904206fabd8821b636f0b9c856eafc2702440
   languageName: node
   linkType: hard
 
@@ -3577,7 +3577,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "infra@workspace:."
   dependencies:
-    "@cdktf/provider-aws": "npm:19.37.0"
+    "@cdktf/provider-aws": "npm:19.36.0"
     "@trivago/prettier-plugin-sort-imports": "npm:^4.3.0"
     "@types/node": "npm:^20.16.11"
     cdktf: "npm:^0.20.9"
