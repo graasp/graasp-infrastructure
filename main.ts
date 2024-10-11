@@ -18,7 +18,10 @@ import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import { GraaspRedis } from './constructs/redis';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './constructs/security_group';
+import {
+  AllowedSecurityGroupInfo,
+  securityGroupOnlyAllowAnotherSecurityGroup,
+} from './constructs/security_group';
 import {
   AllowedRegion,
   Environment,
@@ -123,32 +126,38 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    // define security groups allowing ingress trafic from the load-balancer
+    const loadBalancerAllowedSecurityGroupInfo = {
+      groupId: loadBalancer.securityGroup.id,
+      targetName: 'load-balancer',
+    } satisfies AllowedSecurityGroupInfo;
     const backendSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-backend`,
       vpc.vpcIdOutput,
-      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
+      loadBalancerAllowedSecurityGroupInfo,
       BACKEND_PORT,
     );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
       vpc.vpcIdOutput,
-      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
+      loadBalancerAllowedSecurityGroupInfo,
       LIBRARY_PORT,
     );
     const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-etherpad`,
       vpc.vpcIdOutput,
-      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
+      loadBalancerAllowedSecurityGroupInfo,
       ETHERPAD_PORT,
     );
 
+    // define security groups accepting ingress trafic from the backend
     const backendAllowedSecurityGroupInfo = {
       groupId: backendSecurityGroup.id,
       targetName: 'graasp-backend',
-    };
+    } satisfies AllowedSecurityGroupInfo;
     const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-meilisearch`,
@@ -156,7 +165,6 @@ class GraaspStack extends TerraformStack {
       backendAllowedSecurityGroupInfo,
       MEILISEARCH_PORT,
     );
-
     const nudenetSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-nudenet`,
@@ -164,7 +172,6 @@ class GraaspStack extends TerraformStack {
       backendAllowedSecurityGroupInfo,
       NUDENET_PORT,
     );
-
     const iframelySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-iframely`,
@@ -219,7 +226,10 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-
+    const etherpadAllowedSecurityGroupInfo = {
+      groupId: etherpadSecurityGroup.id,
+      targetName: 'etherpad',
+    } satisfies AllowedSecurityGroupInfo;
     const etherpadDb = new PostgresDB(
       this,
       `${id}-etherpad`,
@@ -227,7 +237,7 @@ class GraaspStack extends TerraformStack {
       'graasp_etherpad',
       etherpadDbPassword,
       vpc,
-      backendAllowedSecurityGroupInfo,
+      etherpadAllowedSecurityGroupInfo,
       false,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {

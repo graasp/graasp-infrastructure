@@ -6,14 +6,17 @@ import { Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
+import {
+  AllowedSecurityGroupInfo,
+  securityGroupOnlyAllowAnotherSecurityGroup,
+} from './security_group';
 
 export class GraaspRedis extends Construct {
   constructor(
     scope: Construct,
     id: string,
     vpc: Vpc,
-    allowedSecurityGroup: { groupId: string; targetName: string },
+    allowedSecurityGroup: AllowedSecurityGroupInfo,
     addReplication: boolean,
   ) {
     super(scope, `${id}-redis`);
