@@ -4,11 +4,13 @@ import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-securit
 
 import { Construct } from 'constructs';
 
+export type AllowedSecurityGroupInfo = { groupId: string; targetName: string };
+
 export function securityGroupOnlyAllowAnotherSecurityGroup(
   scope: Construct,
   id: string,
   vpcId: string,
-  allowedSecurityGroup: SecurityGroup,
+  allowedSecurityGroup: AllowedSecurityGroupInfo,
   port: number,
 ) {
   const securityGroup = new SecurityGroup(scope, `${id}-security-group`, {
@@ -21,9 +23,9 @@ export function securityGroupOnlyAllowAnotherSecurityGroup(
 
   new VpcSecurityGroupIngressRule(
     scope,
-    `${id}-allow-${allowedSecurityGroup.name}`,
+    `${id}-allow-${allowedSecurityGroup.targetName}`,
     {
-      referencedSecurityGroupId: allowedSecurityGroup.id, // allowed source security group
+      referencedSecurityGroupId: allowedSecurityGroup.groupId, // allowed source security group
       ipProtocol: 'tcp',
       securityGroupId: securityGroup.id,
       // port range, here we specify only a single port

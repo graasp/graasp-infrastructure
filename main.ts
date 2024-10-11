@@ -127,29 +127,33 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-backend`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup,
+      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
       BACKEND_PORT,
     );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup,
+      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
       LIBRARY_PORT,
     );
     const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-etherpad`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup,
+      { groupId: loadBalancer.securityGroup.id, targetName: 'load-balancer' },
       ETHERPAD_PORT,
     );
 
+    const backendAllowedSecurityGroupInfo = {
+      groupId: backendSecurityGroup.id,
+      targetName: 'graasp-backend',
+    };
     const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-meilisearch`,
       vpc.vpcIdOutput,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       MEILISEARCH_PORT,
     );
 
@@ -157,7 +161,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-nudenet`,
       vpc.vpcIdOutput,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       NUDENET_PORT,
     );
 
@@ -165,7 +169,7 @@ class GraaspStack extends TerraformStack {
       this,
       `${id}-iframely`,
       vpc.vpcIdOutput,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       IFRAMELY_PORT,
     );
 
@@ -198,7 +202,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       dbPassword,
       vpc,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
@@ -223,7 +227,7 @@ class GraaspStack extends TerraformStack {
       'graasp_etherpad',
       etherpadDbPassword,
       vpc,
-      etherpadSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       false,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
@@ -548,7 +552,7 @@ class GraaspStack extends TerraformStack {
       this,
       id,
       vpc,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       CONFIG[environment.env].enableRedisReplication,
     );
   }

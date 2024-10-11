@@ -1,7 +1,6 @@
 import { ElasticacheCluster } from '@cdktf/provider-aws/lib/elasticache-cluster';
 import { ElasticacheReplicationGroup } from '@cdktf/provider-aws/lib/elasticache-replication-group';
 import { ElasticacheSubnetGroup } from '@cdktf/provider-aws/lib/elasticache-subnet-group';
-import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
@@ -14,7 +13,7 @@ export class GraaspRedis extends Construct {
     scope: Construct,
     id: string,
     vpc: Vpc,
-    allowedSecurityGroup: SecurityGroup,
+    allowedSecurityGroup: { groupId: string; targetName: string },
     addReplication: boolean,
   ) {
     super(scope, `${id}-redis`);
