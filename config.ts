@@ -24,6 +24,8 @@ export type GraaspConfiguration = {
     };
     etherpad: HardwareLimit;
     meilisearch: HardwareLimit;
+    nudenet: HardwareLimit;
+    iframely: HardwareLimit;
   };
 };
 
@@ -55,6 +57,14 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         cpu: '256',
         memory: '512',
       },
+      nudenet: {
+        cpu: '256',
+        memory: '512',
+      },
+      iframely: {
+        cpu: '256',
+        memory: '512',
+      },
     },
   },
   [Environment.STAGING]: {
@@ -77,6 +87,14 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         memory: '512',
       },
       meilisearch: {
+        cpu: '256',
+        memory: '512',
+      },
+      nudenet: {
+        cpu: '256',
+        memory: '512',
+      },
+      iframely: {
         cpu: '256',
         memory: '512',
       },
@@ -104,6 +122,14 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       meilisearch: {
         cpu: '512',
         memory: '1024',
+      },
+      nudenet: {
+        cpu: '256',
+        memory: '512',
+      },
+      iframely: {
+        cpu: '256',
+        memory: '512',
       },
     },
   },

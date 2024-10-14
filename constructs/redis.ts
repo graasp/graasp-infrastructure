@@ -1,20 +1,22 @@
 import { ElasticacheCluster } from '@cdktf/provider-aws/lib/elasticache-cluster';
 import { ElasticacheReplicationGroup } from '@cdktf/provider-aws/lib/elasticache-replication-group';
 import { ElasticacheSubnetGroup } from '@cdktf/provider-aws/lib/elasticache-subnet-group';
-import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './security_group';
+import {
+  AllowedSecurityGroupInfo,
+  securityGroupOnlyAllowAnotherSecurityGroup,
+} from './security_group';
 
 export class GraaspRedis extends Construct {
   constructor(
     scope: Construct,
     id: string,
     vpc: Vpc,
-    allowedSecurityGroup: SecurityGroup,
+    allowedSecurityGroup: AllowedSecurityGroupInfo,
     addReplication: boolean,
   ) {
     super(scope, `${id}-redis`);
@@ -23,7 +25,7 @@ export class GraaspRedis extends Construct {
       this,
       `${id}-redis`,
       vpc.vpcIdOutput,
-      allowedSecurityGroup.id,
+      allowedSecurityGroup,
       6379,
     );
 

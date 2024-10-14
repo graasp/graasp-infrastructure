@@ -18,7 +18,10 @@ import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import { GraaspRedis } from './constructs/redis';
-import { securityGroupOnlyAllowAnotherSecurityGroup } from './constructs/security_group';
+import {
+  AllowedSecurityGroupInfo,
+  securityGroupOnlyAllowAnotherSecurityGroup,
+} from './constructs/security_group';
 import {
   AllowedRegion,
   Environment,
@@ -53,6 +56,8 @@ class GraaspStack extends TerraformStack {
     const LIBRARY_PORT = 3005;
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
+    const IFRAMELY_PORT = 8061;
+    const NUDENET_PORT = 8080;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -121,34 +126,58 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    // define security groups allowing ingress trafic from the load-balancer
+    const loadBalancerAllowedSecurityGroupInfo = {
+      groupId: loadBalancer.securityGroup.id,
+      targetName: 'load-balancer',
+    } satisfies AllowedSecurityGroupInfo;
     const backendSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-backend`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancerAllowedSecurityGroupInfo,
       BACKEND_PORT,
     );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancerAllowedSecurityGroupInfo,
       LIBRARY_PORT,
     );
     const etherpadSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-etherpad`,
       vpc.vpcIdOutput,
-      loadBalancer.securityGroup.id,
+      loadBalancerAllowedSecurityGroupInfo,
       ETHERPAD_PORT,
     );
 
+    // define security groups accepting ingress trafic from the backend
+    const backendAllowedSecurityGroupInfo = {
+      groupId: backendSecurityGroup.id,
+      targetName: 'graasp-backend',
+    } satisfies AllowedSecurityGroupInfo;
     const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-meilisearch`,
       vpc.vpcIdOutput,
-      backendSecurityGroup.id,
+      backendAllowedSecurityGroupInfo,
       MEILISEARCH_PORT,
+    );
+    const nudenetSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-nudenet`,
+      vpc.vpcIdOutput,
+      backendAllowedSecurityGroupInfo,
+      NUDENET_PORT,
+    );
+    const iframelySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-iframely`,
+      vpc.vpcIdOutput,
+      backendAllowedSecurityGroupInfo,
+      IFRAMELY_PORT,
     );
 
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
@@ -180,7 +209,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       dbPassword,
       vpc,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
@@ -197,7 +226,10 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-
+    const etherpadAllowedSecurityGroupInfo = {
+      groupId: etherpadSecurityGroup.id,
+      targetName: 'etherpad',
+    } satisfies AllowedSecurityGroupInfo;
     const etherpadDb = new PostgresDB(
       this,
       `${id}-etherpad`,
@@ -205,7 +237,7 @@ class GraaspStack extends TerraformStack {
       'graasp_etherpad',
       etherpadDbPassword,
       vpc,
-      etherpadSecurityGroup,
+      etherpadAllowedSecurityGroupInfo,
       false,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
@@ -311,6 +343,36 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const nudenetDefinition = createContainerDefinitions(
+      'nudenet',
+      'notaitech/nudenet',
+      'classifier',
+      [
+        {
+          hostPort: NUDENET_PORT,
+          containerPort: NUDENET_PORT,
+        },
+      ],
+      {},
+      environment,
+    );
+
+    const iframelyDefinition = createContainerDefinitions(
+      'iframely',
+      'graasp/iframely',
+      'latest',
+      [
+        {
+          hostPort: IFRAMELY_PORT,
+          containerPort: IFRAMELY_PORT,
+        },
+      ],
+      {
+        NODE_ENV: 'production',
+      },
+      environment,
+    );
+
     // backend
     cluster.addService(
       'graasp',
@@ -395,6 +457,32 @@ class GraaspStack extends TerraformStack {
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );
 
+    cluster.addService(
+      'nudenet',
+      1,
+      {
+        containerDefinitions: nudenetDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.nudenet.cpu,
+        memory: CONFIG[environment.env].ecsConfig.nudenet.memory,
+        dummy: false,
+      },
+      nudenetSecurityGroup,
+      { name: 'graasp-nudenet', port: NUDENET_PORT },
+    );
+
+    cluster.addService(
+      'iframely',
+      1,
+      {
+        containerDefinitions: iframelyDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
+        memory: CONFIG[environment.env].ecsConfig.iframely.memory,
+        dummy: false,
+      },
+      iframelySecurityGroup,
+      { name: 'graasp-iframely', port: IFRAMELY_PORT },
+    );
+
     // S3 buckets
 
     // This has been copied from existing configuration, is it relevant?
@@ -474,7 +562,7 @@ class GraaspStack extends TerraformStack {
       this,
       id,
       vpc,
-      backendSecurityGroup,
+      backendAllowedSecurityGroupInfo,
       CONFIG[environment.env].enableRedisReplication,
     );
   }

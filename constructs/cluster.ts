@@ -11,11 +11,12 @@ import {
 } from '@cdktf/provider-aws/lib/ecs-service';
 import { EcsTaskDefinition } from '@cdktf/provider-aws/lib/ecs-task-definition';
 import { IamRole } from '@cdktf/provider-aws/lib/iam-role';
+import { IamRolePolicy } from '@cdktf/provider-aws/lib/iam-role-policy';
 import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { ServiceDiscoveryHttpNamespace } from '@cdktf/provider-aws/lib/service-discovery-http-namespace';
-import { Fn } from 'cdktf';
+import { Fn, Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
@@ -48,30 +49,9 @@ export class Cluster extends Construct {
       name: 'graasp',
     });
 
+    const executionRoleName = `${name}-ecs-execution-role`;
     this.executionRole = new IamRole(this, `ecs-execution-role`, {
-      name: `${name}-ecs-execution-role`,
-      inlinePolicy: [
-        {
-          name: 'allow-ecr-pull',
-          policy: JSON.stringify({
-            Version: '2012-10-17',
-            Statement: [
-              {
-                Effect: 'Allow',
-                Action: [
-                  'ecr:GetAuthorizationToken',
-                  'ecr:BatchCheckLayerAvailability',
-                  'ecr:GetDownloadUrlForLayer',
-                  'ecr:BatchGetImage',
-                  'logs:CreateLogStream',
-                  'logs:PutLogEvents',
-                ],
-                Resource: '*',
-              },
-            ],
-          }),
-        },
-      ],
+      name: executionRoleName,
       // this role shall only be used by an ECS task
       assumeRolePolicy: JSON.stringify({
         Version: '2012-10-17',
@@ -87,6 +67,30 @@ export class Cluster extends Construct {
         ],
       }),
     });
+    const executionRolePoliciesName = `${name}-ecs-execution-role-policies`;
+    new IamRolePolicy(this, executionRolePoliciesName, {
+      name: 'allow-ecr-pull',
+      policy: Token.asString(
+        Fn.jsonencode({
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: [
+                'ecr:GetAuthorizationToken',
+                'ecr:BatchCheckLayerAvailability',
+                'ecr:GetDownloadUrlForLayer',
+                'ecr:BatchGetImage',
+                'logs:CreateLogStream',
+                'logs:PutLogEvents',
+              ],
+              Resource: '*',
+            },
+          ],
+          Version: '2012-10-17',
+        }),
+      ),
+      role: this.executionRole.id,
+    });
   }
 
   public addService(
@@ -95,7 +99,7 @@ export class Cluster extends Construct {
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
-    appautoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
+    appAutoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
     loadBalancerConfig?: {
       loadBalancer: LoadBalancer;
       priority: number;
@@ -113,8 +117,8 @@ export class Cluster extends Construct {
     const task = new EcsTaskDefinition(this, name, {
       family: name, // name used to group the definitions versions
 
-      cpu: taskDefinitionConfig.cpu ?? '1024',
-      memory: taskDefinitionConfig.memory ?? '3072',
+      cpu: taskDefinitionConfig.cpu ?? '256',
+      memory: taskDefinitionConfig.memory ?? '512',
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,
@@ -214,7 +218,7 @@ export class Cluster extends Construct {
         : undefined,
     });
 
-    if (appautoscalingConfig) {
+    if (appAutoscalingConfig) {
       const scalingTarget = new AppautoscalingTarget(
         this,
         `${name}-service-autoscaling-target`,
@@ -232,7 +236,7 @@ export class Cluster extends Construct {
         resourceId: scalingTarget.resourceId,
         scalableDimension: scalingTarget.scalableDimension,
         serviceNamespace: scalingTarget.serviceNamespace,
-        targetTrackingScalingPolicyConfiguration: appautoscalingConfig,
+        targetTrackingScalingPolicyConfiguration: appAutoscalingConfig,
       });
     }
 
