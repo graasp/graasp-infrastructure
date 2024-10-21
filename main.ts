@@ -20,6 +20,7 @@ import { PostgresDB } from './constructs/postgres';
 import { GraaspRedis } from './constructs/redis';
 import {
   AllowedSecurityGroupInfo,
+  securityGroupAllowMultipleSecurityGroups,
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import {
@@ -201,6 +202,15 @@ class GraaspStack extends TerraformStack {
         toPort: MEILISEARCH_PORT,
       },
     );
+    // allow communication between the gatekeeper and nudenet
+    new VpcSecurityGroupIngressRule(this, `${id}-allow-gatekeeper-on-nudenet`, {
+      referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
+      ipProtocol: 'tcp',
+      securityGroupId: nudenetSecurityGroup.id,
+      // port range for ingress trafic
+      fromPort: NUDENET_PORT,
+      toPort: NUDENET_PORT,
+    });
 
     new PostgresDB(
       this,
