@@ -354,7 +354,8 @@ class GraaspStack extends TerraformStack {
 
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
-      'ghcr.io/graasp/nudenet',
+      // 'ghcr.io/graasp/nudenet',
+      'qmcgaw/port-checker',
       'latest',
       [
         {
@@ -362,7 +363,7 @@ class GraaspStack extends TerraformStack {
           containerPort: NUDENET_PORT,
         },
       ],
-      {},
+      { LISTENING_PORT: '8080' },
       environment,
     );
 
