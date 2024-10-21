@@ -20,7 +20,6 @@ import { PostgresDB } from './constructs/postgres';
 import { GraaspRedis } from './constructs/redis';
 import {
   AllowedSecurityGroupInfo,
-  securityGroupAllowMultipleSecurityGroups,
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import {
@@ -355,8 +354,8 @@ class GraaspStack extends TerraformStack {
 
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
-      'notaitech/nudenet',
-      'classifier',
+      'ghcr.io/graasp/nudenet',
+      'latest',
       [
         {
           hostPort: NUDENET_PORT,
