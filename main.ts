@@ -57,7 +57,6 @@ class GraaspStack extends TerraformStack {
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
     const IFRAMELY_PORT = 8061;
-    const NUDENET_PORT = 8080;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -164,13 +163,6 @@ class GraaspStack extends TerraformStack {
       vpc.vpcIdOutput,
       backendAllowedSecurityGroupInfo,
       MEILISEARCH_PORT,
-    );
-    const nudenetSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
-      this,
-      `${id}-nudenet`,
-      vpc.vpcIdOutput,
-      backendAllowedSecurityGroupInfo,
-      NUDENET_PORT,
     );
     const iframelySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
@@ -343,20 +335,6 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
-    const nudenetDefinition = createContainerDefinitions(
-      'nudenet',
-      'notaitech/nudenet',
-      'classifier',
-      [
-        {
-          hostPort: NUDENET_PORT,
-          containerPort: NUDENET_PORT,
-        },
-      ],
-      {},
-      environment,
-    );
-
     const iframelyDefinition = createContainerDefinitions(
       'iframely',
       'graasp/iframely',
@@ -455,19 +433,6 @@ class GraaspStack extends TerraformStack {
       },
       meilisearchSecurityGroup,
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
-    );
-
-    cluster.addService(
-      'nudenet',
-      1,
-      {
-        containerDefinitions: nudenetDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.nudenet.cpu,
-        memory: CONFIG[environment.env].ecsConfig.nudenet.memory,
-        dummy: false,
-      },
-      nudenetSecurityGroup,
-      { name: 'graasp-nudenet', port: NUDENET_PORT },
     );
 
     cluster.addService(
