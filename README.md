@@ -4,22 +4,22 @@
 - **Consistency**: The setup is similar between the different environment, reducing configuration drift.
 - **Batch changes**: Want to move the whole infrastructure to a new region? Terraform will recreate all the resources with the same config, preventing us from forgetting an option somewhere in the console. We only need to migrate the stateful data (Database, S3...). Want to change the config generally used for S3 buckets? Change it in one place, all buckets are updated.
 
-# Pre-requisites to run terraform
+## Pre-requisites to run terraform
 
-## Locally
+### Locally
 
 - install [terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 
-## Infrastructure
+### Infrastructure
 
 - a `terraform` user has been created with only the permission to assume roles (sts:AssumeRole)
-- a `terraform` role with administrator permissions is created in each subaccount managed by the organization (dev, staging, prod). These roles trust the terraform user to impersonate them.
+- a `terraform` role with administrator permissions is created in each sub-account managed by the organization (dev, staging, prod). These roles trust the terraform user to impersonate them.
 - A S3 bucket in production to store the Terraform state with ideally:
-  - Bucket versionning enabled
+  - Bucket versioning enabled
   - Encryption at rest enabled
   - Access only allowed to the `terraform` user:
 
-```
+```json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -49,11 +49,11 @@
 
 - ECR repositories must exist in the environment: `graasp`, `graasp/explore`, `graasp/etherpad`
 - A valid ACM certificate for the domain of the environment (`dev.graasp.org`...), one in the region of the deployment and one in `us-east-1` (for Cloudfront)
-- Currently, Route53 records (for accessings apps and for certificates) must be managed manually.
+- Currently, Route53 records (for accessing apps and for certificates) must be managed manually.
   - When the cloudfront certificate is created for the first time, you must go to the certificate page in the console and use the "Create certificate in Route53" button.
   - TODO: To manage route53 with Terraform, create a hosted zone in each env, then create one NS record in the prod account for the corresponding env. This will allow the env to manage the records for its own domain.
 
-# Install
+## Install
 
 ```bash
 # install dependencies
@@ -79,7 +79,7 @@ You can run `export -p` to show the active variables.
 
 <div id="run"></div>
 
-# Run
+## Run
 
 ```bash
  # generates stacks for the defined environments
@@ -91,18 +91,18 @@ cdktf diff <stack-name>
 You might want to escape some characters (`!`, `.`).
 At this point shouldn't have any difference with the current deployed stack.
 
-```
+```txt
 Terraform has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 ```
 
-# Migrate existing data
+## Migrate existing data
 
 Even if we can easily create a whole infrastructure with this repository, this infrastructure does not handle deployment. Deployment is handled by GitHub Actions, mostly to update task definitions and fill S3 buckets. Currently, there are a lot of secrets set in GitHub Actions that must be updated for the deployments to work, which takes more time that creating the infrastructure itself. Also, RDS database migration is not straightforward.
 
 These are instructions for creating a new env and updating the deployment process to point to the new environment.
 
-For the first infrastructure creation, I suggest working locally by creating a new keypair for the `terraform` **user** in the production account. Then you can use the cdktf CLI to deploy the infrastructure and check for any errors.
+For the first infrastructure creation, I suggest working locally by creating a new key-pair for the `terraform` **user** in the production account. Then you can use the cdktf CLI to deploy the infrastructure and check for any errors.
 
 **You need to export some variables before running cdktf (see the [Run](#run) section)**
 
@@ -188,9 +188,9 @@ In order to create a new environment and migrate the data, follow these instruct
   - Make a snapshot of the existing database
   - If you already ran Terraform, you will have an empty new database, rename it or delete it
   - (Copy the snapshot to the new region, if the new database is in a different region)
-    - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html
+    - <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html>
   - For Etherpad, you might as well upgrade the snapshot to Postgres 15 before restoring.
-    - Also Etherpad seems to use 400gb of IOPS storage sometimes, reducing storage space in not possible in RDS, so in staging, I restored the database manually with dumps: https://docs.aws.amazon.com/dms/latest/sbs/chap-manageddatabases.postgresql-rds-postgresql-full-load-pd_dump.html
+    - Also Etherpad seems to use 400gb of IOPS storage sometimes, reducing storage space in not possible in RDS, so in staging, I restored the database manually with dumps: <https://docs.aws.amazon.com/dms/latest/sbs/chap-manageddatabases.postgresql-rds-postgresql-full-load-pd_dump.html>
   - Restore this snapshot to a new database with the same name expected by Terraform (for example "graasp-dev")
     - Make sure to configure the database as close to the Terraform configuration as possible (security groups etc... use the existing ones)
   - Now we have to import this new database to the existing terraform state (see example for dev environment)
@@ -219,23 +219,25 @@ In order to create a new environment and migrate the data, follow these instruct
 
 - Delete the old infrastructure
 
-# Architecture
+## Architecture
 
 Some of the resources have been wrapped in custom `Construct` type to simplify usage (ECS cluster, Postgres...) and use sane defaults adapted to Graasp. For other ressources, we directly use the terraform provided construct. This can be improved if better abstractions are needed. Indeed, the current architecture was created by mapping the manually created AWS infrastructure to code, to perform the migration, but it can be perfected now that Terraform manages the infrastructure.
+
+### Potential improvements
 
 Some example of the possible improvements:
 
 - Manage the zones and DNS records directly with Terraform
-- During the migration to IAC, it was discovered that we are only using public subnets in our VPC. This means everything in graasp is addressable from the Internet. This is mitagated by security groups, which only allows traffic from authorized clients. But it might be a good idea to use private subnets, it means however still having public subnets for the application load balancer and routing from public to private subnets.
+- During the migration to IAC, it was discovered that we are only using public subnets in our VPC. This means everything in graasp is addressable from the Internet. This is mitigated by security groups, which only allows traffic from authorized clients. But it might be a good idea to use private subnets, it means however still having public subnets for the application load balancer and routing from public to private subnets.
 - Use more strong types: a lot of resources can currently take arbitrary strings for configuration. See `AllowedRegion` for an example of improving a configuration type.
-- Terraform do not manage the deployments, it makes the infrastructure available for the CI/CD to act. Make the CI/CD more generic (instead of one workflow per env), then create a pipeline to deploy a generic dev environment (infra followed by deploy), to have ephemereal dev environments.
+- Terraform do not manage the deployments, it makes the infrastructure available for the CI/CD to act. Make the CI/CD more generic (instead of one workflow per env), then create a pipeline to deploy a generic dev environment (infra followed by deploy), to have ephemeral dev environments.
 - Separating "static" resources in different stacks. For example, by putting ECR repo in a different stack for each env, we could destroy everything else, while keeping image history.
-- Instead of using long-lived AWS credentials, use Github OIDC integration (see https://github.com/aws-actions/configure-aws-credentials#oidc). This allow workflows to assume a specific AWS role for just the duration of the workflow.
-  - This would also allow a workflow to only assume a role for its own env, preventing someone to rewrite the workflow to run on another env. See https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+- Instead of using long-lived AWS credentials, use Github OIDC integration (see [Configure AWS Credentials (OIDC)](https://github.com/aws-actions/configure-aws-credentials#oidc)). This allow workflows to assume a specific AWS role for just the duration of the workflow.
+  - This would also allow a workflow to only assume a role for its own env, preventing someone to rewrite the workflow to run on another env. See <https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services>
 
-# Troubleshoot
+## Troubleshoot
 
-## Importing an existing ressource
+### Importing an existing ressource
 
 If something has been created manually on AWS, you can import it into the terraform state (if most of the config matches), so that you don't have to recreate it.
 
@@ -250,10 +252,11 @@ terraform import aws_ecr_repository.graasp-iac-development-ecr graasp # Import t
 yarn run cdktf plan # your plan should stop trying to create the resource.
 ```
 
-## If deployments break
+### If deployments break
 
 It is possible that after some time deployments will break with an error similar to:
-```
+
+```txt
             │ Error: Failed to query available provider packages
             │ 
             │ Could not retrieve the list of available versions for provider hashicorp/aws:
@@ -264,12 +267,12 @@ It is possible that after some time deployments will break with an error similar
 
 In this case the fix is usually to update the `@cdktf/provider-aws` dependency. Using `yarn upgrade-interactive` it is easy to do.
 
-## Container does not exist in task definition
+### Container does not exist in task definition
 
-If you have to delete a cluster and when re-deploying you see an error about the container not exisiting in the task definition you should:
+If you have to delete a cluster and when re-deploying you see an error about the container not existing in the task definition you should:
 
 - switch the `dummy` property of the container definition for `graasp` and `library` off, so the deployment will create a new task definition that is up-to-date
 - deploy this
 - revert the change of `dummy` to true
 - deploy again (to make sure)
-- deploy the real task defintions for graasp and library from the specific repositories
+- deploy the real task definitions for graasp and library from the specific repositories
