@@ -17,7 +17,6 @@ import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
-import { GraaspRedis } from './constructs/redis';
 import {
   AllowedSecurityGroupInfo,
   securityGroupOnlyAllowAnotherSecurityGroup,
@@ -57,6 +56,7 @@ class GraaspStack extends TerraformStack {
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
     const IFRAMELY_PORT = 8061;
+    const REDIS_PORT = 6379;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -170,6 +170,13 @@ class GraaspStack extends TerraformStack {
       vpc.vpcIdOutput,
       backendAllowedSecurityGroupInfo,
       IFRAMELY_PORT,
+    );
+    const redisSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-redis`,
+      vpc.vpcIdOutput,
+      backendAllowedSecurityGroupInfo,
+      REDIS_PORT,
     );
 
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
@@ -351,6 +358,20 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const redisDefinition = createContainerDefinitions(
+      'redis',
+      'redis',
+      '7-alpine',
+      [
+        {
+          hostPort: REDIS_PORT,
+          containerPort: REDIS_PORT,
+        },
+      ],
+      {},
+      environment,
+    );
+
     // backend
     cluster.addService(
       'graasp',
@@ -448,6 +469,19 @@ class GraaspStack extends TerraformStack {
       { name: 'graasp-iframely', port: IFRAMELY_PORT },
     );
 
+    cluster.addService(
+      'redis',
+      1,
+      {
+        containerDefinitions: redisDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
+        memory: CONFIG[environment.env].ecsConfig.redis.memory,
+        dummy: false,
+      },
+      redisSecurityGroup,
+      { name: 'graasp-redis', port: REDIS_PORT },
+    );
+
     // S3 buckets
 
     // This has been copied from existing configuration, is it relevant?
@@ -521,15 +555,6 @@ class GraaspStack extends TerraformStack {
     }
     // File item storage is private
     new GraaspS3Bucket(this, `${id}-file-items`, false, FILE_ITEM_CORS);
-
-    // Redis cluster
-    new GraaspRedis(
-      this,
-      id,
-      vpc,
-      backendAllowedSecurityGroupInfo,
-      CONFIG[environment.env].enableRedisReplication,
-    );
   }
 }
 
