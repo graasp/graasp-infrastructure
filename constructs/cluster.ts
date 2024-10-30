@@ -143,10 +143,10 @@ export class Cluster extends Construct {
         healthCheck: {
           enabled: true,
           path: loadBalancerConfig.healthCheckPath,
-          healthyThreshold: 5,
-          unhealthyThreshold: 2,
+          healthyThreshold: 3,
+          unhealthyThreshold: 3,
           timeout: 6, // in seconds the response time after which the target is considered un-healthy
-          interval: 20, // in seconds (a very conservative value is 300, umami uses 5)
+          interval: 60, // in seconds (a very conservative value is 300 to allow )
         },
       });
 
