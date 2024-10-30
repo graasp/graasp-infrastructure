@@ -420,6 +420,7 @@ class GraaspStack extends TerraformStack {
         APP_SECRET:
           'a5b20f9ac88eb6d9c2a443664968052ee9f34a3ea8ed1ebe0c0d5c51d5ea78ca',
         DISABLE_TELEMETRY: '1',
+        HOSTNAME: '0.0.0.0', // needed for the app to bind to localhost, otherwise never answers the health-checks
       },
       environment,
     );

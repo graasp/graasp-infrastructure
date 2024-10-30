@@ -146,7 +146,7 @@ export class Cluster extends Construct {
           healthyThreshold: 3,
           unhealthyThreshold: 3,
           timeout: 6, // in seconds the response time after which the target is considered un-healthy
-          interval: 60, // in seconds (a very conservative value is 300 to allow )
+          interval: 60, // in seconds
         },
       });
 
