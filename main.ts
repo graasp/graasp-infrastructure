@@ -57,7 +57,7 @@ class GraaspStack extends TerraformStack {
     const MEILISEARCH_PORT = 7700;
     const IFRAMELY_PORT = 8061;
     const REDIS_PORT = 6379;
-    const UMAMI_PORT = 8000;
+    const UMAMI_PORT = 3000;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -412,7 +412,7 @@ class GraaspStack extends TerraformStack {
       [
         {
           hostPort: UMAMI_PORT,
-          containerPort: 3000,
+          containerPort: UMAMI_PORT,
         },
       ],
       {
