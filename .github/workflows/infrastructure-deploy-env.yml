@@ -1,16 +1,16 @@
-name: 'Apply infrastructure on env'
+name: "Apply infrastructure on env"
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment'
+        description: "Target environment"
         type: environment
         required: true
 
 jobs:
   plan:
-    name: 'Terraform Plan (${{ inputs.environment }})'
+    name: "Terraform Plan (${{ inputs.environment }})"
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -41,12 +41,13 @@ jobs:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
           TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          TF_VAR_UMAMI_DB_PASSWORD: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
           TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
           TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 
   deploy:
-    name: 'Deploy infra (${{ inputs.environment }})'
+    name: "Deploy infra (${{ inputs.environment }})"
     environment: ${{ inputs.environment }}
     needs: plan
     runs-on: ubuntu-latest
@@ -78,6 +79,7 @@ jobs:
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
           TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          TF_VAR_UMAMI_DB_PASSWORD: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
           TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
           TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
