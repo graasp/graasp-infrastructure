@@ -57,6 +57,7 @@ class GraaspStack extends TerraformStack {
     const MEILISEARCH_PORT = 7700;
     const IFRAMELY_PORT = 8061;
     const REDIS_PORT = 6379;
+    const UMAMI_PORT = 3000;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -117,11 +118,20 @@ class GraaspStack extends TerraformStack {
     );
 
     const cluster = new Cluster(this, id, vpc);
-    const loadBalancer = new LoadBalancer(
-      this,
-      id,
-      vpc,
-      sslCertificate,
+    const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
+
+    // ---- Setup redirections in the load-balancer -----
+    // for the go.graasp.org service, redirect to an api endpoint
+    loadBalancer.addListenerRuleForHostRedirect(
+      'shortener',
+      10,
+      {
+        subDomainOrigin: 'go', // requests from go.graasp.org
+        subDomainTarget: 'api', // to api.graasp.org
+        pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        statusCode: 'HTTP_302', // temporary moved
+      },
       environment,
     );
 
@@ -151,6 +161,13 @@ class GraaspStack extends TerraformStack {
       loadBalancerAllowedSecurityGroupInfo,
       ETHERPAD_PORT,
     );
+    const umamiSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-umami`,
+      vpc.vpcIdOutput,
+      loadBalancerAllowedSecurityGroupInfo,
+      UMAMI_PORT,
+    );
 
     // define security groups accepting ingress trafic from the backend
     const backendAllowedSecurityGroupInfo = {
@@ -179,12 +196,28 @@ class GraaspStack extends TerraformStack {
       REDIS_PORT,
     );
 
+    const umamiAllowedSecurityGroupInfo = {
+      groupId: umamiSecurityGroup.id,
+      targetName: 'umami',
+    } satisfies AllowedSecurityGroupInfo;
+
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
       nullable: false,
       type: 'string',
       description: 'Admin password for the graasp database',
       sensitive: true,
     });
+
+    const umamiDbUserPassword = new TerraformVariable(
+      this,
+      'UMAMI_DB_PASSWORD',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Umami user password for the postgresql database',
+        sensitive: true,
+      },
+    );
 
     const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
@@ -201,14 +234,14 @@ class GraaspStack extends TerraformStack {
       },
     );
 
-    new PostgresDB(
+    const backendDb = new PostgresDB(
       this,
       id,
       'graasp',
       'graasp',
       dbPassword,
       vpc,
-      backendAllowedSecurityGroupInfo,
+      [backendAllowedSecurityGroupInfo, umamiAllowedSecurityGroupInfo],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
@@ -236,7 +269,7 @@ class GraaspStack extends TerraformStack {
       'graasp_etherpad',
       etherpadDbPassword,
       vpc,
-      etherpadAllowedSecurityGroupInfo,
+      [etherpadAllowedSecurityGroupInfo],
       false,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       {
@@ -372,6 +405,26 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const umamiDefinition = createContainerDefinitions(
+      'umami',
+      'ghcr.io/umami-software/umami',
+      'postgresql-latest',
+      [
+        {
+          hostPort: UMAMI_PORT,
+          containerPort: UMAMI_PORT,
+        },
+      ],
+      {
+        DATABASE_URL: `postgresql://umami:${umamiDbUserPassword}@${backendDb.instance.dbInstanceAddressOutput}:5432/umami`,
+        APP_SECRET:
+          'a5b20f9ac88eb6d9c2a443664968052ee9f34a3ea8ed1ebe0c0d5c51d5ea78ca',
+        DISABLE_TELEMETRY: '1',
+        HOSTNAME: '0.0.0.0', // needed for the app to bind to localhost, otherwise never answers the health-checks
+      },
+      environment,
+    );
+
     // backend
     cluster.addService(
       'graasp',
@@ -393,7 +446,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('api', environment),
         port: 80,
         containerPort: BACKEND_PORT,
-        healthCheckPath: '/status',
+        healthCheckPath: '/health',
       },
     );
 
@@ -440,6 +493,28 @@ class GraaspStack extends TerraformStack {
         port: 443,
         containerPort: ETHERPAD_PORT,
         healthCheckPath: '/',
+      },
+    );
+
+    cluster.addService(
+      'umami',
+      1,
+      {
+        containerDefinitions: umamiDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
+        memory: CONFIG[environment.env].ecsConfig.umami.memory,
+        dummy: false,
+      },
+      umamiSecurityGroup,
+      { name: 'umami', port: UMAMI_PORT },
+      undefined,
+      {
+        loadBalancer: loadBalancer,
+        priority: 4,
+        host: subdomainForEnv('umami', environment),
+        port: 80,
+        containerPort: UMAMI_PORT,
+        healthCheckPath: '/api/heartbeat',
       },
     );
 

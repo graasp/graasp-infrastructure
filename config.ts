@@ -27,6 +27,7 @@ export type GraaspConfiguration = {
     nudenet: HardwareLimit;
     iframely: HardwareLimit;
     redis: HardwareLimit;
+    umami: HardwareLimit;
   };
 };
 
@@ -70,6 +71,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         cpu: '256',
         memory: '512',
       },
+      umami: {
+        cpu: '512',
+        memory: '1024',
+      },
     },
   },
   [Environment.STAGING]: {
@@ -107,6 +112,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         cpu: '256',
         memory: '512',
       },
+      umami: {
+        cpu: '512',
+        memory: '1024',
+      },
     },
   },
   [Environment.PRODUCTION]: {
@@ -143,6 +152,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       redis: {
         cpu: '256',
         memory: '512',
+      },
+      umami: {
+        cpu: '512',
+        memory: '1024',
       },
     },
   },

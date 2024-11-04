@@ -17,16 +17,17 @@ export class LoadBalancer extends Construct {
   lbl: LbListener;
   vpc: Vpc;
   securityGroup: SecurityGroup;
+  name: string;
 
   constructor(
     scope: Construct,
     name: string,
     vpc: Vpc,
     certificate: DataAwsAcmCertificate,
-    env: EnvironmentConfig,
   ) {
     super(scope, `${name}-load-balancer`);
     this.vpc = vpc;
+    this.name = name;
 
     // Setup Security Group
 
@@ -115,17 +116,31 @@ export class LoadBalancer extends Construct {
       sslPolicy: 'ELBSecurityPolicy-2016-08',
       certificateArn: certificate.arn,
     });
+  }
 
-    new LbListenerRule(this, `${name}-shortener`, {
+  addListenerRuleForHostRedirect(
+    name: string,
+    priority: number,
+    redirectOptions: {
+      subDomainTarget: string;
+      subDomainOrigin: string;
+      pathRewrite: string;
+      queryRewrite?: string;
+      statusCode?: string;
+    },
+    env: EnvironmentConfig,
+  ) {
+    new LbListenerRule(this, `${this.name}-${name}`, {
       listenerArn: this.lbl.arn,
-      priority: 10,
+      priority,
       action: [
         {
           type: 'redirect',
           redirect: {
-            host: subdomainForEnv('api', env),
-            path: '/items/short-links/#{path}',
-            statusCode: 'HTTP_302',
+            host: subdomainForEnv(redirectOptions.subDomainTarget, env),
+            path: redirectOptions.pathRewrite,
+            query: redirectOptions.queryRewrite,
+            statusCode: redirectOptions.statusCode ?? 'HTTP_302',
             protocol: 'HTTPS',
           },
         },
@@ -134,7 +149,7 @@ export class LoadBalancer extends Construct {
       condition: [
         {
           hostHeader: {
-            values: [subdomainForEnv('go', env)],
+            values: [subdomainForEnv(redirectOptions.subDomainOrigin, env)],
           },
         },
       ],

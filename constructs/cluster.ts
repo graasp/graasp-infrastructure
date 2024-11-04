@@ -143,10 +143,10 @@ export class Cluster extends Construct {
         healthCheck: {
           enabled: true,
           path: loadBalancerConfig.healthCheckPath,
-          healthyThreshold: 5,
-          unhealthyThreshold: 2,
-          timeout: 5,
-          interval: 30,
+          healthyThreshold: 3,
+          unhealthyThreshold: 3,
+          timeout: 6, // in seconds the response time after which the target is considered un-healthy
+          interval: 60, // in seconds
         },
       });
 
@@ -158,7 +158,7 @@ export class Cluster extends Construct {
         },
       ];
 
-      // Makes the listener forward requests from subpath to the target group
+      // Makes the listener forward requests from host to the target group
       new LbListenerRule(this, `${name}-rule`, {
         listenerArn: loadBalancerConfig.loadBalancer.lbl.arn,
         priority: loadBalancerConfig.priority,

@@ -8,7 +8,7 @@ import { Rds, RdsConfig } from '../.gen/modules/rds';
 import { Vpc } from '../.gen/modules/vpc';
 import {
   AllowedSecurityGroupInfo,
-  securityGroupOnlyAllowAnotherSecurityGroup,
+  securityGroupAllowMultipleOtherSecurityGroups,
 } from './security_group';
 
 export class PostgresDB extends Construct {
@@ -21,7 +21,7 @@ export class PostgresDB extends Construct {
     dbUsername: string,
     dbPassword: TerraformVariable,
     vpc: Vpc,
-    allowedSecurityGroup: AllowedSecurityGroupInfo,
+    allowedSecurityGroups: AllowedSecurityGroupInfo[],
     addReplica: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
@@ -31,11 +31,11 @@ export class PostgresDB extends Construct {
 
     const dbPort = 5432;
 
-    const dbSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+    const dbSecurityGroup = securityGroupAllowMultipleOtherSecurityGroups(
       this,
       `${name}-db`,
       vpc.vpcIdOutput,
-      allowedSecurityGroup,
+      allowedSecurityGroups,
       dbPort,
     );
 
