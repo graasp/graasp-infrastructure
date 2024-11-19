@@ -6,7 +6,6 @@ export type HardwareLimit = {
 };
 
 export type GraaspConfiguration = {
-  enableRedisReplication: boolean;
   dbConfig: {
     graasp: {
       enableReplication: boolean;
@@ -37,7 +36,6 @@ export type GraaspConfiguration = {
 
 export const CONFIG: Record<Environment, GraaspConfiguration> = {
   [Environment.DEV]: {
-    enableRedisReplication: false,
     dbConfig: {
       graasp: {
         enableReplication: false,
@@ -78,10 +76,9 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
   },
   [Environment.STAGING]: {
-    enableRedisReplication: true,
     dbConfig: {
       graasp: {
-        enableReplication: true,
+        enableReplication: false,
         backupRetentionPeriod: 1,
       },
       etherpad: {
@@ -119,7 +116,6 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
   },
   [Environment.PRODUCTION]: {
-    enableRedisReplication: true,
     dbConfig: {
       graasp: {
         enableReplication: true,
