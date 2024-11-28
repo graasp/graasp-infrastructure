@@ -328,7 +328,7 @@ class GraaspStack extends TerraformStack {
       {
         DB_HOST: backendDb.instance.dbInstanceAddressOutput,
         DB_NAME: 'etherpad',
-        DB_PASS: etherpadDbPassword.value,
+        DB_PASS: `\$\{${etherpadDbPassword.value}\}`,
         DB_PORT: '5432',
         DB_TYPE: 'postgres',
         DB_USER: 'etherpad',
