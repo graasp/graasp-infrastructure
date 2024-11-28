@@ -174,6 +174,7 @@ class GraaspStack extends TerraformStack {
       groupId: backendSecurityGroup.id,
       targetName: 'graasp-backend',
     } satisfies AllowedSecurityGroupInfo;
+
     const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-meilisearch`,
@@ -196,11 +197,6 @@ class GraaspStack extends TerraformStack {
       REDIS_PORT,
     );
 
-    const umamiAllowedSecurityGroupInfo = {
-      groupId: umamiSecurityGroup.id,
-      targetName: 'umami',
-    } satisfies AllowedSecurityGroupInfo;
-
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
       nullable: false,
       type: 'string',
@@ -215,6 +211,17 @@ class GraaspStack extends TerraformStack {
         nullable: false,
         type: 'string',
         description: 'Umami user password for the postgresql database',
+        sensitive: true,
+      },
+    );
+
+    const etherpadDbPassword = new TerraformVariable(
+      this,
+      'ETHERPAD_DB_PASSWORD',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Admin password for the etherpad database',
         sensitive: true,
       },
     );
@@ -234,6 +241,17 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    // define security groups needing access to the database
+    const umamiAllowedSecurityGroupInfo = {
+      groupId: umamiSecurityGroup.id,
+      targetName: 'umami',
+    } satisfies AllowedSecurityGroupInfo;
+
+    const etherpadAllowedSecurityGroupInfo = {
+      groupId: etherpadSecurityGroup.id,
+      targetName: 'etherpad',
+    } satisfies AllowedSecurityGroupInfo;
+
     const backendDb = new PostgresDB(
       this,
       id,
@@ -241,40 +259,15 @@ class GraaspStack extends TerraformStack {
       'graasp',
       dbPassword,
       vpc,
-      [backendAllowedSecurityGroupInfo, umamiAllowedSecurityGroupInfo],
+      [
+        backendAllowedSecurityGroupInfo,
+        umamiAllowedSecurityGroupInfo,
+        etherpadAllowedSecurityGroupInfo,
+      ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
-    );
-
-    const etherpadDbPassword = new TerraformVariable(
-      this,
-      'ETHERPAD_DB_PASSWORD',
-      {
-        nullable: false,
-        type: 'string',
-        description: 'Admin password for the etherpad database',
-        sensitive: true,
-      },
-    );
-    const etherpadAllowedSecurityGroupInfo = {
-      groupId: etherpadSecurityGroup.id,
-      targetName: 'etherpad',
-    } satisfies AllowedSecurityGroupInfo;
-    const etherpadDb = new PostgresDB(
-      this,
-      `${id}-etherpad`,
-      'graasp_etherpad',
-      'graasp_etherpad',
-      etherpadDbPassword,
-      vpc,
-      [etherpadAllowedSecurityGroupInfo],
-      false,
-      CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
-      {
-        availabilityZone: vpc.azs?.[2],
-      },
     );
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
@@ -333,12 +326,12 @@ class GraaspStack extends TerraformStack {
         },
       ],
       {
-        DB_HOST: etherpadDb.instance.dbInstanceAddressOutput,
-        DB_NAME: 'graasp_etherpad',
-        DB_PASS: `\$\{${etherpadDb.instance.password}\}`,
+        DB_HOST: backendDb.instance.dbInstanceAddressOutput,
+        DB_NAME: 'etherpad',
+        DB_PASS: etherpadDbPassword.value,
         DB_PORT: '5432',
         DB_TYPE: 'postgres',
-        DB_USER: 'graasp_etherpad',
+        DB_USER: 'etherpad',
         EDIT_ONLY: 'true',
         PORT: ETHERPAD_PORT.toString(),
         MINIFY: 'false',
