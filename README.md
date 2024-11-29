@@ -73,6 +73,10 @@ export TF_VAR_GRAASP_DB_PASSWORD="password"
 export TF_VAR_ETHERPAD_DB_PASSWORD="password"
 export TF_VAR_MEILISEARCH_MASTER_KEY="masterkey"
 export TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME="gatekeeper-keyname"
+export TF_VAR_UMAMI_DB_PASSWORD="password"
+
+export TF_VAR_DB_GATEKEEPER_AMI_ID="ami-value"
+export TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE="t2.micro"
 ```
 
 You can run `export -p` to show the active variables.
