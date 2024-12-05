@@ -11,9 +11,6 @@ export type GraaspConfiguration = {
       enableReplication: boolean;
       backupRetentionPeriod: number; // day
     };
-    etherpad: {
-      backupRetentionPeriod: number; // day
-    };
   };
   ecsConfig: {
     // graasp: HardwareLimit, // These do not make sense as the task definition are replaced by deployment.
@@ -39,9 +36,6 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     dbConfig: {
       graasp: {
         enableReplication: false,
-        backupRetentionPeriod: 1,
-      },
-      etherpad: {
         backupRetentionPeriod: 1,
       },
     },
@@ -81,9 +75,6 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         enableReplication: false,
         backupRetentionPeriod: 1,
       },
-      etherpad: {
-        backupRetentionPeriod: 1,
-      },
     },
     ecsConfig: {
       graasp: {
@@ -119,9 +110,6 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     dbConfig: {
       graasp: {
         enableReplication: true,
-        backupRetentionPeriod: 7,
-      },
-      etherpad: {
         backupRetentionPeriod: 7,
       },
     },
