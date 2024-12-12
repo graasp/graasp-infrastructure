@@ -163,7 +163,7 @@ class GraaspStack extends TerraformStack {
     );
     loadBalancer.addListenerRuleForHostRedirect(
       'player',
-      11,
+      13,
       {
         subDomainOrigin: 'player', // requests from go.graasp.org
         subDomainTarget: '', // to graasp.org
