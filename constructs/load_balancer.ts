@@ -9,7 +9,7 @@ import { Fn } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { EnvironmentConfig, subdomainForEnv } from '../utils';
+import { EnvironmentConfig, envDomain, subdomainForEnv } from '../utils';
 import { allowAllEgressRule } from './security_group';
 
 export class LoadBalancer extends Construct {
@@ -130,6 +130,10 @@ export class LoadBalancer extends Construct {
     },
     env: EnvironmentConfig,
   ) {
+    const host = redirectOptions.subDomainTarget
+      ? subdomainForEnv(redirectOptions.subDomainTarget, env)
+      : envDomain(env);
+
     new LbListenerRule(this, `${this.name}-${name}`, {
       listenerArn: this.lbl.arn,
       priority,
@@ -137,7 +141,7 @@ export class LoadBalancer extends Construct {
         {
           type: 'redirect',
           redirect: {
-            host: subdomainForEnv(redirectOptions.subDomainTarget, env),
+            host,
             path: redirectOptions.pathRewrite,
             query: redirectOptions.queryRewrite,
             statusCode: redirectOptions.statusCode ?? 'HTTP_302',

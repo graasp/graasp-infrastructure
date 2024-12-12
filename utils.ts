@@ -22,6 +22,7 @@ export type EnvironmentConfig = {
 };
 
 export type GraaspWebsiteConfig = {
+  apexDomain?: boolean;
   s3StaticSite?: boolean;
   corsConfig: S3BucketCorsConfigurationCorsRule[];
   bucketOwnership?: S3BucketObjectOwnership;

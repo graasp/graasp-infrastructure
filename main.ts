@@ -71,7 +71,8 @@ class GraaspStack extends TerraformStack {
       key: id,
       region: AllowedRegion.Zurich,
       encrypt: true,
-      skipRegionValidation: true, // Zurich region is invalid with current version https://github.com/hashicorp/terraform-provider-aws/issues/28072
+      // we should be able to remove this since it has been fixed in Nov 2023 (version 1.6.0)
+      // skipRegionValidation: true, // Zurich region is invalid with current version https://github.com/hashicorp/terraform-provider-aws/issues/28072
     });
 
     const certificateProvider = new AwsProvider(this, 'AWS_US_EAST', {
@@ -131,6 +132,45 @@ class GraaspStack extends TerraformStack {
         pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
         // optionally keep query params
         statusCode: 'HTTP_302', // temporary moved
+      },
+      environment,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'account',
+      11,
+      {
+        subDomainOrigin: 'account', // requests from go.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'auth',
+      12,
+      {
+        subDomainOrigin: 'auth', // requests from go.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'player',
+      13,
+      {
+        subDomainOrigin: 'player', // requests from go.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
       },
       environment,
     );
@@ -586,18 +626,14 @@ class GraaspStack extends TerraformStack {
     ];
 
     const websites: Record<string, GraaspWebsiteConfig> = {
-      account: { corsConfig: [] },
-      admin: { corsConfig: [] },
       analytics: { corsConfig: [] },
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
-      auth: { corsConfig: [] },
       builder: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      landing: { corsConfig: [] },
       maintenance: { corsConfig: [] },
       map: { corsConfig: [] },
-      player: { corsConfig: [] },
+      client: { corsConfig: [], apexDomain: true },
     };
 
     for (const [website_name, website_config] of Object.entries(websites)) {
