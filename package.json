@@ -14,8 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "prettier:write": "prettier --write constructs/",
-    "upgrade": "npm i cdktf@latest cdktf-cli@latest",
-    "upgrade:next": "npm i cdktf@next cdktf-cli@next"
+    "upgrade": "yarn i cdktf@latest cdktf-cli@latest",
+    "upgrade:next": "yarn i cdktf@next cdktf-cli@next"
   },
   "engines": {
     "node": ">=20.0"
