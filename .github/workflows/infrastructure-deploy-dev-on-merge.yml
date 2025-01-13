@@ -26,6 +26,8 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - uses: hashicorp/setup-terraform@v3
+
       - name: Generate module and provider bindings
         run: npx cdktf get
 
