@@ -39,10 +39,10 @@ jobs:
 
       # TODO: retrieve "cdktf.out/stacks/graasp-dev/plan" file to execute it
       - name: Run Terraform CDK
-        uses: hashicorp/terraform-cdk-action@v4
+        uses: hashicorp/terraform-cdk-action@v6
         with:
-          cdktfVersion: 0.20.11
-          terraformVersion: 1.10.4
+          cdktfVersion: "0.20.11"
+          terraformVersion: "1.10.4"
           mode: auto-approve-apply
           stackName: graasp-dev
           githubToken: ${{ secrets.GITHUB_TOKEN }}
