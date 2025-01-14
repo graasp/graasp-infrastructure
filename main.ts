@@ -655,6 +655,7 @@ class GraaspStack extends TerraformStack {
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
+        website_config.apexDomain,
       );
     }
     // File item storage is private

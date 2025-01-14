@@ -3,7 +3,7 @@ import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-cert
 
 import { Construct } from 'constructs';
 
-import { EnvironmentConfig, subdomainForEnv } from '../utils';
+import { EnvironmentConfig, envDomain, subdomainForEnv } from '../utils';
 
 const CACHING_OPTIMIZED_ID = '658327ea-f89d-4fab-a63d-7e88639e58f6'; // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
 
@@ -15,6 +15,7 @@ export function makeCloudfront(
   certificate: DataAwsAcmCertificate,
   env: EnvironmentConfig,
   isUsingWebsiteEndpoint: boolean = false,
+  aliasToEnvApex: boolean = false,
 ) {
   // needed for pointing to the website endpoint of s3
   const customOriginConfig = {
@@ -37,7 +38,9 @@ export function makeCloudfront(
           : undefined,
       },
     ],
-    aliases: [subdomainForEnv(`${targetName}`, env)],
+    aliases: [
+      aliasToEnvApex ? envDomain(env) : subdomainForEnv(`${targetName}`, env),
+    ],
     defaultCacheBehavior: {
       cachePolicyId: CACHING_OPTIMIZED_ID,
       allowedMethods: ['GET', 'HEAD'],
