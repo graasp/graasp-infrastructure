@@ -139,7 +139,7 @@ class GraaspStack extends TerraformStack {
       'account',
       11,
       {
-        subDomainOrigin: 'account', // requests from go.graasp.org
+        subDomainOrigin: 'account', // requests from account.graasp.org
         subDomainTarget: '', // to graasp.org
         pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
         // optionally keep query params
@@ -152,7 +152,7 @@ class GraaspStack extends TerraformStack {
       'auth',
       12,
       {
-        subDomainOrigin: 'auth', // requests from go.graasp.org
+        subDomainOrigin: 'auth', // requests from auth.graasp.org
         subDomainTarget: '', // to graasp.org
         pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
         // optionally keep query params
@@ -165,9 +165,35 @@ class GraaspStack extends TerraformStack {
       'player',
       13,
       {
-        subDomainOrigin: 'player', // requests from go.graasp.org
+        subDomainOrigin: 'player', // requests from player.graasp.org
         subDomainTarget: '', // to graasp.org
         pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'builder',
+      14,
+      {
+        subDomainOrigin: 'builder', // requests from builder.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'analytics',
+      15,
+      {
+        subDomainOrigin: 'analytics', // requests from analytics.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
         // optionally keep query params
         queryRewrite: '#{query}',
         statusCode: 'HTTP_301', // permanently moved
@@ -620,6 +646,8 @@ class GraaspStack extends TerraformStack {
         allowedOrigins: [
           `https://${subdomainForEnv('builder', environment)}`,
           `https://${subdomainForEnv('player', environment)}`,
+          // apex domain
+          `https://${envDomain(environment)}`,
         ],
         exposeHeaders: [],
       },
