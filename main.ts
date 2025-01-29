@@ -626,13 +626,10 @@ class GraaspStack extends TerraformStack {
     ];
 
     const websites: Record<string, GraaspWebsiteConfig> = {
-      analytics: { corsConfig: [] },
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
-      builder: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
       maintenance: { corsConfig: [] },
-      map: { corsConfig: [] },
       client: { corsConfig: [], apexDomain: true },
     };
 
