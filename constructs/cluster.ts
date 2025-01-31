@@ -243,7 +243,6 @@ export class Cluster extends Construct {
     // add service inside cluster
     const service = new EcsService(this, `${name}-service`, {
       name,
-      launchType: 'FARGATE',
       cluster: this.cluster.id,
       desiredCount: desiredCount,
       capacityProviderStrategy,
