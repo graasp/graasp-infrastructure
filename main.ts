@@ -23,7 +23,11 @@ import {
   createMaintenanceFunction,
   makeCloudfront,
 } from './constructs/cloudfront';
-import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import {
+  Cluster,
+  SpotPreferences,
+  createContainerDefinitions,
+} from './constructs/cluster';
 import { createDNSEntry } from './constructs/dns';
 import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
@@ -978,6 +982,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'graasp',
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
+        spotPreference: SpotPreferences.Upscale,
       },
       {
         containerDefinitions: [coreDefinition, nudenetDefinition],
@@ -1050,6 +1055,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'workers',
         desiredCount: 1,
+        spotPreference: SpotPreferences.All,
       },
       {
         containerDefinitions: [workersDefinition],
@@ -1076,6 +1082,7 @@ class GraaspStack extends TerraformStack {
         desiredCount: 1,
         taskRoleArn: adminTaskRole.role.arn,
         enableExecuteCommand: true,
+        spotPreference: SpotPreferences.Upscale,
       },
       {
         containerDefinitions: [adminDefinition],
@@ -1108,6 +1115,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'graasp-library',
         desiredCount: 1,
+        spotPreference: SpotPreferences.Upscale,
       },
       { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
@@ -1137,6 +1145,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'etherpad',
         desiredCount: 1,
+        spotPreference: SpotPreferences.Upscale,
       },
       {
         containerDefinitions: [etherpadDefinition],
@@ -1163,6 +1172,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'umami',
         desiredCount: 1,
+        spotPreference: SpotPreferences.Disabled,
       },
       {
         containerDefinitions: [umamiDefinition],
@@ -1193,6 +1203,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'meilisearch',
         desiredCount: 1,
+        spotPreference: SpotPreferences.Disabled,
       },
       {
         containerDefinitions: [meilisearchDefinition],
@@ -1208,6 +1219,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'iframely',
         desiredCount: 1,
+        spotPreference: SpotPreferences.All,
       },
       {
         containerDefinitions: [iframelyDefinition],
@@ -1223,6 +1235,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'redis',
         desiredCount: 1,
+        spotPreference: SpotPreferences.Disabled,
       },
       {
         containerDefinitions: [redisDefinition],
