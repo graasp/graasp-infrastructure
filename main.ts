@@ -13,7 +13,11 @@ import { Vpc } from './.gen/modules/vpc';
 import { CONFIG } from './config';
 import { GraaspS3Bucket } from './constructs/bucket';
 import { makeCloudfront } from './constructs/cloudfront';
-import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import {
+  Cluster,
+  SpotPreferences,
+  createContainerDefinitions,
+} from './constructs/cluster';
 import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
@@ -488,6 +492,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      SpotPreferences.Upscale,
       { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
@@ -512,6 +517,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
+      SpotPreferences.Upscale,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
@@ -536,6 +542,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'etherpad',
       1,
+      SpotPreferences.Upscale,
       {
         containerDefinitions: etherpadDefinition,
         cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
@@ -558,6 +565,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'umami',
       1,
+      SpotPreferences.Disabled,
       {
         containerDefinitions: umamiDefinition,
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
@@ -580,6 +588,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'meilisearch',
       1,
+      SpotPreferences.Disabled,
       {
         containerDefinitions: meilisearchDefinition,
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
@@ -593,6 +602,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'iframely',
       1,
+      SpotPreferences.All,
       {
         containerDefinitions: iframelyDefinition,
         cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
@@ -606,6 +616,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'redis',
       1,
+      SpotPreferences.Disabled,
       {
         containerDefinitions: redisDefinition,
         cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
