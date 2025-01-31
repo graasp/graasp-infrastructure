@@ -118,8 +118,22 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    // get the desired state variable
+    const isActive = new TerraformVariable(this, 'STATE_IS_ACTIVE', {
+      default: true,
+      type: 'bool',
+      description:
+        'Desired state, set to false to set the environment in hibernation (all services to zero, db stopped)',
+      sensitive: false,
+    });
+
     const cluster = new Cluster(this, id, vpc);
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
+
+    // add a listener rule to reply with a "Graasp has gone in vacations. Contact the team to activate."
+    if (!isActive) {
+      loadBalancer.add;
+    }
 
     // ---- Setup redirections in the load-balancer -----
     // for the go.graasp.org service, redirect to an api endpoint

@@ -7,6 +7,14 @@ on:
         description: "Target environment"
         type: environment
         required: true
+      state:
+        description: "Expected state, active or hibernate"
+        type: choice
+        options:
+          - active
+          - hibernate
+        required: false
+        default: active
 
 jobs:
   plan:
