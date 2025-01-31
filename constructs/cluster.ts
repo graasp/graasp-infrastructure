@@ -4,7 +4,6 @@ import {
 } from '@cdktf/provider-aws/lib/appautoscaling-policy';
 import { AppautoscalingTarget } from '@cdktf/provider-aws/lib/appautoscaling-target';
 import { CloudwatchLogGroup } from '@cdktf/provider-aws/lib/cloudwatch-log-group';
-import { EcsCapacityProvider } from '@cdktf/provider-aws/lib/ecs-capacity-provider';
 import { EcsCluster } from '@cdktf/provider-aws/lib/ecs-cluster';
 import { EcsClusterCapacityProviders } from '@cdktf/provider-aws/lib/ecs-cluster-capacity-providers';
 import {
