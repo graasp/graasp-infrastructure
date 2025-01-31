@@ -133,13 +133,14 @@ export class Cluster extends Construct {
           {
             capacityProvider: 'FARGATE',
             base: 1,
+            weight: 1,
           },
           {
             capacityProvider: 'FARGATE_SPOT',
           },
         ];
       case SpotPreferences.All:
-        return [{ capacityProvider: 'FARGATE_SPOT' }];
+        return [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }];
     }
   }
 
