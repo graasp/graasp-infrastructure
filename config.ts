@@ -64,7 +64,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         memory: '512',
       },
       umami: {
-        cpu: '512',
+        cpu: '256',
         memory: '512',
       },
     },
@@ -101,7 +101,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         memory: '512',
       },
       umami: {
-        cpu: '512',
+        cpu: '256',
         memory: '512',
       },
     },
@@ -139,7 +139,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       },
       umami: {
         cpu: '512',
-        memory: '512',
+        memory: '1024',
       },
     },
   },
