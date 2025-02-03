@@ -4,21 +4,33 @@ import { S3BucketObjectOwnership } from './constructs/bucket';
 
 export const GRAASP_ROOT_DOMAIN = 'graasp.org';
 
-export enum Environment {
-  DEV,
-  STAGING,
-  PRODUCTION,
-}
+export const Environment = {
+  DEV: 'dev',
+  STAGING: 'stage',
+  PRODUCTION: 'production',
+} as const;
+export type EnvironmentOptions = (typeof Environment)[keyof typeof Environment];
 
-export enum AllowedRegion {
-  Francfort = 'eu-central-1',
-  Zurich = 'eu-central-2',
-}
+export const AllowedRegion = {
+  Francfort: 'eu-central-1',
+  Zurich: 'eu-central-2',
+} as const;
+export type AllowedRegionOptions =
+  (typeof AllowedRegion)[keyof typeof AllowedRegion];
+
+export const SpotPreferences = {
+  OnlySpot: 'OnlySpot',
+  NoSpot: 'NoSpot',
+  UpscaleWithSpot: 'UpscaleWithSpot',
+} as const;
+
+export type SpotPreferencesOptions =
+  (typeof SpotPreferences)[keyof typeof SpotPreferences];
 
 export type EnvironmentConfig = {
-  env: Environment;
+  env: EnvironmentOptions;
   subdomain?: string;
-  region: AllowedRegion;
+  region: AllowedRegionOptions;
 };
 
 export type GraaspWebsiteConfig = {

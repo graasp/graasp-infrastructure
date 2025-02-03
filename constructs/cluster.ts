@@ -23,17 +23,12 @@ import { Fn, Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { EnvironmentConfig } from '../utils';
+import {
+  EnvironmentConfig,
+  SpotPreferences,
+  SpotPreferencesOptions,
+} from '../utils';
 import { LoadBalancer } from './load_balancer';
-
-export const SpotPreferences = {
-  All: 'all',
-  Disabled: 'disabled',
-  Upscale: 'upscale',
-} as const;
-
-type SpotPreferencesOptions =
-  (typeof SpotPreferences)[keyof typeof SpotPreferences];
 
 type TaskDefinitionConfiguration = {
   containerDefinitions: string;
@@ -120,7 +115,7 @@ export class Cluster extends Construct {
     desiredCount: number = 1,
   ): EcsServiceCapacityProviderStrategy[] {
     switch (spotPreference) {
-      case SpotPreferences.Disabled:
+      case SpotPreferences.NoSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -128,7 +123,7 @@ export class Cluster extends Construct {
             weight: 100,
           },
         ];
-      case SpotPreferences.Upscale:
+      case SpotPreferences.UpscaleWithSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -139,7 +134,7 @@ export class Cluster extends Construct {
             capacityProvider: 'FARGATE_SPOT',
           },
         ];
-      case SpotPreferences.All:
+      case SpotPreferences.OnlySpot:
         return [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }];
     }
   }
