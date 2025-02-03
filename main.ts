@@ -23,11 +23,7 @@ import {
   createMaintenanceFunction,
   makeCloudfront,
 } from './constructs/cloudfront';
-import {
-  Cluster,
-  SpotPreferences,
-  createContainerDefinitions,
-} from './constructs/cluster';
+import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { createDNSEntry } from './constructs/dns';
 import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
@@ -43,7 +39,9 @@ import {
   AllowedRegion,
   Environment,
   EnvironmentConfig,
+  EnvironmentOptions,
   GraaspWebsiteConfig,
+  SpotPreference,
   buildPostgresConnectionString,
   envCorsRegex,
   envDomain,
@@ -61,7 +59,7 @@ const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = { 'terraform-managed': 'true' };
 
-const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
+const ROLE_BY_ENV: Record<EnvironmentOptions, AwsProviderAssumeRole[]> = {
   [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
 
   [Environment.PRODUCTION]: [
@@ -986,7 +984,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'graasp',
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
-        spotPreference: SpotPreferences.Upscale,
+        spotPreference: CONFIG[environment.env].ecsConfig.graasp.spotPreference,
       },
       {
         containerDefinitions: [coreDefinition, nudenetDefinition],
@@ -1059,7 +1057,8 @@ class GraaspStack extends TerraformStack {
       {
         name: 'workers',
         desiredCount: 1,
-        spotPreference: SpotPreferences.All,
+        spotPreference:
+          CONFIG[environment.env].ecsConfig.workers.spotPreference,
       },
       {
         containerDefinitions: [workersDefinition],
@@ -1086,7 +1085,7 @@ class GraaspStack extends TerraformStack {
         desiredCount: 1,
         taskRoleArn: adminTaskRole.role.arn,
         enableExecuteCommand: true,
-        spotPreference: SpotPreferences.Upscale,
+        spotPreference: CONFIG[environment.env].ecsConfig.admin.spotPreference,
       },
       {
         containerDefinitions: [adminDefinition],
@@ -1119,7 +1118,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'graasp-library',
         desiredCount: 1,
-        spotPreference: SpotPreferences.Upscale,
+        spotPreference: SpotPreference.UpscaleWithSpot,
       },
       { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
@@ -1149,7 +1148,8 @@ class GraaspStack extends TerraformStack {
       {
         name: 'etherpad',
         desiredCount: 1,
-        spotPreference: SpotPreferences.Upscale,
+        spotPreference:
+          CONFIG[environment.env].ecsConfig.etherpad.spotPreference,
       },
       {
         containerDefinitions: [etherpadDefinition],
@@ -1176,7 +1176,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'umami',
         desiredCount: 1,
-        spotPreference: SpotPreferences.Disabled,
+        spotPreference: CONFIG[environment.env].ecsConfig.umami.spotPreference,
       },
       {
         containerDefinitions: [umamiDefinition],
@@ -1207,7 +1207,8 @@ class GraaspStack extends TerraformStack {
       {
         name: 'meilisearch',
         desiredCount: 1,
-        spotPreference: SpotPreferences.Disabled,
+        spotPreference:
+          CONFIG[environment.env].ecsConfig.meilisearch.spotPreference,
       },
       {
         containerDefinitions: [meilisearchDefinition],
@@ -1223,7 +1224,8 @@ class GraaspStack extends TerraformStack {
       {
         name: 'iframely',
         desiredCount: 1,
-        spotPreference: SpotPreferences.All,
+        spotPreference:
+          CONFIG[environment.env].ecsConfig.iframely.spotPreference,
       },
       {
         containerDefinitions: [iframelyDefinition],
@@ -1239,7 +1241,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'redis',
         desiredCount: 1,
-        spotPreference: SpotPreferences.Disabled,
+        spotPreference: CONFIG[environment.env].ecsConfig.redis.spotPreference,
       },
       {
         containerDefinitions: [redisDefinition],

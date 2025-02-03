@@ -27,7 +27,11 @@ import { Fn, Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { EnvironmentConfig } from '../utils';
+import {
+  EnvironmentConfig,
+  SpotPreference,
+  SpotPreferenceOptions,
+} from '../utils';
 import { LoadBalancer } from './load_balancer';
 
 type PortMapping = { containerPort: number; hostPort: number };
@@ -54,14 +58,6 @@ type ContainerDefinition = {
     startPeriod: number;
   };
 };
-export const SpotPreferences = {
-  All: 'all',
-  Disabled: 'disabled',
-  Upscale: 'upscale',
-} as const;
-
-type SpotPreferencesOptions =
-  (typeof SpotPreferences)[keyof typeof SpotPreferences];
 
 type TaskDefinitionConfiguration = {
   containerDefinitions: ContainerDefinition[];
@@ -185,11 +181,14 @@ export class Cluster extends Construct {
   }
 
   private getCapacityProviderStrategy(
-    spotPreference: SpotPreferencesOptions,
+    spotPreference: SpotPreferenceOptions | undefined,
     desiredCount: number = 1,
-  ): EcsServiceCapacityProviderStrategy[] {
+  ): EcsServiceCapacityProviderStrategy[] | undefined {
+    if (!spotPreference) {
+      return undefined;
+    }
     switch (spotPreference) {
-      case SpotPreferences.Disabled:
+      case SpotPreference.NoSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -197,7 +196,7 @@ export class Cluster extends Construct {
             weight: 100,
           },
         ];
-      case SpotPreferences.Upscale:
+      case SpotPreference.UpscaleWithSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -208,7 +207,7 @@ export class Cluster extends Construct {
             capacityProvider: 'FARGATE_SPOT',
           },
         ];
-      case SpotPreferences.All:
+      case SpotPreference.OnlySpot:
         return [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }];
     }
   }
@@ -226,10 +225,10 @@ export class Cluster extends Construct {
       taskRoleArn?: string;
       enableExecuteCommand?: boolean;
       // defines the preference for running on spot instances (cheaper)
-      // set to ' disabled' if it should not use spot instances at all
+      // set to 'disabled' if it should not use spot instances at all
       // set to 'upscale' if you would like to have one instance on standard and all other instances on spot
       // set to 'all' to use only spot instances (requires the service to be fault tolerant and stateless)
-      spotPreference: SpotPreferencesOptions;
+      spotPreference?: SpotPreferenceOptions;
     },
     taskDefinitionConfig: TaskDefinitionConfiguration,
     isActive: boolean,
@@ -332,6 +331,7 @@ export class Cluster extends Construct {
       name,
       cluster: this.cluster.id,
       desiredCount: isActive ? desiredCount : 0,
+      launchType: capacityProviderStrategy ? undefined : 'FARGATE',
       capacityProviderStrategy,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
