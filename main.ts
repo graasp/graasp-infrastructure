@@ -27,12 +27,12 @@ import {
   EnvironmentConfig,
   EnvironmentOptions,
   GraaspWebsiteConfig,
-  SpotPreferences,
+  SpotPreference,
   envDomain,
   subdomainForEnv,
 } from './utils';
 
-const DEFAULT_REGION = AllowedRegion.Francfort;
+const DEFAULT_REGION = AllowedRegion.Frankfurt;
 const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = {
@@ -515,7 +515,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
-      SpotPreferences.NoSpot,
+      SpotPreference.NoSpot,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,

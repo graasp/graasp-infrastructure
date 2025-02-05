@@ -1,8 +1,8 @@
 import {
   Environment,
   EnvironmentOptions,
-  SpotPreferences,
-  SpotPreferencesOptions,
+  SpotPreference,
+  SpotPreferenceOptions,
 } from './utils';
 
 export type HardwareLimit = {
@@ -21,7 +21,7 @@ export type DeploymentTargetPreference = {
    * A base instance **not** using spot capacity will always be used, while the next instances will use spot capacity
    *
    */
-  spotPreference: SpotPreferencesOptions;
+  spotPreference: SpotPreferenceOptions;
 };
 
 type ContainerConfig = HardwareLimit & DeploymentTargetPreference;
@@ -71,32 +71,32 @@ export const CONFIG: Record<EnvironmentOptions, GraaspConfiguration> = {
     ecsConfig: {
       graasp: {
         taskCount: 1,
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
       etherpad: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
       meilisearch: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       iframely: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
       redis: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       umami: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
     },
   },
@@ -110,32 +110,32 @@ export const CONFIG: Record<EnvironmentOptions, GraaspConfiguration> = {
     ecsConfig: {
       graasp: {
         taskCount: 1,
-        spotPreference: SpotPreferences.UpscaleWithSpot,
+        spotPreference: SpotPreference.UpscaleWithSpot,
       },
       etherpad: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       meilisearch: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       iframely: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
       redis: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       umami: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
     },
   },
@@ -149,32 +149,32 @@ export const CONFIG: Record<EnvironmentOptions, GraaspConfiguration> = {
     ecsConfig: {
       graasp: {
         taskCount: 2,
-        spotPreference: SpotPreferences.UpscaleWithSpot,
+        spotPreference: SpotPreference.UpscaleWithSpot,
       },
       etherpad: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       meilisearch: {
         cpu: '256',
         memory: '1024',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       iframely: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.OnlySpot,
+        spotPreference: SpotPreference.OnlySpot,
       },
       redis: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
       umami: {
         cpu: '256',
         memory: '512',
-        spotPreference: SpotPreferences.NoSpot,
+        spotPreference: SpotPreference.NoSpot,
       },
     },
   },

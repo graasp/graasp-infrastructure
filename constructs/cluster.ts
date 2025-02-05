@@ -25,8 +25,8 @@ import { Construct } from 'constructs';
 import { Vpc } from '../.gen/modules/vpc';
 import {
   EnvironmentConfig,
-  SpotPreferences,
-  SpotPreferencesOptions,
+  SpotPreference,
+  SpotPreferenceOptions,
 } from '../utils';
 import { LoadBalancer } from './load_balancer';
 
@@ -111,11 +111,11 @@ export class Cluster extends Construct {
   }
 
   private getCapacityProviderStrategy(
-    spotPreference: SpotPreferencesOptions,
+    spotPreference: SpotPreferenceOptions,
     desiredCount: number = 1,
   ): EcsServiceCapacityProviderStrategy[] {
     switch (spotPreference) {
-      case SpotPreferences.NoSpot:
+      case SpotPreference.NoSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -123,7 +123,7 @@ export class Cluster extends Construct {
             weight: 100,
           },
         ];
-      case SpotPreferences.UpscaleWithSpot:
+      case SpotPreference.UpscaleWithSpot:
         return [
           {
             capacityProvider: 'FARGATE',
@@ -134,7 +134,7 @@ export class Cluster extends Construct {
             capacityProvider: 'FARGATE_SPOT',
           },
         ];
-      case SpotPreferences.OnlySpot:
+      case SpotPreference.OnlySpot:
         return [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }];
     }
   }
@@ -146,7 +146,7 @@ export class Cluster extends Construct {
     // set to ' disabled' if it should not use spot instances at all
     // set to 'upscale' if you would like to have one instance on standard and all other instances on spot
     // set to 'all' to use only spot instances (requires the service to be fault tolerant and stateless)
-    spotPreference: SpotPreferencesOptions,
+    spotPreference: SpotPreferenceOptions,
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },

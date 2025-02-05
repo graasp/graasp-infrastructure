@@ -12,20 +12,20 @@ export const Environment = {
 export type EnvironmentOptions = (typeof Environment)[keyof typeof Environment];
 
 export const AllowedRegion = {
-  Francfort: 'eu-central-1',
+  Frankfurt: 'eu-central-1',
   Zurich: 'eu-central-2',
 } as const;
 export type AllowedRegionOptions =
   (typeof AllowedRegion)[keyof typeof AllowedRegion];
 
-export const SpotPreferences = {
+export const SpotPreference = {
   OnlySpot: 'OnlySpot',
   NoSpot: 'NoSpot',
   UpscaleWithSpot: 'UpscaleWithSpot',
 } as const;
 
-export type SpotPreferencesOptions =
-  (typeof SpotPreferences)[keyof typeof SpotPreferences];
+export type SpotPreferenceOptions =
+  (typeof SpotPreference)[keyof typeof SpotPreference];
 
 export type EnvironmentConfig = {
   env: EnvironmentOptions;
