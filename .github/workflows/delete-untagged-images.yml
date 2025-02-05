@@ -1,0 +1,22 @@
+name: Delete untagged images in ECR
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "58 1 * * *" # runs everyday at 1:58AM
+
+jobs:
+  cleanup:
+    strategy:
+      matrix:
+        environment: ["dev"] # add staging and prod later
+        repository: ["graasp", "graasp/explore"]
+    name: Cleanup images in ECR
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
+
+    steps:
+      - run: echo hello
+      # - uses: ./.github/actions/delete-untagged-ecr-images
+      #   with:
+      #     repository: ${{ matrix.repository }}
