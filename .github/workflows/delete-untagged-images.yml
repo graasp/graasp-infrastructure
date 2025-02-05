@@ -31,7 +31,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
         # Get ECR images from current repo (defined in the matrix strategy) that are **untagged**
-        # These images are not needed anymore and get be deleted
+        # These images are not needed anymore and can be deleted
         # The second line formats the output to extract the imageDigest as a list of space separated values suitable for further treatment
       - name: Get images
         run: |
