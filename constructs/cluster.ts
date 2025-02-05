@@ -5,8 +5,10 @@ import {
 import { AppautoscalingTarget } from '@cdktf/provider-aws/lib/appautoscaling-target';
 import { CloudwatchLogGroup } from '@cdktf/provider-aws/lib/cloudwatch-log-group';
 import { EcsCluster } from '@cdktf/provider-aws/lib/ecs-cluster';
+import { EcsClusterCapacityProviders } from '@cdktf/provider-aws/lib/ecs-cluster-capacity-providers';
 import {
   EcsService,
+  EcsServiceCapacityProviderStrategy,
   EcsServiceLoadBalancer,
 } from '@cdktf/provider-aws/lib/ecs-service';
 import { EcsTaskDefinition } from '@cdktf/provider-aws/lib/ecs-task-definition';
@@ -21,7 +23,11 @@ import { Fn, Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
-import { EnvironmentConfig } from '../utils';
+import {
+  EnvironmentConfig,
+  SpotPreference,
+  SpotPreferenceOptions,
+} from '../utils';
 import { LoadBalancer } from './load_balancer';
 
 type TaskDefinitionConfiguration = {
@@ -43,7 +49,6 @@ export class Cluster extends Construct {
       name,
     });
     this.vpc = vpc;
-
     this.namespace = new ServiceDiscoveryHttpNamespace(this, 'namespace', {
       description: 'Namespace for internal communication between services',
       name: 'graasp',
@@ -91,11 +96,60 @@ export class Cluster extends Construct {
       ),
       role: this.executionRole.id,
     });
+    // setup cluster capacity providers (allows to use fargate spot)
+    new EcsClusterCapacityProviders(this, `${name}-ecs-capacity-providers`, {
+      clusterName: this.cluster.name,
+      capacityProviders: ['FARGATE_SPOT', 'FARGATE'],
+      defaultCapacityProviderStrategy: [
+        {
+          base: 1,
+          weight: 100,
+          capacityProvider: 'FARGATE',
+        },
+      ],
+    });
+  }
+
+  private getCapacityProviderStrategy(
+    spotPreference: SpotPreferenceOptions | undefined,
+    desiredCount: number = 1,
+  ): EcsServiceCapacityProviderStrategy[] | undefined {
+    if (!spotPreference) {
+      return undefined;
+    }
+    switch (spotPreference) {
+      case SpotPreference.NoSpot:
+        return [
+          {
+            capacityProvider: 'FARGATE',
+            base: desiredCount,
+            weight: 100,
+          },
+        ];
+      case SpotPreference.UpscaleWithSpot:
+        return [
+          {
+            capacityProvider: 'FARGATE',
+            base: 1,
+            weight: 1,
+          },
+          {
+            capacityProvider: 'FARGATE_SPOT',
+          },
+        ];
+      case SpotPreference.OnlySpot:
+        return [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }];
+    }
   }
 
   public addService(
     name: string,
     desiredCount: number,
+    // defines the preference for running on spot instances (cheaper)
+    // set to ' disabled' if it should not use spot instances at all
+    // set to 'upscale' if you would like to have one instance on standard and all other instances on spot
+    // set to 'all' to use only spot instances (requires the service to be fault tolerant and stateless)
+    spotPreference: SpotPreferenceOptions | undefined,
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
@@ -179,13 +233,19 @@ export class Cluster extends Construct {
       });
     }
 
-    // add service inside cluster
+    // define capacity provider strategy
+    const capacityProviderStrategy = this.getCapacityProviderStrategy(
+      spotPreference,
+      desiredCount,
+    );
 
+    // add service inside cluster
     const service = new EcsService(this, `${name}-service`, {
       name,
-      launchType: 'FARGATE',
       cluster: this.cluster.id,
       desiredCount: desiredCount,
+      launchType: capacityProviderStrategy ? undefined : 'FARGATE',
+      capacityProviderStrategy,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
       taskDefinition: task.arn,

@@ -25,19 +25,21 @@ import {
   AllowedRegion,
   Environment,
   EnvironmentConfig,
+  EnvironmentOptions,
   GraaspWebsiteConfig,
+  SpotPreference,
   envDomain,
   subdomainForEnv,
 } from './utils';
 
-const DEFAULT_REGION = AllowedRegion.Francfort;
+const DEFAULT_REGION = AllowedRegion.Frankfurt;
 const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = {
   'terraform-managed': 'true',
 };
 
-const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
+const ROLE_BY_ENV: Record<EnvironmentOptions, AwsProviderAssumeRole[]> = {
   [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
   [Environment.STAGING]: [
     { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
@@ -488,6 +490,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      CONFIG[environment.env].ecsConfig.graasp.spotPreference,
       { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
       backendSecurityGroup,
       undefined,
@@ -512,6 +515,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
+      SpotPreference.NoSpot,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
       librarySecurityGroup,
       undefined,
@@ -536,6 +540,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'etherpad',
       1,
+      CONFIG[environment.env].ecsConfig.etherpad.spotPreference,
       {
         containerDefinitions: etherpadDefinition,
         cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
@@ -558,6 +563,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'umami',
       1,
+      CONFIG[environment.env].ecsConfig.umami.spotPreference,
       {
         containerDefinitions: umamiDefinition,
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
@@ -580,6 +586,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'meilisearch',
       1,
+      CONFIG[environment.env].ecsConfig.meilisearch.spotPreference,
       {
         containerDefinitions: meilisearchDefinition,
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
@@ -593,6 +600,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'iframely',
       1,
+      CONFIG[environment.env].ecsConfig.iframely.spotPreference,
       {
         containerDefinitions: iframelyDefinition,
         cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
@@ -606,6 +614,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'redis',
       1,
+      CONFIG[environment.env].ecsConfig.redis.spotPreference,
       {
         containerDefinitions: redisDefinition,
         cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
