@@ -5,18 +5,44 @@ on:
   schedule:
     - cron: "58 1 * * *" # runs everyday at 1:58AM
 
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
 jobs:
   cleanup:
     strategy:
       matrix:
-        environment: ["dev"] # add staging and prod later
+        environment: ["dev"] # , "staging", "prod"
         repository: ["graasp", "graasp/explore"]
-    name: Cleanup images in ECR
+    name: Cleanup ${{ matrix.repository }} on ${{ matrix.environment }}
     runs-on: ubuntu-latest
     environment: ${{ matrix.environment }}
 
     steps:
-      - run: echo hello
-      # - uses: ./.github/actions/delete-untagged-ecr-images
-      #   with:
-      #     repository: ${{ matrix.repository }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assume AWS Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          role-session-name: manageECRactionJob
+          aws-region: ${{ vars.AWS_REGION }}
+
+        # Get ECR images from current repo (defined in the matrix strategy) that are **untagged**
+        # These images are not needed anymore and get be deleted
+        # The second line formats the output to extract the imageDigest as a list of space separated values suitable for further treatment
+      - name: Get images
+        run: |
+          untagged_images=$(aws ecr list-images --repository-name ${{ matrix.repository }} --filter tagStatus=UNTAGGED)
+          echo "IMAGE_DIGESTS=$(echo $untagged_images | jq -r '.imageIds | map("imageDigest=\(.imageDigest)") | join(" ")')" >> $GITHUB_ENV
+
+        # Delete the images that have no tag (from the previous step)
+        # We batch delete these images and then print a summary message for the CI.
+      - name: Delete images
+        if: ${{ env.IMAGE_DIGESTS != '' }}
+        run: |
+          result=$(aws ecr batch-delete-image --repository-name ${{ matrix.repository }} --image-ids ${{ env.IMAGE_DIGESTS }})
+          echo $result
+          echo $result | jq -r '"Deleted \(.imageIds | length) images, failed to delete \(.failures | length) images."' >> $GITHUB_STEP_SUMMARY
