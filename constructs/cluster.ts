@@ -111,9 +111,12 @@ export class Cluster extends Construct {
   }
 
   private getCapacityProviderStrategy(
-    spotPreference: SpotPreferenceOptions,
+    spotPreference: SpotPreferenceOptions | undefined,
     desiredCount: number = 1,
-  ): EcsServiceCapacityProviderStrategy[] {
+  ): EcsServiceCapacityProviderStrategy[] | undefined {
+    if (!spotPreference) {
+      return undefined;
+    }
     switch (spotPreference) {
       case SpotPreference.NoSpot:
         return [
@@ -146,7 +149,7 @@ export class Cluster extends Construct {
     // set to ' disabled' if it should not use spot instances at all
     // set to 'upscale' if you would like to have one instance on standard and all other instances on spot
     // set to 'all' to use only spot instances (requires the service to be fault tolerant and stateless)
-    spotPreference: SpotPreferenceOptions,
+    spotPreference: SpotPreferenceOptions | undefined,
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
@@ -241,6 +244,7 @@ export class Cluster extends Construct {
       name,
       cluster: this.cluster.id,
       desiredCount: desiredCount,
+      launchType: capacityProviderStrategy ? undefined : 'FARGATE',
       capacityProviderStrategy,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
