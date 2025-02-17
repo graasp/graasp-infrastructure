@@ -29,6 +29,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+      - name: We are in ${{ inputs.state }} mode
+        run: echo ${{ inputs.state == 'active' }}
 
       - name: Plan
         run: npx cdktf plan graasp-${{ inputs.environment }}

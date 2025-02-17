@@ -128,6 +128,8 @@ class GraaspStack extends TerraformStack {
       sensitive: false,
     });
 
+    console.log('hello', isActive.value);
+
     const cluster = new Cluster(this, id, vpc, isActive.value);
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
 
