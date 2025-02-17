@@ -24,6 +24,7 @@ export class LoadBalancer extends Construct {
     name: string,
     vpc: Vpc,
     certificate: DataAwsAcmCertificate,
+    isActive: boolean,
   ) {
     super(scope, `${name}-load-balancer`);
     this.vpc = vpc;
@@ -104,41 +105,29 @@ export class LoadBalancer extends Construct {
       loadBalancerArn: this.lb.arn,
       port: 443,
       protocol: 'HTTPS',
-      defaultAction: [
-        {
-          fixedResponse: {
-            contentType: 'text/plain',
-            statusCode: '503',
-          },
-          type: 'fixed-response',
-        },
-      ],
+      defaultAction: isActive
+        ? [
+            {
+              fixedResponse: {
+                contentType: 'text/plain',
+                statusCode: '503',
+              },
+              type: 'fixed-response',
+            },
+          ]
+        : [
+            {
+              type: 'fixed-response',
+              fixedResponse: {
+                contentType: 'text/plain',
+                messageBody:
+                  'Graasp is currently not available. Contact support',
+                statusCode: '200',
+              },
+            },
+          ],
       sslPolicy: 'ELBSecurityPolicy-2016-08',
       certificateArn: certificate.arn,
-    });
-  }
-
-  addListenerRuleForStaticReplyWithoutCondition(
-    name: string,
-    priority: number,
-    message: string,
-    statusCode: string,
-  ) {
-    new LbListenerRule(this, `${this.name}-${name}`, {
-      listenerArn: this.lbl.arn,
-      priority,
-      action: [
-        {
-          type: 'fixed-response',
-          fixedResponse: {
-            contentType: 'text/plain',
-            messageBody: message,
-            statusCode,
-          },
-        },
-      ],
-      // condition is empty, so it will trap all responses
-      condition: [],
     });
   }
 
