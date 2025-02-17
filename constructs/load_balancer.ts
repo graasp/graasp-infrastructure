@@ -118,6 +118,30 @@ export class LoadBalancer extends Construct {
     });
   }
 
+  addListenerRuleForStaticReplyWithoutCondition(
+    name: string,
+    priority: number,
+    message: string,
+    statusCode: string,
+  ) {
+    new LbListenerRule(this, `${this.name}-${name}`, {
+      listenerArn: this.lbl.arn,
+      priority,
+      action: [
+        {
+          type: 'fixed-response',
+          fixedResponse: {
+            contentType: 'text/plain',
+            messageBody: message,
+            statusCode,
+          },
+        },
+      ],
+      // condition is empty, so it will trap all responses
+      condition: [],
+    });
+  }
+
   addListenerRuleForHostRedirect(
     name: string,
     priority: number,

@@ -36,9 +36,12 @@ export class Cluster extends Construct {
   vpc: Vpc;
   namespace: ServiceDiscoveryHttpNamespace;
   executionRole: IamRole;
+  isActive: boolean;
 
-  constructor(scope: Construct, name: string, vpc: Vpc) {
+  constructor(scope: Construct, name: string, vpc: Vpc, isActive: boolean) {
     super(scope, name);
+
+    this.isActive = isActive;
     this.cluster = new EcsCluster(scope, `cluster`, {
       name,
     });
@@ -185,7 +188,7 @@ export class Cluster extends Construct {
       name,
       launchType: 'FARGATE',
       cluster: this.cluster.id,
-      desiredCount: desiredCount,
+      desiredCount: this.isActive ? desiredCount : 0,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
       taskDefinition: task.arn,

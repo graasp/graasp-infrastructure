@@ -4,6 +4,7 @@ import {
   AwsProvider,
   AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
+import { RdsInstanceState } from '@cdktf/provider-aws/lib/rds-instance-state';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
 
@@ -127,12 +128,17 @@ class GraaspStack extends TerraformStack {
       sensitive: false,
     });
 
-    const cluster = new Cluster(this, id, vpc);
+    const cluster = new Cluster(this, id, vpc, isActive.value);
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
 
     // add a listener rule to reply with a "Graasp has gone in vacations. Contact the team to activate."
-    if (!isActive) {
-      loadBalancer.add;
+    if (!isActive.value) {
+      loadBalancer.addListenerRuleForStaticReplyWithoutCondition(
+        'trapTrafic',
+        1,
+        'Graasp server is currently asleep, contact support.',
+        '200',
+      );
     }
 
     // ---- Setup redirections in the load-balancer -----
@@ -349,6 +355,13 @@ class GraaspStack extends TerraformStack {
       undefined,
       gatekeeper.instance.securityGroup,
     );
+
+    if (!isActive.value) {
+      new RdsInstanceState(this, backendDb.instance.identifier, {
+        identifier: 'hibernate-db',
+        state: 'stopped',
+      });
+    }
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
     new DataAwsEcrRepository(this, `${id}-ecr`, {
@@ -667,11 +680,32 @@ class GraaspStack extends TerraformStack {
       },
     ];
 
+    // maintenance
+    const maintenanceBucket = new GraaspS3Bucket(
+      this,
+      `${id}-maintenance`,
+      true,
+      [],
+      undefined,
+    );
+    if (!maintenanceBucket.websiteConfiguration) {
+      throw new Error('Website bucket should have a website configuration');
+    }
+    makeCloudfront(
+      this,
+      `${id}-maintenance`,
+      'maintenance',
+      maintenanceBucket.websiteConfiguration.websiteEndpoint,
+      sslCertificateCloudfront,
+      environment,
+      !!maintenanceBucket.websiteConfiguration,
+      false,
+    );
+
     const websites: Record<string, GraaspWebsiteConfig> = {
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      maintenance: { corsConfig: [] },
       client: { corsConfig: [], apexDomain: true },
     };
 
@@ -690,7 +724,9 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        bucket.websiteConfiguration.websiteEndpoint,
+        isActive.value
+          ? bucket.websiteConfiguration.websiteEndpoint
+          : maintenanceBucket.websiteConfiguration.websiteEndpoint,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
