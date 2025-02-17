@@ -129,6 +129,8 @@ class GraaspStack extends TerraformStack {
         'Desired state, set to `active` to have the environment function normally, set to `stopped` (all services to zero, db stopped)',
       sensitive: false,
     });
+    const isActive = deploymentState.stringValue !== STOPPED_STATE;
+    console.log(isActive, deploymentState.stringValue);
 
     const cluster = new Cluster(
       this,
