@@ -25,6 +25,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: ./.github/actions/plan-deploy
+      - uses: ./.github/actions/prepare-terraform
         with:
-          isActive: false
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+
+      - name: Plan
+        run: npx cdktf plan graasp-${{ inputs.environment }}
+        shell: bash
+        env:
+          TF_VAR_STATE_IS_ACTIVE: ${{ inputs.state == 'active' }}
+          TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          TF_VAR_UMAMI_DB_PASSWORD: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
