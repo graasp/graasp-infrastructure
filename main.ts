@@ -126,12 +126,7 @@ class GraaspStack extends TerraformStack {
     const isActive = deploymentState !== STOPPED_STATE;
     console.log(isActive, deploymentState);
 
-    const cluster = new Cluster(
-      this,
-      id,
-      vpc,
-      deploymentState !== STOPPED_STATE,
-    );
+    const cluster = new Cluster(this, id, vpc, isActive);
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
 
     // add a listener rule to reply with a "Graasp has gone in vacations. Contact the team to activate."
@@ -360,10 +355,14 @@ class GraaspStack extends TerraformStack {
     );
 
     if (!isActive) {
-      new RdsInstanceState(this, backendDb.instance.identifier, {
-        identifier: 'hibernate-db',
-        state: 'stopped',
-      });
+      new RdsInstanceState(
+        this,
+        `${backendDb.instance.identifier}-instance-state`,
+        {
+          identifier: 'hibernate-db',
+          state: 'stopped',
+        },
+      );
     }
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
