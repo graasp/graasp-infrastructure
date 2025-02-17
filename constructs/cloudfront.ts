@@ -47,6 +47,13 @@ export function makeCloudfront(
       cachedMethods: ['GET', 'HEAD'],
       targetOriginId: targetName,
       viewerProtocolPolicy: 'redirect-to-https',
+      // lambdaFunctionAssociation: [
+      //   {
+      //     eventType: 'viewer-request',
+      //     lambdaArn:
+      //       'arn:aws:lambda:us-east-1:299720865162:function:maintenance-check-dev',
+      //   },
+      // ],
     },
     customErrorResponse: [
       {
