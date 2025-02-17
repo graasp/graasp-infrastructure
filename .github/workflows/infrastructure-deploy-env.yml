@@ -45,6 +45,7 @@ jobs:
           TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 
   deploy:
+    needs: plan
     name: "Deploy (${{ inputs.environment }}) - ${{ inputs.state }}"
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest

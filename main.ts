@@ -357,7 +357,7 @@ class GraaspStack extends TerraformStack {
         this,
         `${backendDb.instance.identifier}-instance-state`,
         {
-          identifier: 'hibernate-db',
+          identifier: backendDb.instance.identifier,
           state: 'stopped',
         },
       );
