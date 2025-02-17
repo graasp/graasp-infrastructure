@@ -122,30 +122,20 @@ class GraaspStack extends TerraformStack {
     );
 
     // get the desired state variable
-    const deploymentState = new TerraformVariable(this, 'DEPLOYMENT_STATE', {
-      default: 'active',
-      type: 'string',
-      description:
-        'Desired state, set to `active` to have the environment function normally, set to `stopped` (all services to zero, db stopped)',
-      sensitive: false,
-    });
-    const isActive = `\$\{${deploymentState.value}\}` !== STOPPED_STATE;
-    console.log(
-      isActive,
-      deploymentState.stringValue,
-      `\$\{${deploymentState.value}\}`,
-    );
+    const deploymentState = process.env.DEPLOYMENT_STATE;
+    const isActive = deploymentState !== STOPPED_STATE;
+    console.log(isActive, deploymentState);
 
     const cluster = new Cluster(
       this,
       id,
       vpc,
-      deploymentState.value !== STOPPED_STATE,
+      deploymentState !== STOPPED_STATE,
     );
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
 
     // add a listener rule to reply with a "Graasp has gone in vacations. Contact the team to activate."
-    if (deploymentState.value === STOPPED_STATE) {
+    if (!isActive) {
       loadBalancer.addListenerRuleForStaticReplyWithoutCondition(
         'trapTrafic',
         1,
@@ -369,7 +359,7 @@ class GraaspStack extends TerraformStack {
       gatekeeper.instance.securityGroup,
     );
 
-    if (deploymentState.value === STOPPED_STATE) {
+    if (!isActive) {
       new RdsInstanceState(this, backendDb.instance.identifier, {
         identifier: 'hibernate-db',
         state: 'stopped',
@@ -737,9 +727,9 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        deploymentState.value === STOPPED_STATE
-          ? maintenanceBucket.websiteConfiguration.websiteEndpoint
-          : bucket.websiteConfiguration.websiteEndpoint,
+        isActive
+          ? bucket.websiteConfiguration.websiteEndpoint
+          : maintenanceBucket.websiteConfiguration.websiteEndpoint,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
