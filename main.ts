@@ -31,6 +31,8 @@ import {
   subdomainForEnv,
 } from './utils';
 
+const STOPPED_STATE = 'stopped';
+
 const DEFAULT_REGION = AllowedRegion.Francfort;
 const CERTIFICATE_REGION = 'us-east-1';
 
@@ -120,21 +122,24 @@ class GraaspStack extends TerraformStack {
     );
 
     // get the desired state variable
-    const isActive = new TerraformVariable(this, 'STATE_IS_ACTIVE', {
-      default: true,
-      type: 'bool',
+    const deploymentState = new TerraformVariable(this, 'DEPLOYMENT_STATE', {
+      default: 'active',
+      type: 'string',
       description:
-        'Desired state, set to false to set the environment in hibernation (all services to zero, db stopped)',
+        'Desired state, set to `active` to have the environment function normally, set to `stopped` (all services to zero, db stopped)',
       sensitive: false,
     });
 
-    console.log('hello', isActive.value);
-
-    const cluster = new Cluster(this, id, vpc, isActive.value);
+    const cluster = new Cluster(
+      this,
+      id,
+      vpc,
+      deploymentState.value !== STOPPED_STATE,
+    );
     const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
 
     // add a listener rule to reply with a "Graasp has gone in vacations. Contact the team to activate."
-    if (!isActive.value) {
+    if (deploymentState.value === STOPPED_STATE) {
       loadBalancer.addListenerRuleForStaticReplyWithoutCondition(
         'trapTrafic',
         1,
@@ -358,7 +363,7 @@ class GraaspStack extends TerraformStack {
       gatekeeper.instance.securityGroup,
     );
 
-    if (!isActive.value) {
+    if (deploymentState.value === STOPPED_STATE) {
       new RdsInstanceState(this, backendDb.instance.identifier, {
         identifier: 'hibernate-db',
         state: 'stopped',
@@ -726,9 +731,9 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        isActive.value
-          ? bucket.websiteConfiguration.websiteEndpoint
-          : maintenanceBucket.websiteConfiguration.websiteEndpoint,
+        deploymentState.value === STOPPED_STATE
+          ? maintenanceBucket.websiteConfiguration.websiteEndpoint
+          : bucket.websiteConfiguration.websiteEndpoint,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
