@@ -18,7 +18,7 @@ on:
 
 jobs:
   plan:
-    name: "Terraform Plan (${{ inputs.environment }}) - ${{ inputs.state}}"
+    name: "Plan (${{ inputs.environment }}) - ${{ inputs.state}}"
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -46,7 +46,7 @@ jobs:
 
   deploy:
     needs: plan
-    name: "Deploy (${{ inputs.environment }}) - ${{ inputs.state }}"
+    name: "Deploy (${{ inputs.environment }}) - ${{ inputs.state}}"
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     steps:

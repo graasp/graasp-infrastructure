@@ -4,7 +4,6 @@ import {
   AwsProvider,
   AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
-import { RdsInstanceState } from '@cdktf/provider-aws/lib/rds-instance-state';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
 
@@ -347,21 +346,11 @@ class GraaspStack extends TerraformStack {
         etherpadAllowedSecurityGroupInfo,
       ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
+      isActive,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
     );
-
-    if (!isActive) {
-      new RdsInstanceState(
-        this,
-        `${backendDb.instance.identifier}-instance-state`,
-        {
-          identifier: backendDb.instance.identifier,
-          state: 'stopped',
-        },
-      );
-    }
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
     new DataAwsEcrRepository(this, `${id}-ecr`, {
