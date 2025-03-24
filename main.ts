@@ -35,9 +35,7 @@ const STOPPED_STATE = 'stopped';
 const DEFAULT_REGION = AllowedRegion.Francfort;
 const CERTIFICATE_REGION = 'us-east-1';
 
-const SHARED_TAGS = {
-  'terraform-managed': 'true',
-};
+const SHARED_TAGS = { 'terraform-managed': 'true' };
 
 const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
   [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
@@ -123,7 +121,6 @@ class GraaspStack extends TerraformStack {
     // get the desired state variable
     const deploymentState = process.env.DEPLOYMENT_STATE;
     const isActive = deploymentState !== STOPPED_STATE;
-    console.log(isActive, deploymentState);
 
     const cluster = new Cluster(this, id, vpc, isActive);
     const loadBalancer = new LoadBalancer(
@@ -353,9 +350,7 @@ class GraaspStack extends TerraformStack {
     );
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
-    new DataAwsEcrRepository(this, `${id}-ecr`, {
-      name: 'graasp',
-    });
+    new DataAwsEcrRepository(this, `${id}-ecr`, { name: 'graasp' });
     const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
       name: 'graasp/etherpad',
     });
@@ -370,12 +365,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       'busybox',
       '1.36',
-      [
-        {
-          hostPort: BACKEND_PORT,
-          containerPort: BACKEND_PORT,
-        },
-      ],
+      [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
       {},
       environment,
       ['/bin/sh', '-c', 'while true; do sleep 30; done'],
@@ -385,12 +375,7 @@ class GraaspStack extends TerraformStack {
       'graasp-library',
       'busybox',
       '1.36',
-      [
-        {
-          hostPort: LIBRARY_PORT,
-          containerPort: LIBRARY_PORT,
-        },
-      ],
+      [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
       {},
       environment,
       ['/bin/sh', '-c', 'while true; do sleep 30; done'],
@@ -401,12 +386,7 @@ class GraaspStack extends TerraformStack {
       'etherpad',
       etherpadECR.repositoryUrl,
       'latest',
-      [
-        {
-          hostPort: ETHERPAD_PORT,
-          containerPort: ETHERPAD_PORT,
-        },
-      ],
+      [{ hostPort: ETHERPAD_PORT, containerPort: ETHERPAD_PORT }],
       {
         DB_HOST: backendDb.instance.dbInstanceAddressOutput,
         DB_NAME: 'etherpad',
@@ -435,12 +415,7 @@ class GraaspStack extends TerraformStack {
       'meilisearch',
       'getmeili/meilisearch',
       'v1.8',
-      [
-        {
-          hostPort: MEILISEARCH_PORT,
-          containerPort: MEILISEARCH_PORT,
-        },
-      ],
+      [{ hostPort: MEILISEARCH_PORT, containerPort: MEILISEARCH_PORT }],
       {
         MEILI_ENV: 'production',
         MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
@@ -454,15 +429,8 @@ class GraaspStack extends TerraformStack {
       'iframely',
       'graasp/iframely',
       'latest',
-      [
-        {
-          hostPort: IFRAMELY_PORT,
-          containerPort: IFRAMELY_PORT,
-        },
-      ],
-      {
-        NODE_ENV: 'production',
-      },
+      [{ hostPort: IFRAMELY_PORT, containerPort: IFRAMELY_PORT }],
+      { NODE_ENV: 'production' },
       environment,
     );
 
@@ -470,12 +438,7 @@ class GraaspStack extends TerraformStack {
       'redis',
       'redis',
       '7-alpine',
-      [
-        {
-          hostPort: REDIS_PORT,
-          containerPort: REDIS_PORT,
-        },
-      ],
+      [{ hostPort: REDIS_PORT, containerPort: REDIS_PORT }],
       {},
       environment,
     );
@@ -484,12 +447,7 @@ class GraaspStack extends TerraformStack {
       'umami',
       'ghcr.io/umami-software/umami',
       'postgresql-latest',
-      [
-        {
-          hostPort: UMAMI_PORT,
-          containerPort: UMAMI_PORT,
-        },
-      ],
+      [{ hostPort: UMAMI_PORT, containerPort: UMAMI_PORT }],
       {
         DATABASE_URL: `postgresql://umami:${umamiDbUserPassword}@${backendDb.instance.dbInstanceAddressOutput}:5432/umami`,
         APP_SECRET:
