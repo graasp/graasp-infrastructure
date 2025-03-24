@@ -3,6 +3,7 @@
   "app": "npx ts-node main.ts",
   "projectId": "15499684-89d3-4e0a-85e2-d88e6e5df077",
   "sendCrashReports": "false",
+  "terraformProviders": ["aws@~> 5.0"],
   "terraformModules": [
     {
       "name": "vpc",
@@ -15,7 +16,5 @@
       "version": "~> 6.0"
     }
   ],
-  "context": {
-
-  }
+  "context": {}
 }

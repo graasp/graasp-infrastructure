@@ -6638,21 +6638,21 @@ __metadata:
 
 "typescript@patch:typescript@npm%3A^5.8.2#optional!builtin<compat/typescript>":
   version: 5.8.2
-  resolution: "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=8c6c40"
+  resolution: "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10/6ae9b2c4d3254ec2eaee6f26ed997e19c02177a212422993209f81e87092b2bb0a4738085549c5b0164982a5609364c047c72aeb281f6c8d802cd0d1c6f0d353
+  checksum: 10/97920a082ffc57583b1cb6bc4faa502acc156358e03f54c7fc7fdf0b61c439a717f4c9070c449ee9ee683d4cfc3bb203127c2b9794b2950f66d9d307a4ff262c
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@npm%3Anext#optional!builtin<compat/typescript>":
   version: 5.8.0-dev.20250113
-  resolution: "typescript@patch:typescript@npm%3A5.8.0-dev.20250113#optional!builtin<compat/typescript>::version=5.8.0-dev.20250113&hash=8c6c40"
+  resolution: "typescript@patch:typescript@npm%3A5.8.0-dev.20250113#optional!builtin<compat/typescript>::version=5.8.0-dev.20250113&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10/096e84e25ee799aeb02f210fa9df6dfc6b117ff07b6796ab51954468b37c5e2376a69aa0d7b82e6e7366dc7377ce91e1398534e640865459b3c094dde552a1aa
+  checksum: 10/d6ccc7e1e8ce8b48180dc84406144c66a8a56afc6e59823c68ecab45884fd2a98dcb86a21a01c662a6fc9f2aaef708c872e435964f494d9575c6cfd89be34cdc
   languageName: node
   linkType: hard
 
