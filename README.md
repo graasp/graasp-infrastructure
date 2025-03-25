@@ -68,7 +68,7 @@ You need to export some variables before running cdktf:
 export AWS_ACCESS_KEY_ID="yourkey"
 export AWS_SECRET_ACCESS_KEY="yoursecret"
 
-# used to defined the state of the deployment
+# used to define the state of the deployment
 export INFRA_STATE="running"
 export MAINTENANCE_HEADER_NAME="abcd" # change to a random value
 export MAINTENANCE_HEADER_SECRET="secret" # change to the real value

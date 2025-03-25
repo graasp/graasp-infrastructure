@@ -87,27 +87,22 @@ export function createMaintenanceFunction(
     name: 'maintenance-check',
     runtime: 'cloudfront-js-2.0',
     code: Token.asString(`
-exports.handler = async (event, context) => {
-  const headers = event.Records[0].cf.request.headers;
+function handler = (event) => {
+  const headers = event.request.headers;
   const headerName = 'x-maintenance-${name}';
   const headerSecret = '${value}';
   if (
     headers[headerName] &&
     headers[headerName][0].value === headerSecret
   ) {
-    return event.Records[0].cf.request;
+    return event.request;
   }
 
   return {
-    status: '302',
+    statusCode: 302,
     statusDescription: 'Found',
     headers: {
-      location: [
-        {
-          key: 'Location',
-          value: 'https://maintenance.graasp.org',
-        },
-      ],
+      'location': {value: 'https://maintenance.graasp.org'},
     },
   };
 };`),
