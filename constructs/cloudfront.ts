@@ -108,7 +108,7 @@ function handler(event) {
     statusCode: 302,
     statusDescription: 'Found',
     headers: {
-      'location': {value: '${subdomainForEnv('maintenance', environment)}'},
+      'location': {value: 'https://${subdomainForEnv('maintenance', environment)}'},
     },
   };
 }`),
