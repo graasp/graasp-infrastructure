@@ -93,7 +93,7 @@ export function createMaintenanceFunction(
     name: 'maintenance-check',
     runtime: 'cloudfront-js-2.0',
     code: Token.asString(`
-function handler = (event) => {
+function handler(event) {
   const headers = event.request.headers;
   const headerName = 'x-maintenance-${name}';
   const headerSecret = '${value}';
@@ -111,7 +111,7 @@ function handler = (event) => {
       'location': {value: '${subdomainForEnv('maintenance', environment)}'},
     },
   };
-};`),
+}`),
   });
   return cfFunc;
 }
