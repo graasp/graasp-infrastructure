@@ -123,6 +123,19 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    // define the maintenance header rule
+    const maintenanceHeaderValues = getMaintenanceHeaders(environment);
+
+    const maintenanceHeaderRule = maintenanceHeaderValues
+      ? ({
+          httpHeader: {
+            httpHeaderName: maintenanceHeaderValues.name,
+            values: [maintenanceHeaderValues.value],
+          },
+        } satisfies LbListenerRuleCondition)
+      : undefined;
+    const ruleConditions = maintenanceHeaderRule ? [maintenanceHeaderRule] : [];
+
     const cluster = new Cluster(
       this,
       id,
@@ -137,87 +150,91 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
-    if (getInfraState(environment).areServicesActive) {
-      // ---- Setup redirections in the load-balancer -----
-      // for the go.graasp.org service, redirect to an api endpoint
-      loadBalancer.addListenerRuleForHostRedirect(
-        'shortener',
-        10,
-        {
-          subDomainOrigin: 'go', // requests from go.graasp.org
-          subDomainTarget: 'api', // to api.graasp.org
-          pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          statusCode: 'HTTP_302', // temporary moved
-        },
-        environment,
-      );
-      loadBalancer.addListenerRuleForHostRedirect(
-        'account',
-        11,
-        {
-          subDomainOrigin: 'account', // requests from account.graasp.org
-          subDomainTarget: '', // to graasp.org
-          pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          queryRewrite: '#{query}',
-          statusCode: 'HTTP_301', // permanently moved
-        },
-        environment,
-      );
-      loadBalancer.addListenerRuleForHostRedirect(
-        'auth',
-        12,
-        {
-          subDomainOrigin: 'auth', // requests from auth.graasp.org
-          subDomainTarget: '', // to graasp.org
-          pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          queryRewrite: '#{query}',
-          statusCode: 'HTTP_301', // permanently moved
-        },
-        environment,
-      );
-      loadBalancer.addListenerRuleForHostRedirect(
-        'player',
-        13,
-        {
-          subDomainOrigin: 'player', // requests from player.graasp.org
-          subDomainTarget: '', // to graasp.org
-          pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          queryRewrite: '#{query}',
-          statusCode: 'HTTP_301', // permanently moved
-        },
-        environment,
-      );
-      loadBalancer.addListenerRuleForHostRedirect(
-        'builder',
-        14,
-        {
-          subDomainOrigin: 'builder', // requests from builder.graasp.org
-          subDomainTarget: '', // to graasp.org
-          pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          queryRewrite: '#{query}',
-          statusCode: 'HTTP_301', // permanently moved
-        },
-        environment,
-      );
-      loadBalancer.addListenerRuleForHostRedirect(
-        'analytics',
-        15,
-        {
-          subDomainOrigin: 'analytics', // requests from analytics.graasp.org
-          subDomainTarget: '', // to graasp.org
-          pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
-          // optionally keep query params
-          queryRewrite: '#{query}',
-          statusCode: 'HTTP_301', // permanently moved
-        },
-        environment,
-      );
-    }
+    // ---- Setup redirections in the load-balancer -----
+    // for the go.graasp.org service, redirect to an api endpoint
+    loadBalancer.addListenerRuleForHostRedirect(
+      'shortener',
+      10,
+      {
+        subDomainOrigin: 'go', // requests from go.graasp.org
+        subDomainTarget: 'api', // to api.graasp.org
+        pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        statusCode: 'HTTP_302', // temporary moved
+      },
+      environment,
+      ruleConditions,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'account',
+      11,
+      {
+        subDomainOrigin: 'account', // requests from account.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'auth',
+      12,
+      {
+        subDomainOrigin: 'auth', // requests from auth.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'player',
+      13,
+      {
+        subDomainOrigin: 'player', // requests from player.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'builder',
+      14,
+      {
+        subDomainOrigin: 'builder', // requests from builder.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'analytics',
+      15,
+      {
+        subDomainOrigin: 'analytics', // requests from analytics.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
 
     // define security groups allowing ingress trafic from the load-balancer
     const loadBalancerAllowedSecurityGroupInfo = {
@@ -463,19 +480,6 @@ class GraaspStack extends TerraformStack {
       },
       environment,
     );
-
-    // define the maintenance header rule
-    const maintenanceHeaderValues = getMaintenanceHeaders(environment);
-
-    const maintenanceHeaderRule = maintenanceHeaderValues
-      ? ({
-          httpHeader: {
-            httpHeaderName: maintenanceHeaderValues.name,
-            values: [maintenanceHeaderValues.value],
-          },
-        } satisfies LbListenerRuleCondition)
-      : undefined;
-    const ruleConditions = maintenanceHeaderRule ? [maintenanceHeaderRule] : [];
 
     // backend
     cluster.addService(

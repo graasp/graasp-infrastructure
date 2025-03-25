@@ -1,7 +1,10 @@
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { Lb } from '@cdktf/provider-aws/lib/lb';
 import { LbListener } from '@cdktf/provider-aws/lib/lb-listener';
-import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
+import {
+  LbListenerRule,
+  LbListenerRuleCondition,
+} from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { Fn } from 'cdktf';
@@ -127,6 +130,7 @@ export class LoadBalancer extends Construct {
       statusCode?: string;
     },
     env: EnvironmentConfig,
+    ruleConditions?: LbListenerRuleCondition[],
   ) {
     const host = redirectOptions.subDomainTarget
       ? subdomainForEnv(redirectOptions.subDomainTarget, env)
@@ -154,6 +158,7 @@ export class LoadBalancer extends Construct {
             values: [subdomainForEnv(redirectOptions.subDomainOrigin, env)],
           },
         },
+        ...(ruleConditions ?? []),
       ],
     });
   }
