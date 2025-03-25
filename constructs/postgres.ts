@@ -62,7 +62,7 @@ export class PostgresDB extends Construct {
       identifier: `${name}`,
 
       engine: 'postgres',
-      engineVersion: '15.7',
+      engineVersion: '15.8',
       instanceClass: 'db.t3.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
@@ -82,12 +82,7 @@ export class PostgresDB extends Construct {
 
       parameterGroupName: 'graasp-postgres15',
       family: 'postgres15',
-      parameters: [
-        {
-          name: 'rds.force_ssl',
-          value: '0',
-        },
-      ],
+      parameters: [{ name: 'rds.force_ssl', value: '0' }],
 
       dbName: dbName,
       port: String(dbPort),
