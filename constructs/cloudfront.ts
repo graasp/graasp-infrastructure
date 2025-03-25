@@ -86,17 +86,17 @@ export function createMaintenanceFunction(
   scope: Construct,
   id: string,
   environment: EnvironmentConfig,
-  headerSecret: { name: string; value: string },
+  headerSecret: { name: string; value: string } | undefined,
 ) {
-  const { name, value } = headerSecret;
   const cfFunc = new CloudfrontFunction(scope, id, {
     name: 'maintenance-check',
     runtime: 'cloudfront-js-2.0',
-    code: Token.asString(`
+    code: headerSecret
+      ? Token.asString(`
 function handler(event) {
   const headers = event.request.headers;
-  const headerName = 'x-maintenance-${name}';
-  const headerSecret = '${value}';
+  const headerName = 'x-maintenance-${headerSecret.name}';
+  const headerSecret = '${headerSecret.value}';
   if (
     headers[headerName] &&
     headers[headerName][0].value === headerSecret
@@ -111,7 +111,12 @@ function handler(event) {
       'location': {value: 'https://${subdomainForEnv('maintenance', environment)}'},
     },
   };
+}`)
+      : Token.asString(`
+function handler(event) {
+  return event.request;
 }`),
   });
-  return cfFunc;
+  // do not return the function when there are not secret headers so it can be de-associated
+  return headerSecret ? cfFunc : undefined;
 }

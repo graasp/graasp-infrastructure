@@ -686,15 +686,12 @@ class GraaspStack extends TerraformStack {
     };
 
     // define the maintenance function in a function association
-    let maintenanceFunc = undefined;
-    if (maintenanceHeaderValues) {
-      maintenanceFunc = createMaintenanceFunction(
-        this,
-        'maintenance-check-function',
-        environment,
-        maintenanceHeaderValues,
-      );
-    }
+    const maintenanceFunc = createMaintenanceFunction(
+      this,
+      'maintenance-check-function',
+      environment,
+      maintenanceHeaderValues,
+    );
 
     for (const [website_name, website_config] of Object.entries(websites)) {
       const bucket = new GraaspS3Bucket(
