@@ -24,7 +24,7 @@ export class LoadBalancer extends Construct {
     name: string,
     vpc: Vpc,
     certificate: DataAwsAcmCertificate,
-    isActive: boolean,
+    environment: EnvironmentConfig,
   ) {
     super(scope, `${name}-load-balancer`);
     this.vpc = vpc;
@@ -91,11 +91,7 @@ export class LoadBalancer extends Construct {
       protocol: 'HTTP',
       defaultAction: [
         {
-          redirect: {
-            port: '443',
-            protocol: 'HTTPS',
-            statusCode: 'HTTP_301',
-          },
+          redirect: { port: '443', protocol: 'HTTPS', statusCode: 'HTTP_301' },
           type: 'redirect',
         },
       ],
@@ -105,27 +101,16 @@ export class LoadBalancer extends Construct {
       loadBalancerArn: this.lb.arn,
       port: 443,
       protocol: 'HTTPS',
-      defaultAction: isActive
-        ? [
-            {
-              fixedResponse: {
-                contentType: 'text/plain',
-                statusCode: '503',
-              },
-              type: 'fixed-response',
-            },
-          ]
-        : [
-            {
-              type: 'fixed-response',
-              fixedResponse: {
-                contentType: 'text/plain',
-                messageBody:
-                  'Graasp is currently not available. Contact support',
-                statusCode: '200',
-              },
-            },
-          ],
+      defaultAction: [
+        {
+          redirect: {
+            host: subdomainForEnv('maintenance', environment),
+            protocol: 'HTTPS',
+            statusCode: 'HTTP_302', // temporary redirect
+          },
+          type: 'redirect',
+        },
+      ],
       sslPolicy: 'ELBSecurityPolicy-2016-08',
       certificateArn: certificate.arn,
     });

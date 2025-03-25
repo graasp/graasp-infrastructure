@@ -8,13 +8,15 @@ on:
         type: environment
         required: true
       state:
-        description: "Expected state, active or hibernate"
+        description: "Expected infrastructure running, active, restricted, db-only or stopped"
         type: choice
         options:
-          - active
+          - running
+          - restricted
+          - db-only
           - stopped
         required: false
-        default: active
+        default: running
 
 jobs:
   plan:
@@ -35,7 +37,9 @@ jobs:
         run: npx cdktf plan graasp-${{ inputs.environment }}
         shell: bash
         env:
-          DEPLOYMENT_STATE: ${{ inputs.state }}
+          INFRA_STATE: ${{ inputs.state }}
+          MAINTENANCE_HEADER_NAME: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          MAINTENANCE_HEADER_SECRET: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
           TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
@@ -63,7 +67,9 @@ jobs:
         run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
         shell: bash
         env:
-          DEPLOYMENT_STATE: ${{ inputs.state }}
+          INFRA_STATE: ${{ inputs.state }}
+          MAINTENANCE_HEADER_NAME: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          MAINTENANCE_HEADER_SECRET: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
           TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
           TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}

@@ -1,5 +1,7 @@
 import { CloudfrontDistribution } from '@cdktf/provider-aws/lib/cloudfront-distribution';
+import { CloudfrontFunction } from '@cdktf/provider-aws/lib/cloudfront-function';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
+import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
@@ -12,6 +14,7 @@ export function makeCloudfront(
   id: string,
   targetName: string,
   s3domain: string,
+  functionAssociationArn: string | undefined,
   certificate: DataAwsAcmCertificate,
   env: EnvironmentConfig,
   isUsingWebsiteEndpoint: boolean = false,
@@ -47,13 +50,9 @@ export function makeCloudfront(
       cachedMethods: ['GET', 'HEAD'],
       targetOriginId: targetName,
       viewerProtocolPolicy: 'redirect-to-https',
-      // lambdaFunctionAssociation: [
-      //   {
-      //     eventType: 'viewer-request',
-      //     lambdaArn:
-      //       'arn:aws:lambda:us-east-1:299720865162:function:maintenance-check-dev',
-      //   },
-      // ],
+      functionAssociation: functionAssociationArn
+        ? [{ eventType: 'viewer-request', functionArn: functionAssociationArn }]
+        : undefined,
     },
     customErrorResponse: [
       {
@@ -76,4 +75,42 @@ export function makeCloudfront(
       sslSupportMethod: 'sni-only',
     },
   });
+}
+
+export function createMaintenanceFunction(
+  scope: Construct,
+  id: string,
+  headerSecret: { name: string; value: string },
+) {
+  const { name, value } = headerSecret;
+  const cfFunc = new CloudfrontFunction(scope, id, {
+    name: 'maintenance-check',
+    runtime: 'cloudfront-js-2.0',
+    code: Token.asString(`
+exports.handler = async (event, context) => {
+  const headers = event.Records[0].cf.request.headers;
+  const headerName = 'x-maintenance-${name}';
+  const headerSecret = '${value}';
+  if (
+    headers[headerName] &&
+    headers[headerName][0].value === headerSecret
+  ) {
+    return event.Records[0].cf.request;
+  }
+
+  return {
+    status: '302',
+    statusDescription: 'Found',
+    headers: {
+      location: [
+        {
+          key: 'Location',
+          value: 'https://maintenance.graasp.org',
+        },
+      ],
+    },
+  };
+};`),
+  });
+  return cfFunc;
 }

@@ -1,5 +1,6 @@
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
+import { LbListenerRuleCondition } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
   AwsProvider,
   AwsProviderAssumeRole,
@@ -12,7 +13,10 @@ import { Construct } from 'constructs';
 import { Vpc } from './.gen/modules/vpc';
 import { CONFIG } from './config';
 import { GraaspS3Bucket } from './constructs/bucket';
-import { makeCloudfront } from './constructs/cloudfront';
+import {
+  createMaintenanceFunction,
+  makeCloudfront,
+} from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
@@ -27,10 +31,11 @@ import {
   EnvironmentConfig,
   GraaspWebsiteConfig,
   envDomain,
+  getInfraState,
+  getMaintenanceHeaders,
   subdomainForEnv,
+  validateInfraState,
 } from './utils';
-
-const STOPPED_STATE = 'stopped';
 
 const DEFAULT_REGION = AllowedRegion.Francfort;
 const CERTIFICATE_REGION = 'us-east-1';
@@ -118,20 +123,21 @@ class GraaspStack extends TerraformStack {
       },
     );
 
-    // get the desired state variable
-    const deploymentState = process.env.DEPLOYMENT_STATE;
-    const isActive = deploymentState !== STOPPED_STATE;
-
-    const cluster = new Cluster(this, id, vpc, isActive);
+    const cluster = new Cluster(
+      this,
+      id,
+      vpc,
+      getInfraState(environment).areServicesActive,
+    );
     const loadBalancer = new LoadBalancer(
       this,
       id,
       vpc,
       sslCertificate,
-      isActive,
+      environment,
     );
 
-    if (isActive) {
+    if (getInfraState(environment).areServicesActive) {
       // ---- Setup redirections in the load-balancer -----
       // for the go.graasp.org service, redirect to an api endpoint
       loadBalancer.addListenerRuleForHostRedirect(
@@ -343,7 +349,7 @@ class GraaspStack extends TerraformStack {
         etherpadAllowedSecurityGroupInfo,
       ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
-      isActive,
+      getInfraState(environment).isDatabaseActive,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
@@ -458,6 +464,19 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    // define the maintenance header rule
+    const maintenanceHeaderValues = getMaintenanceHeaders(environment);
+
+    const maintenanceHeaderRule = maintenanceHeaderValues
+      ? ({
+          httpHeader: {
+            httpHeaderName: maintenanceHeaderValues.name,
+            values: [maintenanceHeaderValues.value],
+          },
+        } satisfies LbListenerRuleCondition)
+      : undefined;
+    const ruleConditions = maintenanceHeaderRule ? [maintenanceHeaderRule] : [];
+
     // backend
     cluster.addService(
       'graasp',
@@ -480,6 +499,7 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: BACKEND_PORT,
         healthCheckPath: '/health',
+        ruleConditions,
       },
     );
 
@@ -504,6 +524,7 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: LIBRARY_PORT,
         healthCheckPath: '/api/status',
+        ruleConditions,
       },
     );
 
@@ -526,6 +547,7 @@ class GraaspStack extends TerraformStack {
         port: 443,
         containerPort: ETHERPAD_PORT,
         healthCheckPath: '/',
+        ruleConditions,
       },
     );
 
@@ -548,6 +570,7 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: UMAMI_PORT,
         healthCheckPath: '/api/heartbeat',
+        ruleConditions,
       },
     );
 
@@ -643,6 +666,8 @@ class GraaspStack extends TerraformStack {
       `${id}-maintenance`,
       'maintenance',
       maintenanceBucket.websiteConfiguration.websiteEndpoint,
+      // no need for a function association
+      undefined,
       sslCertificateCloudfront,
       environment,
       !!maintenanceBucket.websiteConfiguration,
@@ -655,6 +680,16 @@ class GraaspStack extends TerraformStack {
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
       client: { corsConfig: [], apexDomain: true },
     };
+
+    // define the maintenance function in a function association
+    let maintenanceFunc = undefined;
+    if (maintenanceHeaderValues) {
+      maintenanceFunc = createMaintenanceFunction(
+        this,
+        'maintenance-check-function',
+        maintenanceHeaderValues,
+      );
+    }
 
     for (const [website_name, website_config] of Object.entries(websites)) {
       const bucket = new GraaspS3Bucket(
@@ -671,9 +706,8 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        isActive
-          ? bucket.websiteConfiguration.websiteEndpoint
-          : maintenanceBucket.websiteConfiguration.websiteEndpoint,
+        bucket.websiteConfiguration.websiteEndpoint,
+        maintenanceFunc?.arn,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
@@ -687,22 +721,28 @@ class GraaspStack extends TerraformStack {
 
 const app = new App();
 
+// get the desired infra state
+const infraState = validateInfraState(process.env.INFRA_STATE);
+
 // Each stack has its own state stored in a pre created S3 Bucket
 new GraaspStack(app, 'graasp-dev', {
   env: Environment.DEV,
   subdomain: 'dev',
   region: DEFAULT_REGION,
+  infraState,
 });
 
 new GraaspStack(app, 'graasp-staging', {
   env: Environment.STAGING,
   subdomain: 'stage',
   region: AllowedRegion.Zurich,
+  infraState,
 });
 
 new GraaspStack(app, 'graasp-prod', {
   env: Environment.PRODUCTION,
   region: AllowedRegion.Zurich,
+  infraState,
 });
 
 app.synth();
