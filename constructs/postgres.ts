@@ -1,3 +1,4 @@
+import { RdsInstanceState } from '@cdktf/provider-aws/lib/rds-instance-state';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { TerraformVariable, Token } from 'cdktf';
@@ -23,6 +24,7 @@ export class PostgresDB extends Construct {
     vpc: Vpc,
     allowedSecurityGroups: AllowedSecurityGroupInfo[],
     addReplica: boolean,
+    isActive: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
     gateKeeperSecurityGroup?: SecurityGroup,
@@ -134,5 +136,11 @@ export class PostgresDB extends Construct {
         monitoringRoleArn: this.instance.enhancedMonitoringIamRoleArnOutput,
       });
     }
+
+    // manage instance state based on the `isActive` param
+    new RdsInstanceState(this, `${this.instance.identifier}-instance-state`, {
+      identifier: this.instance.identifier,
+      state: isActive ? 'available' : 'stopped',
+    });
   }
 }

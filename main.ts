@@ -30,12 +30,12 @@ import {
   subdomainForEnv,
 } from './utils';
 
+const STOPPED_STATE = 'stopped';
+
 const DEFAULT_REGION = AllowedRegion.Francfort;
 const CERTIFICATE_REGION = 'us-east-1';
 
-const SHARED_TAGS = {
-  'terraform-managed': 'true',
-};
+const SHARED_TAGS = { 'terraform-managed': 'true' };
 
 const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
   [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
@@ -118,88 +118,100 @@ class GraaspStack extends TerraformStack {
       },
     );
 
-    const cluster = new Cluster(this, id, vpc);
-    const loadBalancer = new LoadBalancer(this, id, vpc, sslCertificate);
+    // get the desired state variable
+    const deploymentState = process.env.DEPLOYMENT_STATE;
+    const isActive = deploymentState !== STOPPED_STATE;
 
-    // ---- Setup redirections in the load-balancer -----
-    // for the go.graasp.org service, redirect to an api endpoint
-    loadBalancer.addListenerRuleForHostRedirect(
-      'shortener',
-      10,
-      {
-        subDomainOrigin: 'go', // requests from go.graasp.org
-        subDomainTarget: 'api', // to api.graasp.org
-        pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        statusCode: 'HTTP_302', // temporary moved
-      },
-      environment,
+    const cluster = new Cluster(this, id, vpc, isActive);
+    const loadBalancer = new LoadBalancer(
+      this,
+      id,
+      vpc,
+      sslCertificate,
+      isActive,
     );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'account',
-      11,
-      {
-        subDomainOrigin: 'account', // requests from account.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'auth',
-      12,
-      {
-        subDomainOrigin: 'auth', // requests from auth.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'player',
-      13,
-      {
-        subDomainOrigin: 'player', // requests from player.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'builder',
-      14,
-      {
-        subDomainOrigin: 'builder', // requests from builder.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'analytics',
-      15,
-      {
-        subDomainOrigin: 'analytics', // requests from analytics.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-    );
+
+    if (isActive) {
+      // ---- Setup redirections in the load-balancer -----
+      // for the go.graasp.org service, redirect to an api endpoint
+      loadBalancer.addListenerRuleForHostRedirect(
+        'shortener',
+        10,
+        {
+          subDomainOrigin: 'go', // requests from go.graasp.org
+          subDomainTarget: 'api', // to api.graasp.org
+          pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          statusCode: 'HTTP_302', // temporary moved
+        },
+        environment,
+      );
+      loadBalancer.addListenerRuleForHostRedirect(
+        'account',
+        11,
+        {
+          subDomainOrigin: 'account', // requests from account.graasp.org
+          subDomainTarget: '', // to graasp.org
+          pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          queryRewrite: '#{query}',
+          statusCode: 'HTTP_301', // permanently moved
+        },
+        environment,
+      );
+      loadBalancer.addListenerRuleForHostRedirect(
+        'auth',
+        12,
+        {
+          subDomainOrigin: 'auth', // requests from auth.graasp.org
+          subDomainTarget: '', // to graasp.org
+          pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          queryRewrite: '#{query}',
+          statusCode: 'HTTP_301', // permanently moved
+        },
+        environment,
+      );
+      loadBalancer.addListenerRuleForHostRedirect(
+        'player',
+        13,
+        {
+          subDomainOrigin: 'player', // requests from player.graasp.org
+          subDomainTarget: '', // to graasp.org
+          pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          queryRewrite: '#{query}',
+          statusCode: 'HTTP_301', // permanently moved
+        },
+        environment,
+      );
+      loadBalancer.addListenerRuleForHostRedirect(
+        'builder',
+        14,
+        {
+          subDomainOrigin: 'builder', // requests from builder.graasp.org
+          subDomainTarget: '', // to graasp.org
+          pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          queryRewrite: '#{query}',
+          statusCode: 'HTTP_301', // permanently moved
+        },
+        environment,
+      );
+      loadBalancer.addListenerRuleForHostRedirect(
+        'analytics',
+        15,
+        {
+          subDomainOrigin: 'analytics', // requests from analytics.graasp.org
+          subDomainTarget: '', // to graasp.org
+          pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
+          // optionally keep query params
+          queryRewrite: '#{query}',
+          statusCode: 'HTTP_301', // permanently moved
+        },
+        environment,
+      );
+    }
 
     // define security groups allowing ingress trafic from the load-balancer
     const loadBalancerAllowedSecurityGroupInfo = {
@@ -331,15 +343,14 @@ class GraaspStack extends TerraformStack {
         etherpadAllowedSecurityGroupInfo,
       ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
+      isActive,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
     );
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
-    new DataAwsEcrRepository(this, `${id}-ecr`, {
-      name: 'graasp',
-    });
+    new DataAwsEcrRepository(this, `${id}-ecr`, { name: 'graasp' });
     const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
       name: 'graasp/etherpad',
     });
@@ -354,12 +365,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       'busybox',
       '1.36',
-      [
-        {
-          hostPort: BACKEND_PORT,
-          containerPort: BACKEND_PORT,
-        },
-      ],
+      [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
       {},
       environment,
       ['/bin/sh', '-c', 'while true; do sleep 30; done'],
@@ -369,12 +375,7 @@ class GraaspStack extends TerraformStack {
       'graasp-library',
       'busybox',
       '1.36',
-      [
-        {
-          hostPort: LIBRARY_PORT,
-          containerPort: LIBRARY_PORT,
-        },
-      ],
+      [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
       {},
       environment,
       ['/bin/sh', '-c', 'while true; do sleep 30; done'],
@@ -385,12 +386,7 @@ class GraaspStack extends TerraformStack {
       'etherpad',
       etherpadECR.repositoryUrl,
       'latest',
-      [
-        {
-          hostPort: ETHERPAD_PORT,
-          containerPort: ETHERPAD_PORT,
-        },
-      ],
+      [{ hostPort: ETHERPAD_PORT, containerPort: ETHERPAD_PORT }],
       {
         DB_HOST: backendDb.instance.dbInstanceAddressOutput,
         DB_NAME: 'etherpad',
@@ -419,12 +415,7 @@ class GraaspStack extends TerraformStack {
       'meilisearch',
       'getmeili/meilisearch',
       'v1.8',
-      [
-        {
-          hostPort: MEILISEARCH_PORT,
-          containerPort: MEILISEARCH_PORT,
-        },
-      ],
+      [{ hostPort: MEILISEARCH_PORT, containerPort: MEILISEARCH_PORT }],
       {
         MEILI_ENV: 'production',
         MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
@@ -438,15 +429,8 @@ class GraaspStack extends TerraformStack {
       'iframely',
       'graasp/iframely',
       'latest',
-      [
-        {
-          hostPort: IFRAMELY_PORT,
-          containerPort: IFRAMELY_PORT,
-        },
-      ],
-      {
-        NODE_ENV: 'production',
-      },
+      [{ hostPort: IFRAMELY_PORT, containerPort: IFRAMELY_PORT }],
+      { NODE_ENV: 'production' },
       environment,
     );
 
@@ -454,12 +438,7 @@ class GraaspStack extends TerraformStack {
       'redis',
       'redis',
       '7-alpine',
-      [
-        {
-          hostPort: REDIS_PORT,
-          containerPort: REDIS_PORT,
-        },
-      ],
+      [{ hostPort: REDIS_PORT, containerPort: REDIS_PORT }],
       {},
       environment,
     );
@@ -468,12 +447,7 @@ class GraaspStack extends TerraformStack {
       'umami',
       'ghcr.io/umami-software/umami',
       'postgresql-latest',
-      [
-        {
-          hostPort: UMAMI_PORT,
-          containerPort: UMAMI_PORT,
-        },
-      ],
+      [{ hostPort: UMAMI_PORT, containerPort: UMAMI_PORT }],
       {
         DATABASE_URL: `postgresql://umami:${umamiDbUserPassword}@${backendDb.instance.dbInstanceAddressOutput}:5432/umami`,
         APP_SECRET:
@@ -653,11 +627,32 @@ class GraaspStack extends TerraformStack {
       },
     ];
 
+    // maintenance
+    const maintenanceBucket = new GraaspS3Bucket(
+      this,
+      `${id}-maintenance`,
+      true,
+      [],
+      undefined,
+    );
+    if (!maintenanceBucket.websiteConfiguration) {
+      throw new Error('Website bucket should have a website configuration');
+    }
+    makeCloudfront(
+      this,
+      `${id}-maintenance`,
+      'maintenance',
+      maintenanceBucket.websiteConfiguration.websiteEndpoint,
+      sslCertificateCloudfront,
+      environment,
+      !!maintenanceBucket.websiteConfiguration,
+      false,
+    );
+
     const websites: Record<string, GraaspWebsiteConfig> = {
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      maintenance: { corsConfig: [] },
       client: { corsConfig: [], apexDomain: true },
     };
 
@@ -676,7 +671,9 @@ class GraaspStack extends TerraformStack {
         this,
         `${id}-${website_name}`,
         website_name,
-        bucket.websiteConfiguration.websiteEndpoint,
+        isActive
+          ? bucket.websiteConfiguration.websiteEndpoint
+          : maintenanceBucket.websiteConfiguration.websiteEndpoint,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,

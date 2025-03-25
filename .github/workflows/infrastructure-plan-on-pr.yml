@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22"
 
       - name: Install dependencies
         run: yarn install
@@ -38,7 +38,7 @@ jobs:
         uses: hashicorp/terraform-cdk-action@v4
         with:
           cdktfVersion: 0.20.11
-          terraformVersion: 1.10.4
+          terraformVersion: 1.11.2
           mode: plan-only
           commentOnPr: true
           updateComment: false # make a new comment
