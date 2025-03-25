@@ -77,9 +77,15 @@ export function makeCloudfront(
   });
 }
 
+/**
+ * Create a Cloudfront funtion that can be associated to the `viewer-request` event to filter requests based on a secret header.
+ *
+ * This allows to redirect normal users to the maintenance page when we perform migrations on the infrastructure.
+ */
 export function createMaintenanceFunction(
   scope: Construct,
   id: string,
+  environment: EnvironmentConfig,
   headerSecret: { name: string; value: string },
 ) {
   const { name, value } = headerSecret;
@@ -102,7 +108,7 @@ function handler = (event) => {
     statusCode: 302,
     statusDescription: 'Found',
     headers: {
-      'location': {value: 'https://maintenance.graasp.org'},
+      'location': {value: '${subdomainForEnv('maintenance', environment)}'},
     },
   };
 };`),

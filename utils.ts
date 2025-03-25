@@ -11,7 +11,7 @@ export enum Environment {
 }
 
 export const AllowedRegion = {
-  Francfort: 'eu-central-1',
+  Frankfurt: 'eu-central-1',
   Zurich: 'eu-central-2',
 } as const;
 export type AllowedRegionOptions =
@@ -19,7 +19,7 @@ export type AllowedRegionOptions =
 
 const InfraState = {
   /**
-   * The infrastructure operates in "normal" mode, all services are up, and there is not filtering on requests
+   * The infrastructure operates in "normal" mode, all services are up, and there is no filtering on requests
    */
   Running: 'running',
   /**
@@ -33,7 +33,7 @@ const InfraState = {
   DBOnly: 'db-only',
   /**
    * The infrastructure is completely down, no services are running, the database is turned off.
-   * This is a state that should be used during the night and the weekends to reduce costs on low-usage environnement (dev)
+   * This is a state that should be used during the night and the weekends to reduce costs on low-usage environnements (i.e. dev)
    * or, while we do not have new changes in "staging".
    */
   Stopped: 'stopped',
@@ -118,7 +118,7 @@ export function getInfraState(environment: EnvironmentConfig): {
   }
 }
 
-export function getMaintenanceHeaders(
+export function getMaintenanceHeaderPair(
   environment: EnvironmentConfig,
 ): { name: string; value: string } | undefined {
   if (getInfraState(environment).isMaintenanceActive === false) {

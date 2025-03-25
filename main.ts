@@ -32,12 +32,12 @@ import {
   GraaspWebsiteConfig,
   envDomain,
   getInfraState,
-  getMaintenanceHeaders,
+  getMaintenanceHeaderPair,
   subdomainForEnv,
   validateInfraState,
 } from './utils';
 
-const DEFAULT_REGION = AllowedRegion.Francfort;
+const DEFAULT_REGION = AllowedRegion.Frankfurt;
 const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = { 'terraform-managed': 'true' };
@@ -124,7 +124,7 @@ class GraaspStack extends TerraformStack {
     );
 
     // define the maintenance header rule
-    const maintenanceHeaderValues = getMaintenanceHeaders(environment);
+    const maintenanceHeaderValues = getMaintenanceHeaderPair(environment);
 
     const maintenanceHeaderRule = maintenanceHeaderValues
       ? ({
@@ -691,6 +691,7 @@ class GraaspStack extends TerraformStack {
       maintenanceFunc = createMaintenanceFunction(
         this,
         'maintenance-check-function',
+        environment,
         maintenanceHeaderValues,
       );
     }

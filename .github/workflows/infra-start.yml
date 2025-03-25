@@ -9,7 +9,7 @@ on:
         type: environment
         required: true
       state:
-        description: "Expected infrastructure state, running, restricted, db-only or stopped"
+        description: "Expected infrastructure state"
         type: choice
         options:
           - running
@@ -22,7 +22,7 @@ on:
 
 jobs:
   deploy:
-    name: "Deploy infra in ${{ inputs.state || 'running' }} state to ${{ inputs.environment || 'dev' }}"
+    name: "Deploy infra in ${{ inputs.state || 'running' }} state to ${{ inputs.environment || 'dev' }} environment"
     environment: ${{ inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
     steps:

@@ -276,7 +276,7 @@ It is possible that after some time deployments will break with an error similar
 
 In this case the fix is usually to update the `@cdktf/provider-aws` dependency. Using `yarn upgrade-interactive` it is easy to do.
 
-If upgrading the npm dependencies does not solve the problem, it might be because the required ranges are incompatible. This can be cause by modules requiring higher ranges, and the pre-built aws provider not being updated to those ranges yet. In this case, look at the requirements for the two modules that are manually added in the `cdktf.json` config file and set them to a previous version that makes the range requirement from the pre-built aws provider happy.
+If upgrading the npm dependencies does not solve the problem, it might be because the required ranges are incompatible. Some modules might require higher ranges, and the pre-built aws provider not being updated to those ranges yet. In this case, look at the requirements for the two modules that are manually added in the `cdktf.json` config file and set them to a previous version that makes the range requirement from the pre-built aws provider happy.
 
 ### Container does not exist in task definition
 
