@@ -26,25 +26,25 @@ inputs:
   maintenance-header-secret:
     description: "Maintenance header value"
     required: true
-  tf-var-meilisearch-master-key:
+  meilisearch-master-key:
     description: "Meilisearch master key"
     required: true
-  tf-var-graasp-db-password:
+  graasp-db-password:
     description: "Graasp DB password"
     required: true
-  tf-var-etherpad-db-password:
+  etherpad-db-password:
     description: "Etherpad DB password"
     required: true
-  tf-var-umami-db-password:
+  umami-db-password:
     description: "Umami DB password"
     required: true
-  tf-var-graasp-db-gatekeeper-key-name:
+  graasp-db-gatekeeper-key-name:
     description: "Gatekeeper key name for auth"
     required: true
-  tf-var-db-gatekeeper-ami-id:
+  gatekeeper-ami-id:
     description: "Gatekeeper AMI for machine setup"
     required: true
-  tf-var-db-gatekeeper-instance-type:
+  gatekeeper-instance-type:
     description: "Gatekeeper instance type"
     required: true
 
@@ -122,10 +122,10 @@ runs:
         INFRA_STATE: ${{ inputs.state }}
         MAINTENANCE_HEADER_NAME: ${{ inputs.maintenance-header-name }}
         MAINTENANCE_HEADER_SECRET: ${{ inputs.maintenance-header-secret }}
-        TF_VAR_MEILISEARCH_MASTER_KEY: ${{ inputs.tf-meilisearch-master-key }}
-        TF_VAR_GRAASP_DB_PASSWORD: ${{ inputs.tf-graasp-db-password }}
-        TF_VAR_ETHERPAD_DB_PASSWORD: ${{ inputs.tf-etherpad-db-password }}
-        TF_VAR_UMAMI_DB_PASSWORD: ${{ inputs.tf-var-umami-db-password }}
-        TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ inputs.tf-graasp-db-gatekeeper-key-name }}
-        TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.tf-db-gatekeeper-ami-id }}
-        TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.tf-db-gatekeeper-instance-type }}
+        TF_VAR_MEILISEARCH_MASTER_KEY: ${{ inputs.meilisearch-master-key }}
+        TF_VAR_GRAASP_DB_PASSWORD: ${{ inputs.graasp-db-password }}
+        TF_VAR_ETHERPAD_DB_PASSWORD: ${{ inputs.etherpad-db-password }}
+        TF_VAR_UMAMI_DB_PASSWORD: ${{ inputs.umami-db-password }}
+        TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ inputs.graasp-db-gatekeeper-key-name }}
+        TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.gatekeeper-ami-id }}
+        TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.gatekeeper-instance-type }}
