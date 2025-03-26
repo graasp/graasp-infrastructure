@@ -33,3 +33,12 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          tf-var-meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          tf-var-graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          tf-var-etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          tf-var-umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          tf-var-graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          tf-var-db-gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          tf-var-db-gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
