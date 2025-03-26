@@ -63,7 +63,7 @@ runs:
       shell: bash
       run: |
         # start the db if it is in a "stopped" state
-        if [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
+        if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
         then
           aws rds start-db-instance --db-instance-identifier graasp-${{ inputs.environment }}
         fi
@@ -79,7 +79,7 @@ runs:
       shell: bash
       run: |
         # stop the db if it is in the "available" state
-        if [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") == "available" ]
+        if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "available" ]
         then
           aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }}
         fi
