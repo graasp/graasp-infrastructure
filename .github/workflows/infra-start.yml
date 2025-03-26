@@ -10,6 +10,10 @@ on:
         type: environment
         required: true
 
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
 jobs:
   deploy:
     name: "Deploy infra in running state to ${{ inputs.environment || 'dev' }} environment"
@@ -26,19 +30,38 @@ jobs:
       - name: Prepare terraform
         uses: ./.github/actions/prepare-terraform
         with:
-          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+        #   aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+        #   aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Start DB
         if: ${{ env.state != 'stopped' }}
         run: |
-          aws sts get-caller-identity
-          aws rds start-db-instance --db-instance-identifier graasp-${{ env.environment }}
-          while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running" ]
+          # start the db if it is in a "stopped" state
+          if [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
+          then
+            aws rds start-db-instance --db-instance-identifier graasp-${{ env.environment }}
+          fi
+          while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "available" ]
           do
-            echo "waiting for DB to be up ${date -u +%H:%M:%S\(UTC\)}"
+            echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
             sleep 30
-          end
+          done
+
+      - name: Stop DB
+        if: ${{ env.state == 'stopped' }}
+        run: |
+          # stop the db if it is in the "available" state
+          if [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") == "available" ]
+          then
+            aws rds stop-db-instance --db-instance-identifier graasp-${{ env.environment }}
+          fi
+          while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
+          do
+            echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
 
       - name: Deploy
         run: npx cdktf deploy --auto-approve 'graasp-${{ env.environment }}'

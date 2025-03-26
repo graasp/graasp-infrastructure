@@ -2,11 +2,17 @@ name: Composite cdktf workflow
 description: Runs a plan or deploy action for terraform cdktf
 
 inputs:
-  aws-access-key-id:
-    description: "AWS Key id"
+  # aws-access-key-id:
+  #   description: "AWS Key id"
+  #   required: true
+  # aws-secret-access-key:
+  #   description: "AWS secret key"
+  #   required: true
+  role-to-assume:
+    description: "AWS role to assume"
     required: true
-  aws-secret-access-key:
-    description: "AWS secret key"
+  aws-region:
+    description: "AWS region"
     required: true
 
 runs:
@@ -30,10 +36,11 @@ runs:
       id: configure-aws
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        aws-region: eu-central-2 # not really important because it is reconfigured by Terraform
-
+        role-to-assume: ${{ inputs.role-to-assume }}
+        role-session-name: GitHub_Action_deploy_infrastructure
+        # aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        # aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
 
     # deploy: run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
     # with the same variables
