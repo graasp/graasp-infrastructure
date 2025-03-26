@@ -52,7 +52,6 @@ runs:
   using: composite
   steps:
     - name: Configure AWS Credentials to assume terraform Role
-      id: configure-aws-assume-role
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
@@ -108,7 +107,6 @@ runs:
       shell: bash
 
     - name: Configure AWS Credentials for terraform user
-      id: configure-aws-user
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
@@ -129,3 +127,21 @@ runs:
         TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ inputs.graasp-db-gatekeeper-key-name }}
         TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.gatekeeper-ami-id }}
         TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.gatekeeper-instance-type }}
+
+    - name: Configure AWS Credentials to assume terraform Role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        role-session-name: GitHub_Action_deploy_infrastructure
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Invalidate Cloudfront distributions
+      shell: bash
+      # invalidate all cloudfront distributions
+      # 1. get the distribution ids by calling "list-distributions" command
+      # 2. pipe result to jq and return one distribution id per line
+      # 3. use xargs to execute the invalidation call for each of the distribution Id in input, invalidating the whole bucket
+      run: |
+        aws cloudfront list-distributions \
+        | jq -c ".DistributionList.Items.[].Id" \
+        | xargs -L 1 -I {} aws cloudfront create-invalidation --distribution-id {} --paths '/'

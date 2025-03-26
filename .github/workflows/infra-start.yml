@@ -1,4 +1,4 @@
-name: Auto-start dev infra
+name: Start dev infra
 on:
   schedule:
     - cron: "30 7 * * *"
