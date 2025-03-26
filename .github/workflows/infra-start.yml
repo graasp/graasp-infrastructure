@@ -1,30 +1,24 @@
-name: Start Infra
+name: Auto-start dev infra
 on:
   schedule:
     - cron: "30 7 * * *"
+  # allow to start infra of another env manually
   workflow_dispatch:
     inputs:
       environment:
         description: "Target environment"
         type: environment
         required: true
-      state:
-        description: "Expected infrastructure state"
-        type: choice
-        options:
-          - running
-          - restricted
-          - db-only
-          - stopped
-        required: false
-        # default to running - only for the manual select
-        default: running
 
 jobs:
   deploy:
-    name: "Deploy infra in ${{ inputs.state || 'running' }} state to ${{ inputs.environment || 'dev' }} environment"
-    environment: ${{ inputs.environment || 'dev' }}
+    name: "Deploy infra in ${{ env.state }} state to ${{ env.environment || 'dev' }} environment"
+    env:
+      state: "running"
+      environment: ${{ inputs.environment || 'dev' }}
+    environment: ${{ env.environment }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,11 +29,21 @@ jobs:
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
+      - name: Start DB
+        if: ${{ env.state != "stopped" }}
+        run: |
+          aws rds start-db-instance graasp-${{ env.environment }}
+          while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running"]
+          do
+            echo "waiting for DB to be up ${date -u +%H:%M:%S\(UTC\)}"
+            sleep 30
+          end
+
       - name: Deploy
-        run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment || 'dev' }}'
+        run: npx cdktf deploy --auto-approve 'graasp-${{ env.environment }}'
         shell: bash
         env:
-          INFRA_STATE: ${{ inputs.state || 'running' }}
+          INFRA_STATE: ${{ env.state }}
           MAINTENANCE_HEADER_NAME: ${{ secrets.MAINTENANCE_HEADER_NAME }}
           MAINTENANCE_HEADER_SECRET: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
           TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
