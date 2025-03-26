@@ -12,11 +12,11 @@ on:
 
 jobs:
   deploy:
-    name: "Deploy infra in ${{ env.state }} state to ${{ env.environment || 'dev' }} environment"
+    name: "Deploy infra in running state to ${{ inputs.environment || 'dev' }} environment"
+    environment: ${{ inputs.environment || 'dev' }}
     env:
       state: "running"
       environment: ${{ inputs.environment || 'dev' }}
-    environment: ${{ env.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -30,10 +30,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Start DB
-        if: ${{ env.state != "stopped" }}
+        if: ${{ env.state != 'stopped' }}
         run: |
           aws rds start-db-instance graasp-${{ env.environment }}
-          while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running"]
+          while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running" ]
           do
             echo "waiting for DB to be up ${date -u +%H:%M:%S\(UTC\)}"
             sleep 30
