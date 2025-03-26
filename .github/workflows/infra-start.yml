@@ -27,13 +27,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare terraform
-        uses: ./.github/actions/prepare-terraform
+      - name: Configure AWS Credentials
+        id: configure-aws
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_infrastructure
           aws-region: ${{ vars.AWS_REGION }}
-        #   aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
-        #   aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Start DB
         if: ${{ env.state != 'stopped' }}
@@ -62,6 +62,13 @@ jobs:
             echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
             sleep 30
           done
+
+      - name: Prepare terraform
+        uses: ./.github/actions/prepare-terraform
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Deploy
         run: npx cdktf deploy --auto-approve 'graasp-${{ env.environment }}'
