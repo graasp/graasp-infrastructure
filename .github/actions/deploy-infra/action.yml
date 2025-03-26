@@ -24,9 +24,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Configure AWS Credentials to assume terraform Role
       id: configure-aws-assume-role
       uses: aws-actions/configure-aws-credentials@v4

@@ -21,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
