@@ -1,5 +1,7 @@
 import { CloudfrontDistribution } from '@cdktf/provider-aws/lib/cloudfront-distribution';
+import { CloudfrontFunction } from '@cdktf/provider-aws/lib/cloudfront-function';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
+import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
@@ -12,6 +14,7 @@ export function makeCloudfront(
   id: string,
   targetName: string,
   s3domain: string,
+  functionAssociationArn: string | undefined,
   certificate: DataAwsAcmCertificate,
   env: EnvironmentConfig,
   isUsingWebsiteEndpoint: boolean = false,
@@ -47,13 +50,9 @@ export function makeCloudfront(
       cachedMethods: ['GET', 'HEAD'],
       targetOriginId: targetName,
       viewerProtocolPolicy: 'redirect-to-https',
-      // lambdaFunctionAssociation: [
-      //   {
-      //     eventType: 'viewer-request',
-      //     lambdaArn:
-      //       'arn:aws:lambda:us-east-1:299720865162:function:maintenance-check-dev',
-      //   },
-      // ],
+      functionAssociation: functionAssociationArn
+        ? [{ eventType: 'viewer-request', functionArn: functionAssociationArn }]
+        : undefined,
     },
     customErrorResponse: [
       {
@@ -76,4 +75,48 @@ export function makeCloudfront(
       sslSupportMethod: 'sni-only',
     },
   });
+}
+
+/**
+ * Create a Cloudfront funtion that can be associated to the `viewer-request` event to filter requests based on a secret header.
+ *
+ * This allows to redirect normal users to the maintenance page when we perform migrations on the infrastructure.
+ */
+export function createMaintenanceFunction(
+  scope: Construct,
+  id: string,
+  environment: EnvironmentConfig,
+  headerSecret: { name: string; value: string } | undefined,
+) {
+  const cfFunc = new CloudfrontFunction(scope, id, {
+    name: 'maintenance-check',
+    runtime: 'cloudfront-js-2.0',
+    code: headerSecret
+      ? Token.asString(`
+function handler(event) {
+  const headers = event.request.headers;
+  const headerName = 'x-maintenance-${headerSecret.name}';
+  const headerSecret = '${headerSecret.value}';
+  if (
+    headers[headerName] &&
+    headers[headerName][0].value === headerSecret
+  ) {
+    return event.request;
+  }
+
+  return {
+    statusCode: 302,
+    statusDescription: 'Found',
+    headers: {
+      'location': {value: 'https://${subdomainForEnv('maintenance', environment)}'},
+    },
+  };
+}`)
+      : Token.asString(`
+function handler(event) {
+  return event.request;
+}`),
+  });
+  // do not return the function when there are not secret headers so it can be de-associated
+  return headerSecret ? cfFunc : undefined;
 }

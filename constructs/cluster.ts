@@ -12,7 +12,10 @@ import {
 import { EcsTaskDefinition } from '@cdktf/provider-aws/lib/ecs-task-definition';
 import { IamRole } from '@cdktf/provider-aws/lib/iam-role';
 import { IamRolePolicy } from '@cdktf/provider-aws/lib/iam-role-policy';
-import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
+import {
+  LbListenerRule,
+  LbListenerRuleCondition,
+} from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { ServiceDiscoveryHttpNamespace } from '@cdktf/provider-aws/lib/service-discovery-http-namespace';
@@ -42,9 +45,7 @@ export class Cluster extends Construct {
     super(scope, name);
 
     this.isActive = isActive;
-    this.cluster = new EcsCluster(scope, `cluster`, {
-      name,
-    });
+    this.cluster = new EcsCluster(scope, `cluster`, { name });
     this.vpc = vpc;
 
     this.namespace = new ServiceDiscoveryHttpNamespace(this, 'namespace', {
@@ -63,9 +64,7 @@ export class Cluster extends Construct {
             Action: 'sts:AssumeRole',
             Effect: 'Allow',
             Sid: '',
-            Principal: {
-              Service: 'ecs-tasks.amazonaws.com',
-            },
+            Principal: { Service: 'ecs-tasks.amazonaws.com' },
           },
         ],
       }),
@@ -110,6 +109,7 @@ export class Cluster extends Construct {
       containerPort: number;
       host: string;
       healthCheckPath: string;
+      ruleConditions?: LbListenerRuleCondition[];
     },
   ) {
     new CloudwatchLogGroup(this, `${name}-loggroup`, {
@@ -165,19 +165,12 @@ export class Cluster extends Construct {
       new LbListenerRule(this, `${name}-rule`, {
         listenerArn: loadBalancerConfig.loadBalancer.lbl.arn,
         priority: loadBalancerConfig.priority,
-        action: [
-          {
-            type: 'forward',
-            targetGroupArn: targetGroup.arn,
-          },
-        ],
+        action: [{ type: 'forward', targetGroupArn: targetGroup.arn }],
 
         condition: [
-          {
-            hostHeader: {
-              values: [loadBalancerConfig.host],
-            },
-          },
+          { hostHeader: { values: [loadBalancerConfig.host] } },
+          // add rule conditions
+          ...(loadBalancerConfig.ruleConditions ?? []),
         ],
       });
     }
@@ -215,9 +208,7 @@ export class Cluster extends Construct {
           : undefined,
       },
       lifecycle: taskDefinitionConfig.dummy
-        ? {
-            ignoreChanges: ['task_definition'],
-          }
+        ? { ignoreChanges: ['task_definition'] }
         : undefined,
     });
 
@@ -251,10 +242,7 @@ export function createContainerDefinitions(
   name: string,
   dockerImage: string,
   dockerTag: string,
-  portMappings: {
-    containerPort: number;
-    hostPort: number;
-  }[],
+  portMappings: { containerPort: number; hostPort: number }[],
   env: Record<string, string | undefined>,
   deployEnv: EnvironmentConfig,
   command?: string[],

@@ -1,7 +1,10 @@
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { Lb } from '@cdktf/provider-aws/lib/lb';
 import { LbListener } from '@cdktf/provider-aws/lib/lb-listener';
-import { LbListenerRule } from '@cdktf/provider-aws/lib/lb-listener-rule';
+import {
+  LbListenerRule,
+  LbListenerRuleCondition,
+} from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { Fn } from 'cdktf';
@@ -24,7 +27,7 @@ export class LoadBalancer extends Construct {
     name: string,
     vpc: Vpc,
     certificate: DataAwsAcmCertificate,
-    isActive: boolean,
+    environment: EnvironmentConfig,
   ) {
     super(scope, `${name}-load-balancer`);
     this.vpc = vpc;
@@ -91,11 +94,7 @@ export class LoadBalancer extends Construct {
       protocol: 'HTTP',
       defaultAction: [
         {
-          redirect: {
-            port: '443',
-            protocol: 'HTTPS',
-            statusCode: 'HTTP_301',
-          },
+          redirect: { port: '443', protocol: 'HTTPS', statusCode: 'HTTP_301' },
           type: 'redirect',
         },
       ],
@@ -105,27 +104,16 @@ export class LoadBalancer extends Construct {
       loadBalancerArn: this.lb.arn,
       port: 443,
       protocol: 'HTTPS',
-      defaultAction: isActive
-        ? [
-            {
-              fixedResponse: {
-                contentType: 'text/plain',
-                statusCode: '503',
-              },
-              type: 'fixed-response',
-            },
-          ]
-        : [
-            {
-              type: 'fixed-response',
-              fixedResponse: {
-                contentType: 'text/plain',
-                messageBody:
-                  'Graasp is currently not available. Contact support',
-                statusCode: '200',
-              },
-            },
-          ],
+      defaultAction: [
+        {
+          redirect: {
+            host: subdomainForEnv('maintenance', environment),
+            protocol: 'HTTPS',
+            statusCode: 'HTTP_302', // temporary redirect
+          },
+          type: 'redirect',
+        },
+      ],
       sslPolicy: 'ELBSecurityPolicy-2016-08',
       certificateArn: certificate.arn,
     });
@@ -142,6 +130,7 @@ export class LoadBalancer extends Construct {
       statusCode?: string;
     },
     env: EnvironmentConfig,
+    ruleConditions?: LbListenerRuleCondition[],
   ) {
     const host = redirectOptions.subDomainTarget
       ? subdomainForEnv(redirectOptions.subDomainTarget, env)
@@ -169,6 +158,7 @@ export class LoadBalancer extends Construct {
             values: [subdomainForEnv(redirectOptions.subDomainOrigin, env)],
           },
         },
+        ...(ruleConditions ?? []),
       ],
     });
   }
