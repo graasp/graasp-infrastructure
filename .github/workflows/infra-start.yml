@@ -32,7 +32,7 @@ jobs:
       - name: Start DB
         if: ${{ env.state != 'stopped' }}
         run: |
-          aws rds start-db-instance graasp-${{ env.environment }}
+          aws rds start-db-instance --db-instance-identifier graasp-${{ env.environment }}
           while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running" ]
           do
             echo "waiting for DB to be up ${date -u +%H:%M:%S\(UTC\)}"
