@@ -48,6 +48,7 @@ jobs:
             echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
             sleep 30
           done
+          echo "DB successfully started!"
 
       - name: Stop DB
         if: ${{ env.state == 'stopped' }}
@@ -62,6 +63,7 @@ jobs:
             echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
             sleep 30
           done
+          echo "DB successfully stopped!"
 
       - name: Prepare terraform
         uses: ./.github/actions/prepare-terraform
