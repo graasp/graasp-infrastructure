@@ -32,6 +32,7 @@ jobs:
       - name: Start DB
         if: ${{ env.state != 'stopped' }}
         run: |
+          aws sts get-caller-identity
           aws rds start-db-instance --db-instance-identifier graasp-${{ env.environment }}
           while [ $(aws rds describe-db-instances | jq ".DBInstances.[0].DBInstanceStatus") != "running" ]
           do
