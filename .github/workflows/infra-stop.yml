@@ -1,4 +1,4 @@
-name: Stop Infra
+name: Stop dev infra
 on:
   schedule:
     - cron: "30 18 * * *"
