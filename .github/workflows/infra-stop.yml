@@ -1,7 +1,7 @@
 name: Stop dev infra
 on:
   schedule:
-    - cron: "30 18 * * *"
+    - cron: "30 18 * * 1-5"
   workflow_dispatch:
     inputs:
       environment:
