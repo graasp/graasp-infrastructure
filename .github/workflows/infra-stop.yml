@@ -1,52 +1,43 @@
-name: Stop Infra
+name: Stop dev infra
 on:
   schedule:
-    - cron: "30 19 * * *"
+    - cron: "30 18 * * *"
   workflow_dispatch:
     inputs:
       environment:
         description: "Target environment"
         type: environment
         required: true
-      state:
-        description: "Expected infrastructure state"
-        type: choice
-        options:
-          - running
-          - restricted
-          - db-only
-          - stopped
-        required: false
-        # default to stopped - only for the manual select
-        default: stopped
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
 
 jobs:
   deploy:
-    name: "Deploy infra in ${{ inputs.state || 'stopped' }} state to ${{ inputs.environment || 'dev' }} environment"
+    name: "Deploy infra in stopped state to ${{ inputs.environment || 'dev' }} environment"
     environment: ${{ inputs.environment || 'dev' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare terraform
-        uses: ./.github/actions/prepare-terraform
+      - name: Deploy Infra
+        uses: ./.github/actions/deploy-infra
         with:
+          state: "stopped"
+          environment: ${{ inputs.environment || 'dev' }}
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
-
-      - name: Deploy
-        run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment || 'dev' }}'
-        shell: bash
-        env:
-          INFRA_STATE: ${{ inputs.state || 'stopped' }}
-          MAINTENANCE_HEADER_NAME: ${{ secrets.MAINTENANCE_HEADER_NAME }}
-          MAINTENANCE_HEADER_SECRET: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
-          TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
-          TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
-          TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
-          TF_VAR_UMAMI_DB_PASSWORD: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
-          TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
-          TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
-          TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}

@@ -1,0 +1,149 @@
+name: Composite terraform CDK deploy workflow
+description: Deploy the infrastructure in a specific state
+
+inputs:
+  state:
+    description: "Infra state"
+    required: true
+  environment:
+    description: "Environment to target"
+    required: true
+  aws-role-to-assume:
+    description: "AWS Role to assume to start/stop the DB"
+    required: true
+  aws-region:
+    description: "AWS Region for for the deployment"
+    required: true
+  aws-access-key-id:
+    description: "AWS Key id"
+    required: true
+  aws-secret-access-key:
+    description: "AWS secret key"
+    required: true
+  maintenance-header-name:
+    description: "Maintenance header name"
+    required: true
+  maintenance-header-secret:
+    description: "Maintenance header value"
+    required: true
+  meilisearch-master-key:
+    description: "Meilisearch master key"
+    required: true
+  graasp-db-password:
+    description: "Graasp DB password"
+    required: true
+  etherpad-db-password:
+    description: "Etherpad DB password"
+    required: true
+  umami-db-password:
+    description: "Umami DB password"
+    required: true
+  graasp-db-gatekeeper-key-name:
+    description: "Gatekeeper key name for auth"
+    required: true
+  gatekeeper-ami-id:
+    description: "Gatekeeper AMI for machine setup"
+    required: true
+  gatekeeper-instance-type:
+    description: "Gatekeeper instance type"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS Credentials to assume terraform Role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        role-session-name: GitHub_Action_deploy_infrastructure
+        aws-region: ${{ inputs.aws-region }}
+
+    # This is a hack because there is a bug in the Terraform AWS provider where it is not possible to start a stopped instance
+    # https://github.com/hashicorp/terraform-provider-aws/issues/40785
+    - name: Start DB
+      if: ${{ inputs.state != 'stopped' }}
+      shell: bash
+      run: |
+        # start the db if it is in a "stopped" state
+        if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
+        then
+          aws rds start-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
+        fi
+        while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "available" ]
+        do
+          echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
+          sleep 30
+        done
+        echo "DB successfully started!"
+
+    # - name: Stop DB
+    #   if: ${{ inputs.state == 'stopped' }}
+    #   shell: bash
+    #   run: |
+    #     # stop the db if it is in the "available" state
+    #     if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "available" ]
+    #     then
+    #       aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
+    #     fi
+    #     while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
+    #     do
+    #       echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
+    #       sleep 30
+    #     done
+    #     echo "DB successfully stopped!"
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Install dependencies
+      run: yarn install
+      shell: bash
+
+    - name: Generate module and provider bindings
+      run: npx cdktf get
+      shell: bash
+
+    - name: Configure AWS Credentials for terraform user
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Deploy Infra as "${{inputs.state }}" state to ${{ inputs.environment }} environment
+      run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
+      shell: bash
+      env:
+        INFRA_STATE: ${{ inputs.state }}
+        MAINTENANCE_HEADER_NAME: ${{ inputs.maintenance-header-name }}
+        MAINTENANCE_HEADER_SECRET: ${{ inputs.maintenance-header-secret }}
+        TF_VAR_MEILISEARCH_MASTER_KEY: ${{ inputs.meilisearch-master-key }}
+        TF_VAR_GRAASP_DB_PASSWORD: ${{ inputs.graasp-db-password }}
+        TF_VAR_ETHERPAD_DB_PASSWORD: ${{ inputs.etherpad-db-password }}
+        TF_VAR_UMAMI_DB_PASSWORD: ${{ inputs.umami-db-password }}
+        TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ inputs.graasp-db-gatekeeper-key-name }}
+        TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.gatekeeper-ami-id }}
+        TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.gatekeeper-instance-type }}
+
+    - name: Configure AWS Credentials to assume terraform Role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        role-session-name: GitHub_Action_deploy_infrastructure
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Invalidate Cloudfront distributions
+      shell: bash
+      # invalidate all cloudfront distributions
+      # 1. get the distribution ids by calling "list-distributions" command
+      # 2. pipe result to jq and return one distribution id per line
+      # 3. use xargs to execute the invalidation call for each of the distribution Id in input, invalidating the whole bucket
+      run: |
+        aws cloudfront list-distributions \
+        | jq -c ".DistributionList.Items.[].Id" \
+        | xargs -L 1 -I {} aws cloudfront create-invalidation --distribution-id {} --paths '/'
