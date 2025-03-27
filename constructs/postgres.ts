@@ -135,6 +135,9 @@ export class PostgresDB extends Construct {
     // manage instance state based on the `isActive` param
     new RdsInstanceState(this, `${this.instance.identifier}-instance-state`, {
       identifier: this.instance.identifier,
+      // A bug makes it impossible to activate a database in the "stopped" state.
+      // The state of the db is expected to be "available" before performing the state change...
+      // Bur report tracking the issue: https://github.com/hashicorp/terraform-provider-aws/issues/40785
       state: isActive ? 'available' : 'stopped',
     });
   }
