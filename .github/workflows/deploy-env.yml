@@ -93,3 +93,53 @@ jobs:
           graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+      # Need to re-log as the terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_migration
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Wait for migrations to be done
+        run: |
+          migration
+          while [ $(aws logs tail '/ecs/migrate' | jq -r ".[0].DBInstanceStatus") != "available" ]
+          do
+            echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
+
+      - name: Pull core-${{ inputs.version }} and push as latest in private repo
+        run: |
+          core_image_tag=core-${{ inputs.version }}
+          public_ecr_image=${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
+          docker logout ${{ vars.AWS_PUBLIC_ECR_URI }}
+          docker pull $public_ecr_image
+
+          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+          image_tag=$private_ecr/graasp:core-latest
+          docker tag $(docker image inspect $public_ecr_image | jq -r ".[0].Id") $image_tag
+
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $private_ecr
+          docker push $image_tag
+
+      - name: Deploy New release
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "running"
+          environment: ${{ inputs.environment }}
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
