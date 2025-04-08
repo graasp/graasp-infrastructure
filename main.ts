@@ -5,6 +5,7 @@ import {
   AwsProvider,
   AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
+import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
 
@@ -30,6 +31,7 @@ import {
   Environment,
   EnvironmentConfig,
   GraaspWebsiteConfig,
+  buildConnectionString,
   envDomain,
   getInfraState,
   getMaintenanceHeaderPair,
@@ -42,15 +44,31 @@ const CERTIFICATE_REGION = 'us-east-1';
 
 const SHARED_TAGS = { 'terraform-managed': 'true' };
 
-const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
-  [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
-  [Environment.STAGING]: [
-    { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
-  ],
-  [Environment.PRODUCTION]: [
-    { roleArn: 'arn:aws:iam::592217263685:role/terraform' },
-  ],
+const CONFIG_BY_ENV: Record<
+  Environment,
+  { accountId: string; terraformRoleName: string }
+> = {
+  [Environment.DEV]: {
+    accountId: '299720865162',
+    terraformRoleName: 'terraform',
+  },
+  [Environment.STAGING]: {
+    accountId: '348555061219',
+    terraformRoleName: 'terraform',
+  },
+  [Environment.PRODUCTION]: {
+    accountId: '592217263685',
+    terraformRoleName: 'terraform',
+  },
 };
+function roleByEnv(env: Environment): AwsProviderAssumeRole[] {
+  const envConfig = CONFIG_BY_ENV[env];
+  return [
+    {
+      roleArn: `arn:aws:iam::${envConfig.accountId}:role/${envConfig.terraformRoleName}`,
+    },
+  ];
+}
 
 class GraaspStack extends TerraformStack {
   constructor(scope: Construct, id: string, environment: EnvironmentConfig) {
@@ -66,7 +84,7 @@ class GraaspStack extends TerraformStack {
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
-      assumeRole: ROLE_BY_ENV[environment.env],
+      assumeRole: roleByEnv(environment.env),
       defaultTags: [{ tags: SHARED_TAGS }],
     });
 
@@ -82,7 +100,7 @@ class GraaspStack extends TerraformStack {
 
     const certificateProvider = new AwsProvider(this, 'AWS_US_EAST', {
       region: CERTIFICATE_REGION,
-      assumeRole: ROLE_BY_ENV[environment.env],
+      assumeRole: roleByEnv(environment.env),
       defaultTags: [{ tags: SHARED_TAGS }],
       alias: 'us_east',
     });
@@ -123,6 +141,37 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    const cluster = new Cluster(
+      this,
+      id,
+      vpc,
+      getInfraState(environment).areServicesActive,
+    );
+    const migrationCluster = new Cluster(
+      this,
+      `${id}-migrate`,
+      vpc,
+      getInfraState(environment).isMigrationActive,
+    );
+    const loadBalancer = new LoadBalancer(
+      this,
+      id,
+      vpc,
+      sslCertificate,
+      environment,
+    );
+
+    // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
+    const graaspECR = new DataAwsEcrRepository(this, `${id}-ecr`, {
+      name: 'graasp',
+    });
+    const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
+      name: 'graasp/etherpad',
+    });
+    new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
+      name: 'graasp/explore',
+    });
+
     // define the maintenance header rule
     const maintenanceHeaderValues = getMaintenanceHeaderPair(environment);
 
@@ -135,20 +184,6 @@ class GraaspStack extends TerraformStack {
         } satisfies LbListenerRuleCondition)
       : undefined;
     const ruleConditions = maintenanceHeaderRule ? [maintenanceHeaderRule] : [];
-
-    const cluster = new Cluster(
-      this,
-      id,
-      vpc,
-      getInfraState(environment).areServicesActive,
-    );
-    const loadBalancer = new LoadBalancer(
-      this,
-      id,
-      vpc,
-      sslCertificate,
-      environment,
-    );
 
     // ---- Setup redirections in the load-balancer -----
     // for the go.graasp.org service, redirect to an api endpoint
@@ -248,6 +283,7 @@ class GraaspStack extends TerraformStack {
       loadBalancerAllowedSecurityGroupInfo,
       BACKEND_PORT,
     );
+
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
@@ -356,34 +392,24 @@ class GraaspStack extends TerraformStack {
     const backendDb = new PostgresDB(
       this,
       id,
-      'graasp',
-      'graasp',
-      dbPassword,
-      vpc,
+      {
+        dbName: 'graasp',
+        dbUsername: 'graasp',
+        dbPassword: dbPassword,
+        addReplica: CONFIG[environment.env].dbConfig.graasp.enableReplication,
+        isActive: getInfraState(environment).isDatabaseActive,
+        vpc,
+      },
       [
         backendAllowedSecurityGroupInfo,
         umamiAllowedSecurityGroupInfo,
         etherpadAllowedSecurityGroupInfo,
       ],
-      CONFIG[environment.env].dbConfig.graasp.enableReplication,
-      getInfraState(environment).isDatabaseActive,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
     );
 
-    // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
-    new DataAwsEcrRepository(this, `${id}-ecr`, { name: 'graasp' });
-    const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
-      name: 'graasp/etherpad',
-    });
-    new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
-      name: 'graasp/explore',
-    });
-
-    // Task for the backend
-    // This is a dummy task that will be replaced by the CI/CD during deployment
-    // Deployment is not managed by Terraform here.
     const graaspDummyBackendDefinition = createContainerDefinitions(
       'graasp',
       'busybox',
@@ -615,6 +641,55 @@ class GraaspStack extends TerraformStack {
       },
       redisSecurityGroup,
       { name: 'graasp-redis', port: REDIS_PORT },
+    );
+
+    // Migration
+    const migrateServiceSecurityGroup = new SecurityGroup(
+      scope,
+      `${id}-migrate-security-group`,
+      {
+        vpcId: vpc.vpcIdOutput,
+        name: `${id}-migrate`,
+        lifecycle: {
+          createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
+        },
+      },
+    );
+    const migrationServiceAllowedSecurityGroupInfo = {
+      groupId: migrateServiceSecurityGroup.id,
+      targetName: 'graasp-migrate',
+    } satisfies AllowedSecurityGroupInfo;
+
+    const migrateDefinition = createContainerDefinitions(
+      'graasp-migrate',
+      graaspECR.repositoryUrl,
+      'migrate-latest',
+      [],
+      {
+        DB_CONNECTION: buildConnectionString({
+          host: backendDb.instance.dbInstanceAddressOutput,
+          port: '5432',
+          name: 'graasp',
+          username: backendDb.instance.dbInstanceUsernameOutput,
+          password: `\$\{${dbPassword.value}\}`,
+        }),
+      },
+      environment,
+    );
+    migrationCluster.addService(
+      'migrate',
+      1,
+      {
+        containerDefinitions: migrateDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
+        memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+        dummy: false,
+      },
+      migrateServiceSecurityGroup,
+    );
+    backendDb.addAllowedSecurityGroup(
+      id,
+      migrationServiceAllowedSecurityGroupInfo,
     );
 
     // S3 buckets

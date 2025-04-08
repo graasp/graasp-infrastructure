@@ -76,22 +76,6 @@ runs:
         done
         echo "DB successfully started!"
 
-    # - name: Stop DB
-    #   if: ${{ inputs.state == 'stopped' }}
-    #   shell: bash
-    #   run: |
-    #     # stop the db if it is in the "available" state
-    #     if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "available" ]
-    #     then
-    #       aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
-    #     fi
-    #     while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
-    #     do
-    #       echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
-    #       sleep 30
-    #     done
-    #     echo "DB successfully stopped!"
-
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 

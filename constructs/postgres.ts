@@ -14,31 +14,40 @@ import {
 
 export class PostgresDB extends Construct {
   public instance: Rds;
+  private readonly securityGroup: SecurityGroup;
+  private readonly dbPort = 5432;
 
   constructor(
     scope: Construct,
     name: string,
-    dbName: string,
-    dbUsername: string,
-    dbPassword: TerraformVariable,
-    vpc: Vpc,
+    {
+      dbName,
+      dbUsername,
+      dbPassword,
+      addReplica,
+      isActive,
+      vpc,
+    }: {
+      dbName: string;
+      dbUsername: string;
+      dbPassword: TerraformVariable;
+      addReplica: boolean;
+      vpc: Vpc;
+      isActive: boolean;
+    },
     allowedSecurityGroups: AllowedSecurityGroupInfo[],
-    addReplica: boolean,
-    isActive: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
     gateKeeperSecurityGroup?: SecurityGroup,
   ) {
     super(scope, `${name}-postgres`);
 
-    const dbPort = 5432;
-
-    const dbSecurityGroup = securityGroupAllowMultipleOtherSecurityGroups(
+    this.securityGroup = securityGroupAllowMultipleOtherSecurityGroups(
       this,
       `${name}-db`,
       vpc.vpcIdOutput,
       allowedSecurityGroups,
-      dbPort,
+      this.dbPort,
     );
 
     // allow a gatekeeper for manual migrations
@@ -50,10 +59,10 @@ export class PostgresDB extends Construct {
         `${name}-allow-gatekeeper-on-postgres`,
         {
           referencedSecurityGroupId: gateKeeperSecurityGroup.id, // allowed source security group
-          fromPort: dbPort,
+          fromPort: this.dbPort,
           ipProtocol: 'tcp',
-          securityGroupId: dbSecurityGroup.id,
-          toPort: dbPort,
+          securityGroupId: this.securityGroup.id,
+          toPort: this.dbPort,
         },
       );
     }
@@ -85,7 +94,7 @@ export class PostgresDB extends Construct {
       parameters: [{ name: 'rds.force_ssl', value: '0' }],
 
       dbName: dbName,
-      port: String(dbPort),
+      port: String(this.dbPort),
       username: dbUsername,
       password: dbPassword.value,
       manageMasterUserPassword: false,
@@ -101,7 +110,7 @@ export class PostgresDB extends Construct {
       createMonitoringRole: true,
       monitoringInterval: 60, // seconds
       monitoringRoleName: `${name}-rds-monitoring-role`,
-      vpcSecurityGroupIds: [dbSecurityGroup.id],
+      vpcSecurityGroupIds: [this.securityGroup.id],
     };
 
     // Doc: https://registry.terraform.io/modules/terraform-aws-modules/rds/aws/latest#inputs
@@ -140,5 +149,22 @@ export class PostgresDB extends Construct {
       // Bur report tracking the issue: https://github.com/hashicorp/terraform-provider-aws/issues/40785
       state: isActive ? 'available' : 'stopped',
     });
+  }
+
+  addAllowedSecurityGroup(
+    id: string,
+    { targetName, groupId }: AllowedSecurityGroupInfo,
+  ) {
+    new VpcSecurityGroupIngressRule(
+      this,
+      `${id}-allow-${targetName}-on-database`,
+      {
+        referencedSecurityGroupId: groupId, // security group we want to allow as source
+        ipProtocol: 'tcp',
+        securityGroupId: this.securityGroup.id,
+        fromPort: this.dbPort,
+        toPort: this.dbPort,
+      },
+    );
   }
 }

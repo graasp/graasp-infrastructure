@@ -28,7 +28,7 @@ const InfraState = {
    */
   Restricted: 'restricted',
   /**
-   * The infrastructure is mostly down, all services are stopped, only the database is still accessible, so migrations can be performed
+   * The infrastructure is mostly down, all services are stopped, the migration service is started and only the database is still accessible, migrations can be performed
    */
   DBOnly: 'db-only',
   /**
@@ -87,6 +87,7 @@ export function getInfraState(environment: EnvironmentConfig): {
   isMaintenanceActive: boolean;
   isDatabaseActive: boolean;
   areServicesActive: boolean;
+  isMigrationActive: boolean;
 } {
   const { infraState } = environment;
   switch (infraState) {
@@ -95,18 +96,21 @@ export function getInfraState(environment: EnvironmentConfig): {
         isMaintenanceActive: true,
         isDatabaseActive: false,
         areServicesActive: false,
+        isMigrationActive: false,
       };
     case InfraState.DBOnly:
       return {
         isMaintenanceActive: true,
         isDatabaseActive: true,
         areServicesActive: false,
+        isMigrationActive: true,
       };
     case InfraState.Restricted:
       return {
         isMaintenanceActive: true,
         isDatabaseActive: true,
         areServicesActive: true,
+        isMigrationActive: false,
       };
     case InfraState.Running:
     default:
@@ -114,6 +118,7 @@ export function getInfraState(environment: EnvironmentConfig): {
         isMaintenanceActive: false,
         isDatabaseActive: true,
         areServicesActive: true,
+        isMigrationActive: false,
       };
   }
 }
@@ -130,4 +135,20 @@ export function getMaintenanceHeaderPair(
     throw new Error('Expected to have a maintenance header name and value');
   }
   return { name, value };
+}
+
+export function buildConnectionString({
+  host,
+  port,
+  name,
+  username,
+  password,
+}: {
+  host: string;
+  port: string;
+  name: string;
+  username: string;
+  password: string;
+}) {
+  return `postgres://${username}:${password}@${host}:${port}/${name}`;
 }
