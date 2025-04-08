@@ -1,4 +1,15 @@
-# Why infrastructure as code?
+# Graasp Infrastructure as Code
+
+This repository holds the code responsible for deploying the Graasp infrastructure on the AWS Platform. It relies on [terraform](https://developer.hashicorp.com/terraform) and the CDKTF library.
+The code is written in Typescript and the deployment is run via GitHub Actions.
+
+Table of content:
+
+- [Why infrastructure as code?](#why-infrastructure-as-code)
+- [Infrastructure Architecture](#architecture)
+- [Troubleshoot](#troubleshoot)
+
+## Why infrastructure as code?
 
 - **Documentation**: Most of the AWS resources are defined in code, hence we know what exists without exploring the whole AWS console.
 - **Consistency**: The setup is similar between the different environment, reducing configuration drift.
