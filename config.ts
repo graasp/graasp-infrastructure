@@ -18,6 +18,7 @@ export type GraaspConfiguration = {
     graasp: {
       taskCount: number;
     };
+    migrate: HardwareLimit;
     etherpad: HardwareLimit;
     meilisearch: HardwareLimit;
     iframely: HardwareLimit;
@@ -41,6 +42,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     ecsConfig: {
       graasp: {
         taskCount: 1,
+      },
+      migrate: {
+        cpu: '256',
+        memory: '512',
       },
       etherpad: {
         cpu: '256',
@@ -75,6 +80,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       graasp: {
         taskCount: 1,
       },
+      migrate: {
+        cpu: '256',
+        memory: '512',
+      },
       etherpad: {
         cpu: '256',
         memory: '512',
@@ -107,6 +116,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     ecsConfig: {
       graasp: {
         taskCount: 2,
+      },
+      migrate: {
+        cpu: '256',
+        memory: '512',
       },
       etherpad: {
         cpu: '256',
