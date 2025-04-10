@@ -45,7 +45,7 @@ export class Cluster extends Construct {
     super(scope, name);
 
     this.isActive = isActive;
-    this.cluster = new EcsCluster(scope, `cluster`, { name });
+    this.cluster = new EcsCluster(scope, `cluster-${name}`, { name });
     this.vpc = vpc;
 
     this.namespace = new ServiceDiscoveryHttpNamespace(this, 'namespace', {

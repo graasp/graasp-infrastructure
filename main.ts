@@ -645,7 +645,7 @@ class GraaspStack extends TerraformStack {
 
     // Migration
     const migrateServiceSecurityGroup = new SecurityGroup(
-      scope,
+      this,
       `${id}-migrate-security-group`,
       {
         vpcId: vpc.vpcIdOutput,
