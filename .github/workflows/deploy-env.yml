@@ -21,6 +21,7 @@ jobs:
     name: Deploy Maintenance to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    if: false # TODO: Remove !
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -47,7 +48,7 @@ jobs:
 
   migration:
     name: Apply Migration to ${{ inputs.environment }} environment
-    needs: maintenance
+    # needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -60,7 +61,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           role-session-name: GitHub_Action_deploy_migration
-          aws-region: ${{ inputs.aws-region }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Pull migrate-${{ inputs.version }} and push as latest in private repo
         run: |
@@ -100,16 +101,16 @@ jobs:
         with:
           role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           role-session-name: GitHub_Action_deploy_migration
-          aws-region: ${{ inputs.aws-region }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Wait for migrations to be done
-        run: |
-          migration
-          while [ $(aws logs tail '/ecs/migrate' | jq -r ".[0].DBInstanceStatus") != "available" ]
-          do
-            echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
-            sleep 30
-          done
+      # - name: Wait for migrations to be done
+      #   run: |
+      #     migration
+      #     while [ $(aws logs tail '/ecs/migrate' | jq -r ".[0].DBInstanceStatus") != "available" ]
+      #     do
+      #       echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
+      #       sleep 30
+      #     done
 
       - name: Pull core-${{ inputs.version }} and push as latest in private repo
         run: |
