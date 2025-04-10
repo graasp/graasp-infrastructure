@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   maintenance:
-    name: "Deploy Maintenance to ${{ inputs.environment }} environment"
+    name: Deploy Maintenance to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -46,7 +46,7 @@ jobs:
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 
   migration:
-    name: "Apply Migration to ${{ inputs.environment }} environment"
+    name: Apply Migration to ${{ inputs.environment }} environment
     needs: maintenance
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest

@@ -50,7 +50,7 @@ export class Cluster extends Construct {
 
     this.namespace = new ServiceDiscoveryHttpNamespace(this, 'namespace', {
       description: 'Namespace for internal communication between services',
-      name: 'graasp',
+      name: `${name}-discovery`,
     });
 
     const executionRoleName = `${name}-ecs-execution-role`;
