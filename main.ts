@@ -31,7 +31,7 @@ import {
   Environment,
   EnvironmentConfig,
   GraaspWebsiteConfig,
-  buildConnectionString,
+  buildPostgresConnectionString,
   envDomain,
   getInfraState,
   getMaintenanceHeaderPair,
@@ -666,7 +666,7 @@ class GraaspStack extends TerraformStack {
       'migrate-latest',
       [],
       {
-        DB_CONNECTION: buildConnectionString({
+        DB_CONNECTION: buildPostgresConnectionString({
           host: backendDb.instance.dbInstanceAddressOutput,
           port: '5432',
           name: 'graasp',

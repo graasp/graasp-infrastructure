@@ -137,7 +137,7 @@ export function getMaintenanceHeaderPair(
   return { name, value };
 }
 
-export function buildConnectionString({
+export function buildPostgresConnectionString({
   host,
   port,
   name,
