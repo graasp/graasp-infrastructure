@@ -193,7 +193,7 @@ export class Cluster extends Construct {
       taskDefinition: task.arn,
       networkConfiguration: {
         subnets: Fn.tolist(this.vpc.publicSubnetsOutput),
-        assignPublicIp: true,
+        assignPublicIp: false,
         securityGroups: [serviceSecurityGroup.id],
       },
       loadBalancer: ecsServiceLoadBalancerOptions,
