@@ -24,6 +24,7 @@ import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
   AllowedSecurityGroupInfo,
+  allowAllEgressRule,
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import {
@@ -671,6 +672,9 @@ class GraaspStack extends TerraformStack {
         },
       },
     );
+    // allow all egress trafic from migration
+    allowAllEgressRule(scope, id, migrateServiceSecurityGroup.id);
+
     const migrationServiceAllowedSecurityGroupInfo = {
       groupId: migrateServiceSecurityGroup.id,
       targetName: 'graasp-migrate',
