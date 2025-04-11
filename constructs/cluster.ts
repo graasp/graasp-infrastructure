@@ -39,18 +39,16 @@ export class Cluster extends Construct {
   vpc: Vpc;
   namespace: ServiceDiscoveryHttpNamespace;
   executionRole: IamRole;
-  isActive: boolean;
 
-  constructor(scope: Construct, name: string, vpc: Vpc, isActive: boolean) {
+  constructor(scope: Construct, name: string, vpc: Vpc) {
     super(scope, name);
 
-    this.isActive = isActive;
     this.cluster = new EcsCluster(scope, `cluster-${name}`, { name });
     this.vpc = vpc;
 
     this.namespace = new ServiceDiscoveryHttpNamespace(this, 'namespace', {
       description: 'Namespace for internal communication between services',
-      name: `${name}-discovery`,
+      name,
     });
 
     const executionRoleName = `${name}-ecs-execution-role`;
@@ -96,9 +94,17 @@ export class Cluster extends Construct {
   }
 
   public addService(
-    name: string,
-    desiredCount: number,
-    taskDefinitionConfig: TaskDefinitionConfiguration,
+    {
+      name,
+      desiredCount,
+      taskConfig,
+      isActive,
+    }: {
+      name: string;
+      desiredCount: number;
+      taskConfig: TaskDefinitionConfiguration;
+      isActive: boolean;
+    },
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
     appAutoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
@@ -120,15 +126,15 @@ export class Cluster extends Construct {
     const task = new EcsTaskDefinition(this, name, {
       family: name, // name used to group the definitions versions
 
-      cpu: taskDefinitionConfig.cpu ?? '256',
-      memory: taskDefinitionConfig.memory ?? '512',
+      cpu: taskConfig.cpu ?? '256',
+      memory: taskConfig.memory ?? '512',
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,
-      containerDefinitions: taskDefinitionConfig.containerDefinitions,
+      containerDefinitions: taskConfig.containerDefinitions,
 
       lifecycle: {
-        ignoreChanges: taskDefinitionConfig.dummy ? 'all' : undefined,
+        ignoreChanges: taskConfig.dummy ? 'all' : undefined,
       },
     });
 
@@ -181,7 +187,7 @@ export class Cluster extends Construct {
       name,
       launchType: 'FARGATE',
       cluster: this.cluster.id,
-      desiredCount: this.isActive ? desiredCount : 0,
+      desiredCount: isActive ? desiredCount : 0,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
       taskDefinition: task.arn,
@@ -207,7 +213,7 @@ export class Cluster extends Construct {
             ]
           : undefined,
       },
-      lifecycle: taskDefinitionConfig.dummy
+      lifecycle: taskConfig.dummy
         ? { ignoreChanges: ['task_definition'] }
         : undefined,
     });

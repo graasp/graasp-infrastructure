@@ -141,18 +141,7 @@ class GraaspStack extends TerraformStack {
       },
     );
 
-    const cluster = new Cluster(
-      this,
-      id,
-      vpc,
-      getInfraState(environment).areServicesActive,
-    );
-    const migrationCluster = new Cluster(
-      this,
-      `${id}-migrate`,
-      vpc,
-      getInfraState(environment).isMigrationActive,
-    );
+    const cluster = new Cluster(this, id, vpc);
     const loadBalancer = new LoadBalancer(
       this,
       id,
@@ -506,12 +495,18 @@ class GraaspStack extends TerraformStack {
       },
       environment,
     );
-
+    const servicesActive = getInfraState(environment).areServicesActive;
     // backend
     cluster.addService(
-      'graasp',
-      CONFIG[environment.env].ecsConfig.graasp.taskCount,
-      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
+      {
+        name: 'graasp',
+        desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
+        taskConfig: {
+          containerDefinitions: graaspDummyBackendDefinition,
+          dummy: true,
+        },
+        isActive: servicesActive,
+      },
       backendSecurityGroup,
       undefined,
       {
@@ -534,9 +529,15 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'graasp-library',
-      1,
-      { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
+      {
+        name: 'graasp-library',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: libraryDummyBackendDefinition,
+          dummy: true,
+        },
+        isActive: servicesActive,
+      },
       librarySecurityGroup,
       undefined,
       {
@@ -559,13 +560,16 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'etherpad',
-      1,
       {
-        containerDefinitions: etherpadDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
-        memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
-        dummy: false,
+        name: 'etherpad',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: etherpadDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
+          memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
+          dummy: false,
+        },
+        isActive: servicesActive,
       },
       etherpadSecurityGroup,
       undefined,
@@ -582,13 +586,16 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'umami',
-      1,
       {
-        containerDefinitions: umamiDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
-        memory: CONFIG[environment.env].ecsConfig.umami.memory,
-        dummy: false,
+        name: 'umami',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: umamiDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
+          memory: CONFIG[environment.env].ecsConfig.umami.memory,
+          dummy: false,
+        },
+        isActive: servicesActive,
       },
       umamiSecurityGroup,
       { name: 'umami', port: UMAMI_PORT },
@@ -605,39 +612,48 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'meilisearch',
-      1,
       {
-        containerDefinitions: meilisearchDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
-        memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
-        dummy: false,
+        name: 'meilisearch',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: meilisearchDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
+          memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
+          dummy: false,
+        },
+        isActive: servicesActive,
       },
       meilisearchSecurityGroup,
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );
 
     cluster.addService(
-      'iframely',
-      1,
       {
-        containerDefinitions: iframelyDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
-        memory: CONFIG[environment.env].ecsConfig.iframely.memory,
-        dummy: false,
+        name: 'iframely',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: iframelyDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
+          memory: CONFIG[environment.env].ecsConfig.iframely.memory,
+          dummy: false,
+        },
+        isActive: servicesActive,
       },
       iframelySecurityGroup,
       { name: 'graasp-iframely', port: IFRAMELY_PORT },
     );
 
     cluster.addService(
-      'redis',
-      1,
       {
-        containerDefinitions: redisDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
-        memory: CONFIG[environment.env].ecsConfig.redis.memory,
-        dummy: false,
+        name: 'redis',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: redisDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
+          memory: CONFIG[environment.env].ecsConfig.redis.memory,
+          dummy: false,
+        },
+        isActive: servicesActive,
       },
       redisSecurityGroup,
       { name: 'graasp-redis', port: REDIS_PORT },
@@ -676,14 +692,17 @@ class GraaspStack extends TerraformStack {
       },
       environment,
     );
-    migrationCluster.addService(
-      'migrate',
-      1,
+    cluster.addService(
       {
-        containerDefinitions: migrateDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
-        memory: CONFIG[environment.env].ecsConfig.migrate.memory,
-        dummy: false,
+        name: 'migrate',
+        desiredCount: 1,
+        taskConfig: {
+          containerDefinitions: migrateDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
+          memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+          dummy: false,
+        },
+        isActive: getInfraState(environment).isMigrationActive,
       },
       migrateServiceSecurityGroup,
     );
