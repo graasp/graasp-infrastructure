@@ -56,6 +56,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
       - name: Configure AWS Credentials to assume terraform Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -63,18 +66,16 @@ jobs:
           role-session-name: GitHub_Action_deploy_migration
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Pull migrate-${{ inputs.version }} and push as latest in private repo
+      - name: Copy migrate-${{ inputs.version }} to private repo as latest
         run: |
           migrate_image_tag=migrate-${{ inputs.version }}
-          public_ecr_image=${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$migrate_image_tag
-          docker pull --platform 'linux/amd64,linux/arm64' $public_ecr_image
-
+          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$migrate_image_tag
           private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          image_tag=$private_ecr/graasp:migrate-latest
-          docker tag $(docker image inspect $public_ecr_image | jq -r ".[0].Id") $image_tag
-
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $private_ecr
-          docker push $image_tag
+          image_tag=docker://$private_ecr/graasp:migrate-latest
+          # login
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+          # copy
+          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
 
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
@@ -112,19 +113,16 @@ jobs:
       #       sleep 30
       #     done
 
-      - name: Pull core-${{ inputs.version }} and push as latest in private repo
+      - name: Copy core-${{ inputs.version }} to private repo as latest
         run: |
           core_image_tag=core-${{ inputs.version }}
-          public_ecr_image=${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
-          docker logout ${{ vars.AWS_PUBLIC_ECR_URI }}
-          docker pull --platform 'linux/amd64,linux/arm64' $public_ecr_image
-
+          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
           private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          image_tag=$private_ecr/graasp:core-latest
-          docker tag $(docker image inspect $public_ecr_image | jq -r ".[0].Id") $image_tag
-
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $private_ecr
-          docker push $image_tag
+          image_tag=docker://$private_ecr/graasp:core-latest
+          # login
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+          # copy
+          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
 
       - name: Deploy New release
         uses: ./.github/actions/deploy-infra
