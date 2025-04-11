@@ -113,32 +113,32 @@ jobs:
       #       sleep 30
       #     done
 
-      - name: Copy core-${{ inputs.version }} to private repo as latest
-        run: |
-          core_image_tag=core-${{ inputs.version }}
-          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
-          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          image_tag=docker://$private_ecr/graasp:core-latest
-          # login
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
-          # copy
-          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+      # - name: Copy core-${{ inputs.version }} to private repo as latest
+      #   run: |
+      #     core_image_tag=core-${{ inputs.version }}
+      #     public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
+      #     private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+      #     image_tag=docker://$private_ecr/graasp:core-latest
+      #     # login
+      #     aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+      #     # copy
+      #     skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
 
-      - name: Deploy New release
-        uses: ./.github/actions/deploy-infra
-        with:
-          state: "running"
-          environment: ${{ inputs.environment }}
-          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
-          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
-          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
-          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
-          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
-          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
-          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
-          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
-          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
-          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+      # - name: Deploy New release
+      #   uses: ./.github/actions/deploy-infra
+      #   with:
+      #     state: "running"
+      #     environment: ${{ inputs.environment }}
+      #     aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+      #     aws-region: ${{ vars.AWS_REGION }}
+      #     aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+      #     aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+      #     maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+      #     maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+      #     meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+      #     graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+      #     etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+      #     umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+      #     graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+      #     gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+      #     gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
