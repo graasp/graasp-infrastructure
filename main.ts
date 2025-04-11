@@ -661,19 +661,20 @@ class GraaspStack extends TerraformStack {
     );
 
     // Migration
+    const migrateSGId = `${id}-migrate-security-group`;
     const migrateServiceSecurityGroup = new SecurityGroup(
       this,
       `${id}-migrate-security-group`,
       {
         vpcId: vpc.vpcIdOutput,
-        name: `${id}-migrate`,
+        name: migrateSGId,
         lifecycle: {
           createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
         },
       },
     );
     // allow all egress trafic from migration
-    allowAllEgressRule(scope, id, migrateServiceSecurityGroup.id);
+    allowAllEgressRule(scope, migrateSGId, migrateServiceSecurityGroup.id);
 
     const migrationServiceAllowedSecurityGroupInfo = {
       groupId: migrateServiceSecurityGroup.id,
