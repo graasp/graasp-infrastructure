@@ -660,7 +660,7 @@ class GraaspStack extends TerraformStack {
       },
       environment,
     );
-    cluster.addService(
+    cluster.addOneOffTask(
       'migrate',
       1,
       {
