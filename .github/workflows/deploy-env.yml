@@ -108,12 +108,12 @@ jobs:
         id: migrate-wait
         timeout-minutes: 25
         run: |
-          until [ aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully" ]
+          until  aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully"
           do
             echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
             sleep 30
           done
-          if aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully"
+          if [ aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully" ]
           then
             echo "success=1" >> $GITHUB_OUTPUT
           fi
