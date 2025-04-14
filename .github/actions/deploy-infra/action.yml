@@ -64,6 +64,12 @@ runs:
       if: ${{ inputs.state != 'stopped' }}
       shell: bash
       run: |
+        # ensure there is a DB
+        if [ $(aws rds describe-db-instances | jq ".DBInstances | length") == "0" ]
+        then
+          echo "There is no DB to start."
+          exit 1
+        fi
         # start the db if it is in a "stopped" state
         if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
         then
