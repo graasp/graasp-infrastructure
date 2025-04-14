@@ -51,7 +51,7 @@ jobs:
     needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 180 # TODO: adapt to mor realistic times
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,10 +76,6 @@ jobs:
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
           # copy
           skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
-
-      # TODO: remove !
-      - name: Pause
-        run: sleep 5m
 
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
@@ -110,7 +106,7 @@ jobs:
 
       - name: Wait for migrations to be done
         id: migrate-wait
-        timeout-minutes: 25
+        timeout-minutes: 90
         run: |
           until  aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           do
