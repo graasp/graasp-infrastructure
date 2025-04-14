@@ -645,7 +645,7 @@ class GraaspStack extends TerraformStack {
     // migrate
 
     const migrateDefinition = createContainerDefinitions(
-      'graasp-migrate',
+      'migrate',
       graaspECR.repositoryUrl,
       'migrate-latest',
       [],

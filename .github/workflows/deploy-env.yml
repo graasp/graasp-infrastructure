@@ -21,7 +21,7 @@ jobs:
     name: Deploy Maintenance to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    # if: false # TODO: Remove !
+    if: false # TODO: Remove !
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   migration:
     name: Apply Migration to ${{ inputs.environment }} environment
-    needs: maintenance # TODO: uncomment!
+    # needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
