@@ -11,9 +11,133 @@ on:
         description: "Version to deploy"
         type: "string"
         required: true
+
+permissions:
+  id-token: write # This is required for requesting the JWT to auth via OIDC
+  contents: read # This is required for actions/checkout
+
 jobs:
-  dummy:
+  maintenance:
+    name: Deploy Maintenance to ${{ inputs.environment }} environment
+    environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    if: false # TODO: Remove !
+    timeout-minutes: 30
     steps:
-      - name: Hello
-        run: echo hello
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Maintenance
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "restricted"
+          environment: ${{ inputs.environment }}
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+  migration:
+    name: Apply Migration to ${{ inputs.environment }} environment
+    # needs: maintenance # TODO: uncomment!
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_migration
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Copy migrate-${{ inputs.version }} to private repo as latest
+        run: |
+          migrate_image_tag=migrate-${{ inputs.version }}
+          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$migrate_image_tag
+          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+          image_tag=docker://$private_ecr/graasp:migrate-latest
+          # login
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+          # copy
+          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+      - name: Deploy Migration
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "db-only"
+          environment: ${{ inputs.environment }}
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+      # Need to re-log as the terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_migration
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # - name: Wait for migrations to be done
+      #   run: |
+      #     migration
+      #     while [ $(aws logs tail '/ecs/migrate' | jq -r ".[0].DBInstanceStatus") != "available" ]
+      #     do
+      #       echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
+      #       sleep 30
+      #     done
+
+      # - name: Copy core-${{ inputs.version }} to private repo as latest
+      #   run: |
+      #     core_image_tag=core-${{ inputs.version }}
+      #     public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
+      #     private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+      #     image_tag=docker://$private_ecr/graasp:core-latest
+      #     # login
+      #     aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+      #     # copy
+      #     skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+
+      # - name: Deploy New release
+      #   uses: ./.github/actions/deploy-infra
+      #   with:
+      #     state: "running"
+      #     environment: ${{ inputs.environment }}
+      #     aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+      #     aws-region: ${{ vars.AWS_REGION }}
+      #     aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+      #     aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+      #     maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+      #     maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+      #     meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+      #     graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+      #     etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+      #     umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+      #     graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+      #     gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+      #     gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}

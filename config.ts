@@ -13,11 +13,11 @@ export type GraaspConfiguration = {
     };
   };
   ecsConfig: {
-    // graasp: HardwareLimit, // These do not make sense as the task definition are replaced by deployment.
     // library: HardwareLimit,
-    graasp: {
+    graasp: HardwareLimit & {
       taskCount: number;
     };
+    migrate: HardwareLimit;
     etherpad: HardwareLimit;
     meilisearch: HardwareLimit;
     iframely: HardwareLimit;
@@ -40,7 +40,13 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
     ecsConfig: {
       graasp: {
+        cpu: '1024',
+        memory: '2048',
         taskCount: 1,
+      },
+      migrate: {
+        cpu: '256',
+        memory: '512',
       },
       etherpad: {
         cpu: '256',
@@ -73,7 +79,13 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
     ecsConfig: {
       graasp: {
+        cpu: '1024',
+        memory: '2048',
         taskCount: 1,
+      },
+      migrate: {
+        cpu: '256',
+        memory: '512',
       },
       etherpad: {
         cpu: '256',
@@ -106,7 +118,13 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
     },
     ecsConfig: {
       graasp: {
+        cpu: '1024',
+        memory: '2048',
         taskCount: 2,
+      },
+      migrate: {
+        cpu: '256',
+        memory: '512',
       },
       etherpad: {
         cpu: '256',
