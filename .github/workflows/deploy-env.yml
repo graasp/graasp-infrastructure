@@ -21,7 +21,7 @@ jobs:
     name: Deploy Maintenance to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    if: false # TODO: Remove !
+    # if: false # TODO: Remove !
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   migration:
     name: Apply Migration to ${{ inputs.environment }} environment
-    # needs: maintenance # TODO: uncomment!
+    needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -76,6 +76,10 @@ jobs:
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
           # copy
           skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+
+      # TODO: remove !
+      - name: Pause
+        run: sleep 5m
 
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
@@ -115,9 +119,13 @@ jobs:
             sleep 30
           done
           aws logs tail '/ecs/migrate' | grep -F "migrations applied successfully"
-          if [ aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully" ]
+          if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           then
+            # command succeeded
             echo "success=1" >> $GITHUB_OUTPUT
+          else
+            # command failed
+            echo "success=0" >> $GITHUB_OUTPUT
           fi
 
       - name: Copy core-${{ inputs.version }} to private repo as latest
@@ -131,6 +139,9 @@ jobs:
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
           # copy
           skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+
+      - name: Pause
+        run: sleep 5m
 
       - name: Deploy New release
         uses: ./.github/actions/deploy-infra
