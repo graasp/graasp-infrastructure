@@ -260,7 +260,7 @@ export class Cluster extends Construct {
     });
 
     const task = new DataAwsEcsTaskExecution(this, name, {
-      referenceId: Token.asString(new Date().toISOString()), // ensure it changes every-time we run the apply
+      referenceId: Token.asString('timestamp()'), // ensure it changes every-time we run the apply
       cluster: Token.asString(this.cluster.arn),
       taskDefinition: Token.asString(taskDef.arn),
       desiredCount: isActive ? desiredCount : 0,

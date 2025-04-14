@@ -21,7 +21,7 @@ jobs:
     name: Deploy Maintenance to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    # if: false # TODO: Remove !
+    if: false # TODO: Remove !
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   migration:
     name: Apply Migration to ${{ inputs.environment }} environment
-    needs: maintenance # TODO: uncomment!
+    # needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -108,12 +108,14 @@ jobs:
         id: migrate-wait
         timeout-minutes: 25
         run: |
-          until  aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully"
+          until  aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           do
             echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
+            aws logs tail '/ecs/migrate'
             sleep 30
           done
-          if [ aws logs tail '/ecs/migrate' --profile dev | grep -Fq "migrations applied successfully" ]
+          aws logs tail '/ecs/migrate' | grep -F "migrations applied successfully"
+          if [ aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully" ]
           then
             echo "success=1" >> $GITHUB_OUTPUT
           fi
