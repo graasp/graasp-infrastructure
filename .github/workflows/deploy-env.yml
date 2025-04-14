@@ -115,10 +115,9 @@ jobs:
           until  aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           do
             echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
-            aws logs tail '/ecs/migrate'
             sleep 30
           done
-          aws logs tail '/ecs/migrate' | grep -F "migrations applied successfully"
+          aws logs tail '/ecs/migrate'
           if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           then
             # command succeeded
@@ -139,9 +138,6 @@ jobs:
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
           # copy
           skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
-
-      - name: Pause
-        run: sleep 5m
 
       - name: Deploy New release
         uses: ./.github/actions/deploy-infra

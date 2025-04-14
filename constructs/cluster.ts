@@ -241,7 +241,6 @@ export class Cluster extends Construct {
     name: string,
     desiredCount: number,
     taskDefinitionConfig: TaskDefinitionConfiguration,
-    isActive: boolean,
     serviceSecurityGroup: SecurityGroup,
   ) {
     new CloudwatchLogGroup(this, `${name}-loggroup`, {
@@ -263,7 +262,7 @@ export class Cluster extends Construct {
       referenceId: Token.asString('timestamp()'), // ensure it changes every-time we run the apply
       cluster: Token.asString(this.cluster.arn),
       taskDefinition: Token.asString(taskDef.arn),
-      desiredCount: isActive ? desiredCount : 0,
+      desiredCount,
       launchType: 'FARGATE',
       networkConfiguration: {
         subnets: Fn.tolist(this.vpc.publicSubnetsOutput),

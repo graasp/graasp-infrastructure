@@ -643,35 +643,35 @@ class GraaspStack extends TerraformStack {
     );
 
     // migrate
-
-    const migrateDefinition = createContainerDefinitions(
-      'migrate',
-      graaspECR.repositoryUrl,
-      'migrate-latest',
-      [],
-      {
-        DB_CONNECTION: buildPostgresConnectionString({
-          host: backendDb.instance.dbInstanceAddressOutput,
-          port: '5432',
-          name: 'graasp',
-          username: backendDb.instance.dbInstanceUsernameOutput,
-          password: `\$\{${dbPassword.value}\}`,
-        }),
-      },
-      environment,
-    );
-    cluster.addOneOffTask(
-      'migrate',
-      1,
-      {
-        containerDefinitions: migrateDefinition,
-        cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
-        memory: CONFIG[environment.env].ecsConfig.migrate.memory,
-        dummy: false,
-      },
-      getInfraState(environment).isMigrationActive,
-      migrateServiceSecurityGroup,
-    );
+    if (getInfraState(environment).isMigrationActive) {
+      const migrateDefinition = createContainerDefinitions(
+        'migrate',
+        graaspECR.repositoryUrl,
+        'migrate-latest',
+        [],
+        {
+          DB_CONNECTION: buildPostgresConnectionString({
+            host: backendDb.instance.dbInstanceAddressOutput,
+            port: '5432',
+            name: 'graasp',
+            username: backendDb.instance.dbInstanceUsernameOutput,
+            password: `\$\{${dbPassword.value}\}`,
+          }),
+        },
+        environment,
+      );
+      cluster.addOneOffTask(
+        'migrate',
+        1,
+        {
+          containerDefinitions: migrateDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
+          memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+          dummy: false,
+        },
+        migrateServiceSecurityGroup,
+      );
+    }
 
     // S3 buckets
 
