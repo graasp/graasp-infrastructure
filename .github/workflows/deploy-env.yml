@@ -1,6 +1,5 @@
 name: Deploy new release
 on:
-  # allow to start infra of another env manually
   workflow_dispatch:
     inputs:
       environment:
@@ -17,48 +16,21 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  maintenance:
-    name: Deploy Maintenance to ${{ inputs.environment }} environment
-    environment: ${{ inputs.environment }}
-    runs-on: ubuntu-latest
-    # if: false # TODO: Remove !
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy Maintenance
-        uses: ./.github/actions/deploy-infra
-        with:
-          state: "restricted"
-          environment: ${{ inputs.environment }}
-          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
-          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
-          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
-          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
-          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
-          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
-          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
-          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
-          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
-          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
-
   migration:
     name: Apply Migration to ${{ inputs.environment }} environment
-    needs: maintenance # TODO: uncomment!
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 180 # TODO: adapt to mor realistic times
+    timeout-minutes: 360 # 6 hours
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+        # skopeo is a tool to manage image between different registries:
+        # https://github.com/containers/skopeo
       - name: Install skopeo
         run: sudo apt-get -y update && sudo apt-get -y install skopeo
 
+        # configure credentials to assume terraform role
       - name: Configure AWS Credentials to assume terraform Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -96,7 +68,7 @@ jobs:
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 
-      # Need to re-log as the terraform role
+      # Need to re-log as the terraform role because the deploy-infra step logs in as the terraform USER.
       - name: Configure AWS Credentials to assume terraform Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -106,9 +78,9 @@ jobs:
 
       - name: Wait for migrations to be done
         id: migrate-wait
-        timeout-minutes: 90
+        timeout-minutes: 300 # 5hours
         run: |
-          until  aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
+          until aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           do
             echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
             sleep 30
@@ -117,39 +89,8 @@ jobs:
           if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
           then
             # command succeeded
-            echo "success=1" >> $GITHUB_OUTPUT
+            echo '# Migrations done with success' >> $GITHUB_STEP_SUMMARY
           else
             # command failed
-            echo "success=0" >> $GITHUB_OUTPUT
+            echo '# Migrations failed' >> $GITHUB_STEP_SUMMARY
           fi
-
-      - name: Copy core-${{ inputs.version }} to private repo as latest
-        if: ${{ steps.run_tests.outputs.success == '1' }}
-        run: |
-          core_image_tag=core-${{ inputs.version }}
-          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
-          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          image_tag=docker://$private_ecr/graasp:core-latest
-          # login
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
-          # copy
-          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
-
-      - name: Deploy New release
-        uses: ./.github/actions/deploy-infra
-        with:
-          state: "running"
-          environment: ${{ inputs.environment }}
-          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
-          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
-          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
-          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
-          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
-          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
-          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
-          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
-          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
-          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
