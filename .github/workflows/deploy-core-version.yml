@@ -1,0 +1,42 @@
+name: Deploy new core version
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: environment
+        required: true
+      version:
+        description: "Version to deploy"
+        type: "string"
+        required: true
+
+permissions:
+  id-token: write # This is required for requesting the JWT to auth via OIDC
+  contents: read # This is required for actions/checkout
+
+jobs:
+  deploy:
+    name: Deploy core version ${{ inputs.version }} to ${{ inputs.environment }} environment
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+        # skopeo is a tool to manage image between different registries:
+        # https://github.com/containers/skopeo
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
+        # configure credentials to assume terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_core
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy new core version
+        run: bash ./scripts/deploy-version.sh ${{ vars.AWS_PUBLIC_ECR_URI }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com ${{ inputs.version }} ${{ vars.AWS_REGION }} graasp-${{ inputs.environment }}
