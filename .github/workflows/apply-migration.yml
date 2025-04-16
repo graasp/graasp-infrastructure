@@ -1,4 +1,4 @@
-name: Deploy new release
+name: Apply Migration
 on:
   workflow_dispatch:
     inputs:

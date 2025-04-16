@@ -68,13 +68,7 @@ if [ -z $ecr_credentials ]; then
   exit 1
 fi
 # login the docker client with the ECR credentials derived from the currently authenticated user
-echo $ecr_credentials | skopeo login --username AWS --password-stdin $private_ecr
+echo $ecr_credentials | skopeo login --username AWS --password-stdin $private_ecr_uri
 
 # copy
 skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
-
-# force a new deployment of the cluster
-aws ecs update-service --cluster $cluster_name --service graasp --force-new-deployment
-
-
-# private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
