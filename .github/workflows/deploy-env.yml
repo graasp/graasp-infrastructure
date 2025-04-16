@@ -75,6 +75,7 @@ jobs:
           role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           role-session-name: GitHub_Action_deploy_migration
           aws-region: ${{ vars.AWS_REGION }}
+          role-duration-seconds: 18000 # assume the role for 5 hours, so the migrations polling works
 
       - name: Wait for migrations to be done
         id: migrate-wait
