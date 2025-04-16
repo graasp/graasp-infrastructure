@@ -30,6 +30,7 @@ import {
   Environment,
   EnvironmentConfig,
   GraaspWebsiteConfig,
+  buildPostgresConnectionString,
   envDomain,
   getInfraState,
   getMaintenanceHeaderPair,
@@ -136,12 +137,7 @@ class GraaspStack extends TerraformStack {
       : undefined;
     const ruleConditions = maintenanceHeaderRule ? [maintenanceHeaderRule] : [];
 
-    const cluster = new Cluster(
-      this,
-      id,
-      vpc,
-      getInfraState(environment).areServicesActive,
-    );
+    const cluster = new Cluster(this, id, vpc);
     const loadBalancer = new LoadBalancer(
       this,
       id,
@@ -269,6 +265,19 @@ class GraaspStack extends TerraformStack {
       loadBalancerAllowedSecurityGroupInfo,
       UMAMI_PORT,
     );
+    const migrateServiceSecurityGroup =
+      securityGroupOnlyAllowAnotherSecurityGroup(
+        this,
+        `${id}-migrate`,
+        vpc.vpcIdOutput,
+        loadBalancerAllowedSecurityGroupInfo,
+        BACKEND_PORT,
+      );
+
+    const migrationServiceAllowedSecurityGroupInfo = {
+      groupId: migrateServiceSecurityGroup.id,
+      targetName: 'graasp-migrate',
+    } satisfies AllowedSecurityGroupInfo;
 
     // define security groups accepting ingress trafic from the backend
     const backendAllowedSecurityGroupInfo = {
@@ -364,6 +373,7 @@ class GraaspStack extends TerraformStack {
         backendAllowedSecurityGroupInfo,
         umamiAllowedSecurityGroupInfo,
         etherpadAllowedSecurityGroupInfo,
+        migrationServiceAllowedSecurityGroupInfo,
       ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       getInfraState(environment).isDatabaseActive,
@@ -373,7 +383,9 @@ class GraaspStack extends TerraformStack {
     );
 
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
-    new DataAwsEcrRepository(this, `${id}-ecr`, { name: 'graasp' });
+    const graaspECR = new DataAwsEcrRepository(this, `${id}-ecr`, {
+      name: 'graasp',
+    });
     const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
       name: 'graasp/etherpad',
     });
@@ -481,11 +493,18 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const servicesActive = getInfraState(environment).areServicesActive;
     // backend
     cluster.addService(
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
-      { containerDefinitions: graaspDummyBackendDefinition, dummy: true },
+      {
+        containerDefinitions: graaspDummyBackendDefinition,
+        cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
+        memory: CONFIG[environment.env].ecsConfig.graasp.memory,
+        dummy: true,
+      },
+      servicesActive,
       backendSecurityGroup,
       undefined,
       {
@@ -511,6 +530,7 @@ class GraaspStack extends TerraformStack {
       'graasp-library',
       1,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
+      servicesActive,
       librarySecurityGroup,
       undefined,
       {
@@ -541,6 +561,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
         dummy: false,
       },
+      servicesActive,
       etherpadSecurityGroup,
       undefined,
       undefined,
@@ -564,6 +585,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.umami.memory,
         dummy: false,
       },
+      servicesActive,
       umamiSecurityGroup,
       { name: 'umami', port: UMAMI_PORT },
       undefined,
@@ -587,6 +609,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
         dummy: false,
       },
+      servicesActive,
       meilisearchSecurityGroup,
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );
@@ -600,6 +623,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.iframely.memory,
         dummy: false,
       },
+      servicesActive,
       iframelySecurityGroup,
       { name: 'graasp-iframely', port: IFRAMELY_PORT },
     );
@@ -613,9 +637,41 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.redis.memory,
         dummy: false,
       },
+      servicesActive,
       redisSecurityGroup,
       { name: 'graasp-redis', port: REDIS_PORT },
     );
+
+    // migrate
+    if (getInfraState(environment).isMigrationActive) {
+      const migrateDefinition = createContainerDefinitions(
+        'migrate',
+        graaspECR.repositoryUrl,
+        'migrate-latest',
+        [],
+        {
+          DB_CONNECTION: buildPostgresConnectionString({
+            host: backendDb.instance.dbInstanceAddressOutput,
+            port: '5432',
+            name: 'graasp',
+            username: backendDb.instance.dbInstanceUsernameOutput,
+            password: `\$\{${dbPassword.value}\}`,
+          }),
+        },
+        environment,
+      );
+      cluster.addOneOffTask(
+        'migrate',
+        1,
+        {
+          containerDefinitions: migrateDefinition,
+          cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
+          memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+          dummy: false,
+        },
+        migrateServiceSecurityGroup,
+      );
+    }
 
     // S3 buckets
 

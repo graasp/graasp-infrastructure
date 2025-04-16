@@ -4,6 +4,7 @@ import {
 } from '@cdktf/provider-aws/lib/appautoscaling-policy';
 import { AppautoscalingTarget } from '@cdktf/provider-aws/lib/appautoscaling-target';
 import { CloudwatchLogGroup } from '@cdktf/provider-aws/lib/cloudwatch-log-group';
+import { DataAwsEcsTaskExecution } from '@cdktf/provider-aws/lib/data-aws-ecs-task-execution';
 import { EcsCluster } from '@cdktf/provider-aws/lib/ecs-cluster';
 import {
   EcsService,
@@ -39,12 +40,10 @@ export class Cluster extends Construct {
   vpc: Vpc;
   namespace: ServiceDiscoveryHttpNamespace;
   executionRole: IamRole;
-  isActive: boolean;
 
-  constructor(scope: Construct, name: string, vpc: Vpc, isActive: boolean) {
+  constructor(scope: Construct, name: string, vpc: Vpc) {
     super(scope, name);
 
-    this.isActive = isActive;
     this.cluster = new EcsCluster(scope, `cluster`, { name });
     this.vpc = vpc;
 
@@ -99,6 +98,7 @@ export class Cluster extends Construct {
     name: string,
     desiredCount: number,
     taskDefinitionConfig: TaskDefinitionConfiguration,
+    isActive: boolean,
     serviceSecurityGroup: SecurityGroup,
     internalNamespaceExpose?: { name: string; port: number },
     appAutoscalingConfig?: AppautoscalingPolicyTargetTrackingScalingPolicyConfiguration,
@@ -181,7 +181,7 @@ export class Cluster extends Construct {
       name,
       launchType: 'FARGATE',
       cluster: this.cluster.id,
-      desiredCount: this.isActive ? desiredCount : 0,
+      desiredCount: isActive ? desiredCount : 0,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
       taskDefinition: task.arn,
@@ -233,6 +233,43 @@ export class Cluster extends Construct {
         targetTrackingScalingPolicyConfiguration: appAutoscalingConfig,
       });
     }
+
+    return task;
+  }
+
+  public addOneOffTask(
+    name: string,
+    desiredCount: number,
+    taskDefinitionConfig: TaskDefinitionConfiguration,
+    serviceSecurityGroup: SecurityGroup,
+  ) {
+    new CloudwatchLogGroup(this, `${name}-loggroup`, {
+      name: `/ecs/${name}`,
+      retentionInDays: 7,
+    });
+
+    const taskDef = new EcsTaskDefinition(this, `${name}-task-definition`, {
+      family: name,
+      containerDefinitions: taskDefinitionConfig.containerDefinitions,
+      cpu: taskDefinitionConfig.cpu ?? '256',
+      memory: taskDefinitionConfig.memory ?? '512',
+      requiresCompatibilities: ['FARGATE'],
+      networkMode: 'awsvpc',
+      executionRoleArn: this.executionRole.arn,
+    });
+
+    const task = new DataAwsEcsTaskExecution(this, name, {
+      referenceId: Token.asString('timestamp()'), // ensure it changes every-time we run the apply
+      cluster: Token.asString(this.cluster.arn),
+      taskDefinition: Token.asString(taskDef.arn),
+      desiredCount,
+      launchType: 'FARGATE',
+      networkConfiguration: {
+        subnets: Fn.tolist(this.vpc.publicSubnetsOutput),
+        assignPublicIp: true,
+        securityGroups: [serviceSecurityGroup.id],
+      },
+    });
 
     return task;
   }

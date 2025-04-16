@@ -1,0 +1,97 @@
+name: Apply Migration
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: environment
+        required: true
+      version:
+        description: "Version to deploy"
+        type: "string"
+        required: true
+
+permissions:
+  id-token: write # This is required for requesting the JWT to auth via OIDC
+  contents: read # This is required for actions/checkout
+
+jobs:
+  migration:
+    name: Apply Migration to ${{ inputs.environment }} environment
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # 6 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+        # skopeo is a tool to manage image between different registries:
+        # https://github.com/containers/skopeo
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
+        # configure credentials to assume terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_migration
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Copy migrate-${{ inputs.version }} to private repo as latest
+        run: |
+          migrate_image_tag=migrate-${{ inputs.version }}
+          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$migrate_image_tag
+          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+          image_tag=docker://$private_ecr/graasp:migrate-latest
+          # login
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
+          # copy
+          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+
+      - name: Deploy Migration
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "db-only"
+          environment: ${{ inputs.environment }}
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+      # Need to re-log as the terraform role because the deploy-infra step logs in as the terraform USER.
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_migration
+          aws-region: ${{ vars.AWS_REGION }}
+          role-duration-seconds: 18000 # assume the role for 5 hours, so the migrations polling works
+
+      - name: Wait for migrations to be done
+        id: migrate-wait
+        timeout-minutes: 300 # 5hours
+        run: |
+          until aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
+          do
+            echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
+          aws logs tail '/ecs/migrate'
+          if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
+          then
+            # command succeeded
+            echo '# Migrations done with success' >> $GITHUB_STEP_SUMMARY
+          else
+            # command failed
+            echo '# Migrations failed' >> $GITHUB_STEP_SUMMARY
+          fi
