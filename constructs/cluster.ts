@@ -240,6 +240,7 @@ export class Cluster extends Construct {
   public addOneOffTask(
     name: string,
     desiredCount: number,
+    isActive: boolean,
     taskDefinitionConfig: TaskDefinitionConfiguration,
     serviceSecurityGroup: SecurityGroup,
   ) {
@@ -258,20 +259,22 @@ export class Cluster extends Construct {
       executionRoleArn: this.executionRole.arn,
     });
 
-    const task = new DataAwsEcsTaskExecution(this, name, {
-      referenceId: Token.asString('timestamp()'), // ensure it changes every-time we run the apply
-      cluster: Token.asString(this.cluster.arn),
-      taskDefinition: Token.asString(taskDef.arn),
-      desiredCount,
-      launchType: 'FARGATE',
-      networkConfiguration: {
-        subnets: Fn.tolist(this.vpc.publicSubnetsOutput),
-        assignPublicIp: true,
-        securityGroups: [serviceSecurityGroup.id],
-      },
-    });
+    if (isActive) {
+      const task = new DataAwsEcsTaskExecution(this, name, {
+        cluster: Token.asString(this.cluster.arn),
+        taskDefinition: Token.asString(taskDef.arn),
+        desiredCount,
+        launchType: 'FARGATE',
+        networkConfiguration: {
+          subnets: Fn.tolist(this.vpc.publicSubnetsOutput),
+          assignPublicIp: true,
+          securityGroups: [serviceSecurityGroup.id],
+        },
+      });
 
-    return task;
+      return task;
+    }
+    return undefined;
   }
 }
 
