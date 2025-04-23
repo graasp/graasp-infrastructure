@@ -130,7 +130,7 @@ class GraaspStack extends TerraformStack {
     const maintenanceHeaderRule = maintenanceHeaderValues
       ? ({
           httpHeader: {
-            httpHeaderName: `x-maintenance-${maintenanceHeaderValues.name}`,
+            httpHeaderName: maintenanceHeaderValues.name,
             values: [maintenanceHeaderValues.value],
           },
         } satisfies LbListenerRuleCondition)
