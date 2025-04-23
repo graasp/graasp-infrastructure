@@ -95,7 +95,7 @@ export function createMaintenanceFunction(
       ? Token.asString(`
 function handler(event) {
   const headers = event.request.headers;
-  const headerName = 'x-maintenance-${headerSecret.name}';
+  const headerName = '${headerSecret.name}';
   const headerSecret = '${headerSecret.value}';
   if (
     headers[headerName] &&
