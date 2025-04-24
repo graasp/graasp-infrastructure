@@ -65,7 +65,7 @@ jobs:
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
 
           # copy
-          skopeo --override-os linux copy --multi-arch all $public_ecr_image $image_tag
+          skopeo --override-os linux copy $public_ecr_image $image_tag
 
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
