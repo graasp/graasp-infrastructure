@@ -95,11 +95,11 @@ export function createMaintenanceFunction(
       ? Token.asString(`
 function handler(event) {
   const headers = event.request.headers;
-  const headerName = '${headerSecret.name}';
+  const headerName = '${headerSecret.name}'.toLowerCase();
   const headerSecret = '${headerSecret.value}';
   if (
     headers[headerName] &&
-    headers[headerName][0].value === headerSecret
+    headers[headerName].value === headerSecret
   ) {
     return event.request;
   }
