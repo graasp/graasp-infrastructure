@@ -29,7 +29,7 @@ jobs:
     name: Deploy core version ${{ inputs.version }} to ${{ inputs.environment }} environment
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 50
     steps:
       - name: Checkout
         uses: actions/checkout@v4
