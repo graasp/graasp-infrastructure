@@ -86,7 +86,8 @@ export function validateInfraState(
 export function getInfraState(environment: EnvironmentConfig): {
   isMaintenanceActive: boolean;
   isDatabaseActive: boolean;
-  areServicesActive: boolean;
+  isUmamiActive: boolean;
+  areGraaspServicesActive: boolean;
   isMigrationActive: boolean;
 } {
   const { infraState } = environment;
@@ -95,21 +96,24 @@ export function getInfraState(environment: EnvironmentConfig): {
       return {
         isMaintenanceActive: true,
         isDatabaseActive: false,
-        areServicesActive: false,
+        isUmamiActive: false,
+        areGraaspServicesActive: false,
         isMigrationActive: false,
       };
     case InfraState.DBOnly:
       return {
         isMaintenanceActive: true,
         isDatabaseActive: true,
-        areServicesActive: false,
+        isUmamiActive: true,
+        areGraaspServicesActive: false,
         isMigrationActive: true,
       };
     case InfraState.Restricted:
       return {
         isMaintenanceActive: true,
         isDatabaseActive: true,
-        areServicesActive: true,
+        isUmamiActive: true,
+        areGraaspServicesActive: true,
         isMigrationActive: false,
       };
     case InfraState.Running:
@@ -117,7 +121,8 @@ export function getInfraState(environment: EnvironmentConfig): {
       return {
         isMaintenanceActive: false,
         isDatabaseActive: true,
-        areServicesActive: true,
+        isUmamiActive: true,
+        areGraaspServicesActive: true,
         isMigrationActive: false,
       };
   }

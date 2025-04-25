@@ -493,7 +493,8 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
-    const servicesActive = getInfraState(environment).areServicesActive;
+    const graaspServicesActive =
+      getInfraState(environment).areGraaspServicesActive;
     // backend
     cluster.addService(
       'graasp',
@@ -504,7 +505,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
         dummy: true,
       },
-      servicesActive,
+      graaspServicesActive,
       backendSecurityGroup,
       undefined,
       {
@@ -530,7 +531,7 @@ class GraaspStack extends TerraformStack {
       'graasp-library',
       1,
       { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
-      servicesActive,
+      graaspServicesActive,
       librarySecurityGroup,
       undefined,
       {
@@ -561,7 +562,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
         dummy: false,
       },
-      servicesActive,
+      graaspServicesActive,
       etherpadSecurityGroup,
       undefined,
       undefined,
@@ -585,7 +586,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.umami.memory,
         dummy: false,
       },
-      servicesActive,
+      getInfraState(environment).isUmamiActive,
       umamiSecurityGroup,
       { name: 'umami', port: UMAMI_PORT },
       undefined,
@@ -609,7 +610,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
         dummy: false,
       },
-      servicesActive,
+      graaspServicesActive,
       meilisearchSecurityGroup,
       { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
     );
@@ -623,7 +624,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.iframely.memory,
         dummy: false,
       },
-      servicesActive,
+      graaspServicesActive,
       iframelySecurityGroup,
       { name: 'graasp-iframely', port: IFRAMELY_PORT },
     );
@@ -637,7 +638,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.redis.memory,
         dummy: false,
       },
-      servicesActive,
+      graaspServicesActive,
       redisSecurityGroup,
       { name: 'graasp-redis', port: REDIS_PORT },
     );
