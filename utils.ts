@@ -83,47 +83,47 @@ export function validateInfraState(
   return infraState as InfraStateOptions;
 }
 
-export function getInfraState(environment: EnvironmentConfig): {
-  isMaintenanceActive: boolean;
-  isDatabaseActive: boolean;
-  isUmamiActive: boolean;
-  areGraaspServicesActive: boolean;
-  isMigrationActive: boolean;
+export function isServiceActive(environment: EnvironmentConfig): {
+  maintenance: boolean;
+  database: boolean;
+  umami: boolean;
+  graasp: boolean;
+  migration: boolean;
 } {
   const { infraState } = environment;
   switch (infraState) {
     case InfraState.Stopped:
       return {
-        isMaintenanceActive: true,
-        isDatabaseActive: false,
-        isUmamiActive: false,
-        areGraaspServicesActive: false,
-        isMigrationActive: false,
+        maintenance: true,
+        database: false,
+        umami: false,
+        graasp: false,
+        migration: false,
       };
     case InfraState.DBOnly:
       return {
-        isMaintenanceActive: true,
-        isDatabaseActive: true,
-        isUmamiActive: true,
-        areGraaspServicesActive: false,
-        isMigrationActive: true,
+        maintenance: true,
+        database: true,
+        umami: true,
+        graasp: false,
+        migration: true,
       };
     case InfraState.Restricted:
       return {
-        isMaintenanceActive: true,
-        isDatabaseActive: true,
-        isUmamiActive: true,
-        areGraaspServicesActive: true,
-        isMigrationActive: false,
+        maintenance: true,
+        database: true,
+        umami: true,
+        graasp: true,
+        migration: false,
       };
     case InfraState.Running:
     default:
       return {
-        isMaintenanceActive: false,
-        isDatabaseActive: true,
-        isUmamiActive: true,
-        areGraaspServicesActive: true,
-        isMigrationActive: false,
+        maintenance: false,
+        database: true,
+        umami: true,
+        graasp: true,
+        migration: false,
       };
   }
 }
@@ -131,7 +131,7 @@ export function getInfraState(environment: EnvironmentConfig): {
 export function getMaintenanceHeaderPair(
   environment: EnvironmentConfig,
 ): { name: string; value: string } | undefined {
-  if (getInfraState(environment).isMaintenanceActive === false) {
+  if (isServiceActive(environment).maintenance === false) {
     return undefined;
   }
   const name = process.env.MAINTENANCE_HEADER_NAME;

@@ -32,8 +32,8 @@ import {
   GraaspWebsiteConfig,
   buildPostgresConnectionString,
   envDomain,
-  getInfraState,
   getMaintenanceHeaderPair,
+  isServiceActive,
   subdomainForEnv,
   validateInfraState,
 } from './utils';
@@ -376,7 +376,7 @@ class GraaspStack extends TerraformStack {
         migrationServiceAllowedSecurityGroupInfo,
       ],
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
-      getInfraState(environment).isDatabaseActive,
+      isServiceActive(environment).database,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       undefined,
       gatekeeper.instance.securityGroup,
@@ -493,8 +493,7 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
-    const graaspServicesActive =
-      getInfraState(environment).areGraaspServicesActive;
+    const graaspServicesActive = isServiceActive(environment).graasp;
     // backend
     cluster.addService(
       'graasp',
@@ -586,7 +585,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.umami.memory,
         dummy: false,
       },
-      getInfraState(environment).isUmamiActive,
+      isServiceActive(environment).umami,
       umamiSecurityGroup,
       { name: 'umami', port: UMAMI_PORT },
       undefined,
@@ -663,7 +662,7 @@ class GraaspStack extends TerraformStack {
     cluster.addOneOffTask(
       'migrate',
       1,
-      getInfraState(environment).isMigrationActive,
+      isServiceActive(environment).migration,
       {
         containerDefinitions: migrateDefinition,
         cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
