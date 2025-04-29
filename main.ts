@@ -231,6 +231,20 @@ class GraaspStack extends TerraformStack {
       environment,
       ruleConditions,
     );
+    loadBalancer.addListenerRuleForHostRedirect(
+      'association',
+      16,
+      {
+        subDomainOrigin: 'association', // requests from association.graasp.org
+        subDomainTarget: '', // to graasp.org
+        pathRewrite: '/about-us', // rewrite the path
+        // optionally keep query params
+        queryRewrite: '#{query}',
+        statusCode: 'HTTP_301', // permanently moved
+      },
+      environment,
+      ruleConditions,
+    );
 
     // define security groups allowing ingress trafic from the load-balancer
     const loadBalancerAllowedSecurityGroupInfo = {
