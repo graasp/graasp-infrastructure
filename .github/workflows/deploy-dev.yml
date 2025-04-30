@@ -12,7 +12,101 @@ permissions:
 jobs:
   migration:
     runs-on: ubuntu-latest
-    environment: development
+    environment: dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Deploy Migration
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "db-only"
+          environment: dev
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+      - name: Wait for Migration
+        uses: ./.github/actions/wait-for-migration
+        timeout-minutes: 300 # 5hours
+        with:
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+  deploy:
+    needs: "migration"
+    environment: dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+        # skopeo is a tool to manage image between different registries:
+        # https://github.com/containers/skopeo
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
+        # configure credentials to assume terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_core
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Ensure there is no migration still running
+        run:
+          if [[ $(aws ecs list-tasks --cluster graasp-${{ inputs.environment }} --family migrate | jq -r '.taskArns | length') -ne "0" ]]; then
+          echo "# There is still a migration task running. please wait for it to complete" >> $GITHUB_STEP_SUMMARY;
+          exit 1;
+          fi
+
+      - name: Deploy new core version
+        run: |
+          private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+          # login the skopeo client with the ECR credentials derived from the currently authenticated user
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
+          # copy
+          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:core-next docker://$private_ecr_uri/graasp:core-latest
+
+      - name: Deploy Infra
+        uses: ./.github/actions/deploy-infra
+        with:
+          state: "running"
+          environment: dev
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          maintenance-header-name: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          maintenance-header-secret: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          meilisearch-master-key: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          graasp-db-password: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+
+        # configure credentials to assume terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_core
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Force new deployment of core service
+        run: |
+          # force a new deployment of the cluster
+          aws ecs update-service --cluster graasp-${{ inputs.environment }} --service graasp --force-new-deployment
