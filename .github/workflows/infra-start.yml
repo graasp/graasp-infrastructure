@@ -1,7 +1,7 @@
 name: Start infra
 on:
   schedule:
-    - cron: "30 7 * * 1-5"
+    - cron: "30 6 * * 1-5"
   # allow to start infra of another env manually
   workflow_dispatch:
     inputs:
