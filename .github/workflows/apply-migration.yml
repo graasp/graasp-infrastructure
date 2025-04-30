@@ -68,30 +68,9 @@ jobs:
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 
-      # Need to re-log as the terraform role because the deploy-infra step logs in as the terraform USER.
-      - name: Configure AWS Credentials to assume terraform Role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          role-session-name: GitHub_Action_deploy_migration
-          aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 18000 # assume the role for 5 hours, so the migrations polling works
-
-      - name: Wait for migrations to be done
-        id: migrate-wait
+      - name: Wait for Migration
+        uses: ./.github/actions/wait-for-migration
         timeout-minutes: 300 # 5hours
-        run: |
-          until aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
-          do
-            echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
-            sleep 30
-          done
-          aws logs tail '/ecs/migrate'
-          if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
-          then
-            # command succeeded
-            echo '# Migrations done with success' >> $GITHUB_STEP_SUMMARY
-          else
-            # command failed
-            echo '# Migrations failed' >> $GITHUB_STEP_SUMMARY
-          fi
+        with:
+          aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
