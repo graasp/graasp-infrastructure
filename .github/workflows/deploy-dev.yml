@@ -77,7 +77,7 @@ jobs:
           # login the skopeo client with the ECR credentials derived from the currently authenticated user
           aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
           # copy
-          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:core-next docker://$private_ecr_uri/graasp:core-latest
+          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:core-nightly docker://$private_ecr_uri/graasp:core-latest
 
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
