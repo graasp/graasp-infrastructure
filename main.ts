@@ -610,7 +610,9 @@ class GraaspStack extends TerraformStack {
         port: 80,
         containerPort: UMAMI_PORT,
         healthCheckPath: '/api/heartbeat',
-        ruleConditions,
+        ruleConditions:
+          // umami service should stay accessible without maintenance unless service is not active.
+          isServiceActive(environment).umami ? undefined : ruleConditions,
       },
     );
 
