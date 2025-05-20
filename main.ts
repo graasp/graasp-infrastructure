@@ -58,7 +58,7 @@ class GraaspStack extends TerraformStack {
     super(scope, id);
 
     const BACKEND_PORT = 3111;
-    const LIBRARY_PORT = 3005;
+    const LIBRARY_PORT = 3000;
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
     const IFRAMELY_PORT = 8061;
@@ -543,7 +543,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
-      { containerDefinitions: libraryDummyBackendDefinition, dummy: true },
+      { containerDefinitions: libraryDummyBackendDefinition, dummy: false },
       graaspServicesActive,
       librarySecurityGroup,
       undefined,
