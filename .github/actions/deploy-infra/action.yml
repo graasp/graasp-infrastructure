@@ -41,6 +41,9 @@ inputs:
   graasp-db-gatekeeper-key-name:
     description: "Gatekeeper key name for auth"
     required: true
+  graasper-id:
+    description: "Graasper user id"
+    required: true
   gatekeeper-ami-id:
     description: "Gatekeeper AMI for machine setup"
     required: true
@@ -133,6 +136,7 @@ runs:
         TF_VAR_ETHERPAD_DB_PASSWORD: ${{ inputs.etherpad-db-password }}
         TF_VAR_UMAMI_DB_PASSWORD: ${{ inputs.umami-db-password }}
         TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ inputs.graasp-db-gatekeeper-key-name }}
+        TF_VAR_GRAASPER_ID: ${{ inputs.graasper-id }}
         TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.gatekeeper-ami-id }}
         TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.gatekeeper-instance-type }}
 
