@@ -95,7 +95,7 @@ jobs:
           etherpad-db-password: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
           umami-db-password: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
           graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
-          graasper-id: ${{ secrets.TF_VAR_GRAASPER_ID }}
+          graasper-id: ${{ vars.TF_VAR_GRAASPER_ID }}
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
 

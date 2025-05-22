@@ -42,7 +42,7 @@ inputs:
     description: "Gatekeeper key name for auth"
     required: true
   graasper-id:
-    description: "Graasper user id"
+    description: "Graasper user id used to fetch featured collections"
     required: true
   gatekeeper-ami-id:
     description: "Gatekeeper AMI for machine setup"
