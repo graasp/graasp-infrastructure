@@ -350,6 +350,13 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    const graasperID = new TerraformVariable(this, 'GRAASPER_ID', {
+      nullable: false,
+      type: 'string',
+      description: 'Graasper user Id for collections in the library',
+      sensitive: false,
+    });
+
     const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
     new VpcSecurityGroupIngressRule(
@@ -403,7 +410,7 @@ class GraaspStack extends TerraformStack {
     const etherpadECR = new DataAwsEcrRepository(this, `${id}-etherpad-ecr`, {
       name: 'graasp/etherpad',
     });
-    new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
+    const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
     });
 
@@ -422,12 +429,15 @@ class GraaspStack extends TerraformStack {
 
     const libraryDummyBackendDefinition = createContainerDefinitions(
       'graasp-library',
-      'busybox',
-      '1.36',
+      `${libraryECR.repositoryUrl}`,
+      'latest',
       [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
-      {},
+      {
+        VITE_API_HOST: `https://${subdomainForEnv('api', environment)}`,
+        VITE_CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain
+        VITE_GRAASPER_ID: `\$\{${graasperID.value}\}`,
+      },
       environment,
-      ['/bin/sh', '-c', 'while true; do sleep 30; done'],
     );
 
     // Definitions for third party services changes less often and are managed by Terraform.

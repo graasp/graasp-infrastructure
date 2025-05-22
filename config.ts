@@ -54,7 +54,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       },
       meilisearch: {
         cpu: '256',
-        memory: '512',
+        memory: '1024',
       },
       iframely: {
         cpu: '256',
