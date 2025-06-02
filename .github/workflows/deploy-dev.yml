@@ -1,8 +1,13 @@
 name: Deploy dev
-
+description: >
+  This workflow is triggered on a schedule to update the code deployed to the dev environment.
+  It will deploy the image tagged as "-nightly". Under normal conditions it does not need to be triggered manually.
+  Every morning after the scheduled start of the dev environment it will try to deploy the latest built image available in the private ECR on dev.
+  This ensures that the bleading edge (main branch) is deployed the next day at the latest.
+  On occasion you might need to deploy changes from main immediately to dev. In such cases, use the workflow_dispatch trigger available.
 on:
   schedule:
-    - cron: "10 8 * * 1-5"
+    - cron: '10 8 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -46,7 +51,7 @@ jobs:
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
         with:
-          state: "db-only"
+          state: 'db-only'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -70,7 +75,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
   deploy:
-    needs: "migration"
+    needs: 'migration'
     environment: dev
     runs-on: ubuntu-latest
     steps:
@@ -108,7 +113,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: "running"
+          state: 'running'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
