@@ -1,8 +1,13 @@
 name: Deploy dev
-
+description: >
+  This workflow is triggered on a schedule to update the code deployed to the dev environment.
+  It will deploy the image tagged as "-nightly". Under normal conditions it does not need to be triggered manually.
+  Every morning after the scheduled start of the dev environment it will try to deploy the latest built image available in the private ECR on dev.
+  This ensures that the bleading edge (main branch) is deployed the next day at the latest.
+  On occasion you might need to deploy changes from main immediately to dev. In such cases, use the workflow_dispatch trigger available.
 on:
   schedule:
-    - cron: "10 8 * * 1-5"
+    - cron: '10 8 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -10,7 +15,33 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
+  pre-migration:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      # skopeo is a tool to manage image between different registries:
+      # https://github.com/containers/skopeo
+      - name: Install skopeo
+        run: sudo apt-get -y update && sudo apt-get -y install skopeo
+
+        # configure credentials to assume terraform role
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_core
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Copy migrate-nightly to migrate-latest
+        run: |
+          private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+          # login the skopeo client with the ECR credentials derived from the currently authenticated user
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
+          # copy
+          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:migrate-nightly docker://$private_ecr_uri/graasp:migrate-latest
+
   migration:
+    needs: "pre-migration"
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -20,7 +51,7 @@ jobs:
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
         with:
-          state: "db-only"
+          state: 'db-only'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -38,13 +69,13 @@ jobs:
 
       - name: Wait for Migration
         uses: ./.github/actions/wait-for-migration
-        timeout-minutes: 300 # 5hours
+        timeout-minutes: 60 # 1hour
         with:
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
   deploy:
-    needs: "migration"
+    needs: 'migration'
     environment: dev
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +102,7 @@ jobs:
           exit 1;
           fi
 
-      - name: Deploy new core version
+      - name: Copy nightly to latest for core
         run: |
           private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
           # login the skopeo client with the ECR credentials derived from the currently authenticated user
@@ -82,7 +113,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: "running"
+          state: 'running'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
