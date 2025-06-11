@@ -1,4 +1,5 @@
 import { S3BucketCorsConfigurationCorsRule } from '@cdktf/provider-aws/lib/s3-bucket-cors-configuration';
+import { TerraformVariable } from 'cdktf';
 
 import { S3BucketObjectOwnership } from './constructs/bucket';
 
@@ -64,6 +65,16 @@ export function envDomain(env: EnvironmentConfig) {
   return env.subdomain
     ? `${env.subdomain}.${GRAASP_ROOT_DOMAIN}`
     : `${GRAASP_ROOT_DOMAIN}`;
+}
+
+export function envEmail(name: string, env: EnvironmentConfig) {
+  return env.subdomain
+    ? `${name}.${env.subdomain}@${GRAASP_ROOT_DOMAIN}`
+    : `${name}@${GRAASP_ROOT_DOMAIN}`;
+}
+
+export function envName(env: EnvironmentConfig) {
+  return env.subdomain ?? 'prod';
 }
 
 const VALID_INFRA_STATES = Object.values(InfraState) as string[];
@@ -140,6 +151,12 @@ export function getMaintenanceHeaderPair(
     throw new Error('Expected to have a maintenance header name and value');
   }
   return { name, value };
+}
+
+export function toEnvVar(tfVar: TerraformVariable) {
+  // this helps to transform a tfvar value into a value that can be used as a string in env var for containers for example.
+  // it has to do with how terraform handles tokens inside.
+  return `\$\{${tfVar.value}\}`;
 }
 
 export function buildPostgresConnectionString({
