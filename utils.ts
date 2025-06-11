@@ -73,6 +73,11 @@ export function envEmail(name: string, env: EnvironmentConfig) {
     : `${name}@${GRAASP_ROOT_DOMAIN}`;
 }
 
+export function envCorsRegex(env: EnvironmentConfig) {
+  const subdomain = env.subdomain ? `${env.subdomain}\\.` : '';
+  return `^https?:\\/\\/(([a-z0-9]+\\.)+)?${subdomain}graasp\\.org$`;
+}
+
 export function envName(env: EnvironmentConfig) {
   return env.subdomain ?? 'prod';
 }

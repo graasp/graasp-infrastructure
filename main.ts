@@ -31,6 +31,7 @@ import {
   EnvironmentConfig,
   GraaspWebsiteConfig,
   buildPostgresConnectionString,
+  envCorsRegex,
   envDomain,
   envEmail,
   envName,
@@ -521,26 +522,26 @@ class GraaspStack extends TerraformStack {
       DB_CONNECTION_POOL_SIZE: '10',
       GEOLOCATION_API_HOST: 'https://api.geoapify.com/v1/geocode', // QUESTION: should this be a constant in the code instead and we only expose the API_KEY var
       IMAGE_CLASSIFIER_API: 'http://localhost:8080/sync', // a constant for now, later might be inside a queue
-      CORS_ORIGIN_REGEX: '^https?:\\/\\/(([a-z0-9]+\\.)+)?dev\\.graasp\\.org$', // TODO: adapt for all envs
+      CORS_ORIGIN_REGEX: envCorsRegex(environment),
       H5P_PATH_PREFIX: 'h5p-content/', // constant
       PORT: `${BACKEND_PORT}`, // from infra
       HOSTNAME: '0.0.0.0', // IP to listen to (bind to all ips)
 
       // can be deducted from the infra itself
-      S3_FILE_ITEM_REGION: environment.region, // from infra
-      H5P_CONTENT_REGION: environment.region, // from infra
+      S3_FILE_ITEM_REGION: environment.region,
+      H5P_CONTENT_REGION: environment.region,
       REDIS_CONNECTION: `redis://${REDIS_HOSTNAME}:${REDIS_PORT}`,
       EMBEDDED_LINK_ITEM_IFRAMELY_HREF_ORIGIN: `http://${IFRAMELY_HOSTNAME}:${IFRAMELY_PORT}`,
       MEILISEARCH_URL: `http://${MEILISEARCH_HOSTNAME}:${MEILISEARCH_PORT}`,
       DB_CONNECTION,
-      COOKIE_DOMAIN: subdomainForEnv('', environment), // '.dev.graasp.org'
-      ETHERPAD_COOKIE_DOMAIN: subdomainForEnv('', environment), // '.dev.graasp.org'
+      COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
+      ETHERPAD_COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
       PUBLIC_URL: `https://${subdomainForEnv('api', environment)}`,
       CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain // FIXME: should be named CLIENT_URL
       LIBRARY_CLIENT_HOST: `https://${subdomainForEnv('library', environment)}`, // FIXME should be named LIBRARY_URL
       ETHERPAD_URL: `https://${subdomainForEnv('etherpad', environment)}`,
-      S3_FILE_ITEM_BUCKET: `${id}-file-items`, // i.e 'graasp-dev-file-items'
-      H5P_CONTENT_BUCKET: `${id}-h5p`, // i.e 'graasp-dev-h5p'
+      S3_FILE_ITEM_BUCKET: `${id}-file-items`, // i.e: 'graasp-dev-file-items'
+      H5P_CONTENT_BUCKET: `${id}-h5p`, // i.e: 'graasp-dev-h5p'
       MAILER_CONFIG_FROM_EMAIL: envEmail('noreply', environment), // i.e: 'noreply.dev@graasp.org',
 
       // env vars
