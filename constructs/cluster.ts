@@ -177,8 +177,8 @@ export class Cluster extends Construct {
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,
-      containerDefinitions: Token.asString(
-        Fn.jsonencode(taskDefinitionConfig.containerDefinitions),
+      containerDefinitions: JSON.stringify(
+        taskDefinitionConfig.containerDefinitions,
       ),
     });
 
@@ -298,8 +298,8 @@ export class Cluster extends Construct {
 
     const taskDef = new EcsTaskDefinition(this, `${name}-task-definition`, {
       family: name,
-      containerDefinitions: Token.asString(
-        Fn.jsonencode(taskDefinitionConfig.containerDefinitions),
+      containerDefinitions: JSON.stringify(
+        taskDefinitionConfig.containerDefinitions,
       ),
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
