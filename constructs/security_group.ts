@@ -6,6 +6,24 @@ import { Construct } from 'constructs';
 
 export type AllowedSecurityGroupInfo = { groupId: string; targetName: string };
 
+export function securityGroupEgressOnly(
+  scope: Construct,
+  id: string,
+  vpcId: string,
+) {
+  const securityGroup = new SecurityGroup(scope, `${id}-security-group`, {
+    vpcId: vpcId,
+    name: id,
+    lifecycle: {
+      createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
+    },
+  });
+
+  allowAllEgressRule(scope, id, securityGroup.id);
+
+  return securityGroup;
+}
+
 export function securityGroupOnlyAllowAnotherSecurityGroup(
   scope: Construct,
   id: string,
