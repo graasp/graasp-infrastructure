@@ -60,7 +60,7 @@ inputs:
     description: "Sentry DSN"
     required: true
   openai_org_id:
-    description: "Open AI org ID"
+    description: "Open AI org id"
     required: true
   openai_api_key:
     description: "Open AI API key"
