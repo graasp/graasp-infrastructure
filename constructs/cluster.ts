@@ -154,6 +154,7 @@ export class Cluster extends Construct {
       priority: number;
       port: number;
       containerPort: number;
+      containerName: string;
       host: string;
       healthCheckPath: string;
       ruleConditions?: LbListenerRuleCondition[];
@@ -206,7 +207,7 @@ export class Cluster extends Construct {
       ecsServiceLoadBalancerOptions = [
         {
           containerPort: loadBalancerConfig.containerPort,
-          containerName: name,
+          containerName: loadBalancerConfig.containerName,
           targetGroupArn: targetGroup.arn,
         },
       ];

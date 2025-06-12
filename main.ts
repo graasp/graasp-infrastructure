@@ -590,7 +590,7 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
-    const libraryDummyBackendDefinition = createContainerDefinitions(
+    const libraryDefinition = createContainerDefinitions(
       'graasp-library',
       `${libraryECR.repositoryUrl}`,
       'latest',
@@ -689,6 +689,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('api', environment),
         port: 80,
         containerPort: BACKEND_PORT,
+        containerName: 'core',
         healthCheckPath: '/health',
         ruleConditions,
       },
@@ -697,7 +698,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
-      { containerDefinitions: [libraryDummyBackendDefinition] },
+      { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
       librarySecurityGroup,
       undefined,
@@ -714,6 +715,7 @@ class GraaspStack extends TerraformStack {
         priority: 2,
         host: subdomainForEnv('library', environment),
         port: 80,
+        containerName: 'graasp-library',
         containerPort: LIBRARY_PORT,
         healthCheckPath: '/api/status',
         ruleConditions,
@@ -737,6 +739,7 @@ class GraaspStack extends TerraformStack {
         priority: 3,
         host: subdomainForEnv('etherpad', environment),
         port: 443,
+        containerName: 'etherpad',
         containerPort: ETHERPAD_PORT,
         healthCheckPath: '/',
         ruleConditions,
@@ -760,6 +763,7 @@ class GraaspStack extends TerraformStack {
         priority: 4,
         host: subdomainForEnv('umami', environment),
         port: 80,
+        containerName: 'umami',
         containerPort: UMAMI_PORT,
         healthCheckPath: '/api/heartbeat',
         ruleConditions:
