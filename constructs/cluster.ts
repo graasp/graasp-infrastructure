@@ -28,12 +28,59 @@ import { Vpc } from '../.gen/modules/vpc';
 import { EnvironmentConfig } from '../utils';
 import { LoadBalancer } from './load_balancer';
 
+type PortMapping = { containerPort: number; hostPort: number };
+type ContainerDefinition = {
+  name: string;
+  image: string;
+  environment: { name: string; value: string | undefined }[];
+  portMappings: (PortMapping & { name: string })[];
+  command: string[] | undefined;
+  logConfiguration: {
+    logDriver: 'awslogs';
+    options: {
+      'awslogs-group': string;
+      'awslogs-region': string;
+      'awslogs-stream-prefix': string;
+    };
+  };
+};
 type TaskDefinitionConfiguration = {
-  containerDefinitions: string;
+  containerDefinitions: ContainerDefinition[];
   cpu?: string;
   memory?: string;
-  dummy: boolean;
 };
+
+export function createContainerDefinitions(
+  name: string,
+  dockerImage: string,
+  dockerTag: string,
+  portMappings: PortMapping[],
+  env: Record<string, string | undefined>,
+  deployEnv: EnvironmentConfig,
+  command?: string[],
+): ContainerDefinition {
+  return {
+    name,
+    image: `${dockerImage}:${dockerTag}`,
+    environment: Object.entries(env).map(([name, value]) => ({
+      name,
+      value,
+    })),
+    portMappings: portMappings.map((m) => ({
+      ...m,
+      name: `${name}-${m.hostPort}-tcp`,
+    })),
+    command: command,
+    logConfiguration: {
+      logDriver: 'awslogs',
+      options: {
+        'awslogs-group': `/ecs/${name}`,
+        'awslogs-region': deployEnv.region,
+        'awslogs-stream-prefix': 'ecs',
+      },
+    },
+  };
+}
 
 export class Cluster extends Construct {
   cluster: EcsCluster;
@@ -107,29 +154,33 @@ export class Cluster extends Construct {
       priority: number;
       port: number;
       containerPort: number;
+      containerName: string;
       host: string;
       healthCheckPath: string;
       ruleConditions?: LbListenerRuleCondition[];
     },
   ) {
-    new CloudwatchLogGroup(this, `${name}-loggroup`, {
-      name: `/ecs/${name}`,
-      retentionInDays: 30,
-    });
+    // create a log stream for each container in the task def
+    for (const {
+      name: containerName,
+      logConfiguration,
+    } of taskDefinitionConfig.containerDefinitions) {
+      new CloudwatchLogGroup(this, `${name}-${containerName}-loggroup`, {
+        name: logConfiguration.options['awslogs-group'],
+        retentionInDays: 30,
+      });
+    }
 
     const task = new EcsTaskDefinition(this, name, {
       family: name, // name used to group the definitions versions
-
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,
-      containerDefinitions: taskDefinitionConfig.containerDefinitions,
-
-      lifecycle: {
-        ignoreChanges: taskDefinitionConfig.dummy ? 'all' : undefined,
-      },
+      containerDefinitions: JSON.stringify(
+        taskDefinitionConfig.containerDefinitions,
+      ),
     });
 
     let ecsServiceLoadBalancerOptions: EcsServiceLoadBalancer[] | undefined;
@@ -156,7 +207,7 @@ export class Cluster extends Construct {
       ecsServiceLoadBalancerOptions = [
         {
           containerPort: loadBalancerConfig.containerPort,
-          containerName: name,
+          containerName: loadBalancerConfig.containerName,
           targetGroupArn: targetGroup.arn,
         },
       ];
@@ -207,9 +258,6 @@ export class Cluster extends Construct {
             ]
           : undefined,
       },
-      lifecycle: taskDefinitionConfig.dummy
-        ? { ignoreChanges: ['task_definition'] }
-        : undefined,
     });
 
     if (appAutoscalingConfig) {
@@ -251,7 +299,9 @@ export class Cluster extends Construct {
 
     const taskDef = new EcsTaskDefinition(this, `${name}-task-definition`, {
       family: name,
-      containerDefinitions: taskDefinitionConfig.containerDefinitions,
+      containerDefinitions: JSON.stringify(
+        taskDefinitionConfig.containerDefinitions,
+      ),
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
       requiresCompatibilities: ['FARGATE'],
@@ -276,38 +326,4 @@ export class Cluster extends Construct {
     }
     return undefined;
   }
-}
-
-export function createContainerDefinitions(
-  name: string,
-  dockerImage: string,
-  dockerTag: string,
-  portMappings: { containerPort: number; hostPort: number }[],
-  env: Record<string, string | undefined>,
-  deployEnv: EnvironmentConfig,
-  command?: string[],
-): string {
-  return JSON.stringify([
-    {
-      name,
-      image: `${dockerImage}:${dockerTag}`,
-      environment: Object.entries(env).map(([name, value]) => ({
-        name,
-        value,
-      })),
-      portMappings: portMappings.map((m) => ({
-        ...m,
-        name: `${name}-${m.hostPort}-tcp`,
-      })),
-      command: command,
-      logConfiguration: {
-        logDriver: 'awslogs',
-        options: {
-          'awslogs-group': `/ecs/${name}`,
-          'awslogs-region': deployEnv.region,
-          'awslogs-stream-prefix': 'ecs',
-        },
-      },
-    },
-  ]);
 }

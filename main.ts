@@ -31,10 +31,14 @@ import {
   EnvironmentConfig,
   GraaspWebsiteConfig,
   buildPostgresConnectionString,
+  envCorsRegex,
   envDomain,
+  envEmail,
+  envName,
   getMaintenanceHeaderPair,
   isServiceActive,
   subdomainForEnv,
+  toEnvVar,
   validateInfraState,
 } from './utils';
 
@@ -58,11 +62,15 @@ class GraaspStack extends TerraformStack {
     super(scope, id);
 
     const BACKEND_PORT = 3111;
+    const NUDENET_PORT = 8080;
     const LIBRARY_PORT = 3000;
     const ETHERPAD_PORT = 9001;
     const MEILISEARCH_PORT = 7700;
+    const MEILISEARCH_HOSTNAME = 'graasp-meilisearch';
     const IFRAMELY_PORT = 8061;
+    const IFRAMELY_HOSTNAME = 'graasp-iframely';
     const REDIS_PORT = 6379;
+    const REDIS_HOSTNAME = 'graasp-redis';
     const UMAMI_PORT = 3000;
 
     new AwsProvider(this, 'AWS', {
@@ -91,7 +99,6 @@ class GraaspStack extends TerraformStack {
     const vpc = new Vpc(this, 'vpc', {
       name: id,
       cidr: '172.32.0.0/16',
-
       // Use 3 availability zones in our region
       azs: ['a', 'b', 'c'].map((i) => `${environment.region}${i}`),
       publicSubnets: ['172.32.1.0/24', '172.32.2.0/24', '172.32.3.0/24'],
@@ -145,106 +152,7 @@ class GraaspStack extends TerraformStack {
       sslCertificate,
       environment,
     );
-
-    // ---- Setup redirections in the load-balancer -----
-    // for the go.graasp.org service, redirect to an api endpoint
-    loadBalancer.addListenerRuleForHostRedirect(
-      'shortener',
-      10,
-      {
-        subDomainOrigin: 'go', // requests from go.graasp.org
-        subDomainTarget: 'api', // to api.graasp.org
-        pathRewrite: '/items/short-links/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        statusCode: 'HTTP_302', // temporary moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'account',
-      11,
-      {
-        subDomainOrigin: 'account', // requests from account.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/account/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'auth',
-      12,
-      {
-        subDomainOrigin: 'auth', // requests from auth.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/auth/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'player',
-      13,
-      {
-        subDomainOrigin: 'player', // requests from player.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/player/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'builder',
-      14,
-      {
-        subDomainOrigin: 'builder', // requests from builder.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/builder/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'analytics',
-      15,
-      {
-        subDomainOrigin: 'analytics', // requests from analytics.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/analytics/#{path}', // rewrite the path to add the correct api route
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
-    loadBalancer.addListenerRuleForHostRedirect(
-      'association',
-      16,
-      {
-        subDomainOrigin: 'association', // requests from association.graasp.org
-        subDomainTarget: '', // to graasp.org
-        pathRewrite: '/about-us', // rewrite the path
-        // optionally keep query params
-        queryRewrite: '#{query}',
-        statusCode: 'HTTP_301', // permanently moved
-      },
-      environment,
-      ruleConditions,
-    );
+    loadBalancer.setupRedirections(environment, ruleConditions);
 
     // define security groups allowing ingress trafic from the load-balancer
     const loadBalancerAllowedSecurityGroupInfo = {
@@ -321,13 +229,13 @@ class GraaspStack extends TerraformStack {
       REDIS_PORT,
     );
 
+    // --- Secrets
     const dbPassword = new TerraformVariable(this, 'GRAASP_DB_PASSWORD', {
       nullable: false,
       type: 'string',
       description: 'Admin password for the graasp database',
       sensitive: true,
     });
-
     const umamiDbUserPassword = new TerraformVariable(
       this,
       'UMAMI_DB_PASSWORD',
@@ -338,7 +246,6 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-
     const etherpadDbPassword = new TerraformVariable(
       this,
       'ETHERPAD_DB_PASSWORD',
@@ -349,13 +256,173 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-
     const graasperID = new TerraformVariable(this, 'GRAASPER_ID', {
       nullable: false,
       type: 'string',
       description: 'Graasper user Id for collections in the library',
       sensitive: false,
     });
+    const appsPublisherID = new TerraformVariable(this, 'APPS_PUBLISHER_ID', {
+      nullable: false,
+      type: 'string',
+      description: 'Graasp apps publisher Id for apps list in the builder',
+      sensitive: false,
+    });
+    const mailerConnection = new TerraformVariable(this, 'MAILER_CONNECTION', {
+      nullable: false,
+      type: 'string',
+      description: 'Connection Url for the SMTP server',
+      sensitive: true,
+    });
+    const sentryDSN = new TerraformVariable(this, 'SENTRY_DSN', {
+      nullable: true,
+      type: 'string',
+      description: 'Sentry DSN for reporting errors',
+      sensitive: false,
+    });
+    const openAiOrgId = new TerraformVariable(this, 'OPENAI_ORG_ID', {
+      nullable: false,
+      type: 'string',
+      description: 'OpenAI organisation Identifier',
+      sensitive: false,
+    });
+    const openAiApiKey = new TerraformVariable(this, 'OPENAI_API_KEY', {
+      nullable: false,
+      type: 'string',
+      description: 'OpenAI API Key',
+      sensitive: true,
+    });
+    const recaptchaSecretKey = new TerraformVariable(
+      this,
+      'RECAPTCHA_SECRET_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Recaptcha secret key for bot prevention',
+        sensitive: true,
+      },
+    );
+    const meilisearchRebuildSecret = new TerraformVariable(
+      this,
+      'MEILISEARCH_REBUILD_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description:
+          'Meilisearch rebuild secret (used to trigger a rebuild of the search index)',
+        sensitive: true,
+      },
+    );
+    const geolocationApiKey = new TerraformVariable(
+      this,
+      'GEOLOCATION_API_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'API key for the geolocation external API',
+        sensitive: true,
+      },
+    );
+    const etherpadApiKey = new TerraformVariable(this, 'ETHERPAD_API_KEY', {
+      nullable: false,
+      type: 'string',
+      description: 'API key for etherpad communication',
+      sensitive: true,
+    });
+    const h5pAccessKeyId = new TerraformVariable(this, 'H5P_ACCESS_KEY_ID', {
+      nullable: false,
+      type: 'string',
+      description: 'H5P Bucket access key id',
+      sensitive: true,
+    });
+    const h5pAccessSecretKeyId = new TerraformVariable(
+      this,
+      'H5P_ACCESS_SECRET_KEY_ID',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'H5P Bucket access secret key id',
+        sensitive: true,
+      },
+    );
+    const s3AccessKeyId = new TerraformVariable(this, 'S3_ACCESS_KEY_ID', {
+      nullable: false,
+      type: 'string',
+      description: 'S3 file Bucket access key id',
+      sensitive: true,
+    });
+    const s3AccessSecretKeyId = new TerraformVariable(
+      this,
+      'S3_ACCESS_SECRET_KEY_ID',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'S3 file Bucket access secret key id',
+        sensitive: true,
+      },
+    );
+    const appsJwtSecret = new TerraformVariable(this, 'APPS_JWT_SECRET', {
+      nullable: false,
+      type: 'string',
+      description: 'JWT secret for signing apps login tokens',
+      sensitive: true,
+    });
+    const jwtSecret = new TerraformVariable(this, 'JWT_SECRET', {
+      nullable: false,
+      type: 'string',
+      description: 'JWT secret for signing login tokens',
+      sensitive: true,
+    });
+    const secureSessionJwtSecret = new TerraformVariable(
+      this,
+      'SECURE_SESSION_SECRET_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'JWT secret for signing session cookies',
+        sensitive: true,
+      },
+    );
+    const passwordResetJwtSecret = new TerraformVariable(
+      this,
+      'PASSWORD_RESET_JWT_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'JWT secret for signing password reset requests',
+        sensitive: true,
+      },
+    );
+    const emailChangeJwtSecret = new TerraformVariable(
+      this,
+      'EMAIL_CHANGE_JWT_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'JWT secret for signing email change requests',
+        sensitive: true,
+      },
+    );
+    const authTokenJwtSecret = new TerraformVariable(
+      this,
+      'AUTH_TOKEN_JWT_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'JWT secret for signing auth tokens for mobile',
+        sensitive: true,
+      },
+    );
+    const refreshTokenJwtSecret = new TerraformVariable(
+      this,
+      'REFRESH_TOKEN_JWT_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'JWT secret for signing refresh tokens for mobile',
+        sensitive: true,
+      },
+    );
 
     const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
@@ -403,6 +470,14 @@ class GraaspStack extends TerraformStack {
       gatekeeper.instance.securityGroup,
     );
 
+    const DB_CONNECTION = buildPostgresConnectionString({
+      host: backendDb.instance.dbInstanceAddressOutput,
+      port: '5432',
+      name: 'graasp',
+      username: backendDb.instance.dbInstanceUsernameOutput,
+      password: toEnvVar(dbPassword),
+    });
+
     // We do not let Terraform manage ECR repository yet. Also allows destroying the stack without destroying the repos.
     const graaspECR = new DataAwsEcrRepository(this, `${id}-ecr`, {
       name: 'graasp',
@@ -413,52 +488,6 @@ class GraaspStack extends TerraformStack {
     const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
     });
-
-    // Task for the backend
-    // This is a dummy task that will be replaced by the CI/CD during deployment
-    // Deployment is not managed by Terraform here.
-    const graaspDummyBackendDefinition = createContainerDefinitions(
-      'graasp',
-      'busybox',
-      '1.36',
-      [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
-      {},
-      environment,
-      ['/bin/sh', '-c', 'while true; do sleep 30; done'],
-    );
-
-    const libraryDummyBackendDefinition = createContainerDefinitions(
-      'graasp-library',
-      `${libraryECR.repositoryUrl}`,
-      'latest',
-      [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
-      {
-        VITE_API_HOST: `https://${subdomainForEnv('api', environment)}`,
-        VITE_CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain
-        VITE_GRAASPER_ID: `\$\{${graasperID.value}\}`,
-      },
-      environment,
-    );
-
-    // Definitions for third party services changes less often and are managed by Terraform.
-    const etherpadDefinition = createContainerDefinitions(
-      'etherpad',
-      etherpadECR.repositoryUrl,
-      'latest',
-      [{ hostPort: ETHERPAD_PORT, containerPort: ETHERPAD_PORT }],
-      {
-        DB_HOST: backendDb.instance.dbInstanceAddressOutput,
-        DB_NAME: 'etherpad',
-        DB_PASS: `\$\{${etherpadDbPassword.value}\}`,
-        DB_PORT: '5432',
-        DB_TYPE: 'postgres',
-        DB_USER: 'etherpad',
-        EDIT_ONLY: 'true',
-        PORT: ETHERPAD_PORT.toString(),
-        MINIFY: 'false',
-      },
-      environment,
-    );
 
     const meilisearchMasterKey = new TerraformVariable(
       this,
@@ -477,9 +506,119 @@ class GraaspStack extends TerraformStack {
       [{ hostPort: MEILISEARCH_PORT, containerPort: MEILISEARCH_PORT }],
       {
         MEILI_ENV: 'production',
-        MEILI_MASTER_KEY: `\$\{${meilisearchMasterKey.value}\}`,
+        MEILI_MASTER_KEY: toEnvVar(meilisearchMasterKey),
         MEILI_NO_ANALYTICS: 'true',
         MEILI_EXPERIMENTAL_LOGS_MODE: 'json',
+      },
+      environment,
+    );
+
+    const backendEnv = {
+      // constants
+      SENTRY_ENV: envName(environment),
+      LOG_LEVEL: 'info', // QUESTION: Should this be a var ?
+      H5P_FILE_STORAGE_TYPE: 's3',
+      FILE_STORAGE_TYPE: 's3',
+      DB_CONNECTION_POOL_SIZE: '10',
+      GEOLOCATION_API_HOST: 'https://api.geoapify.com/v1/geocode', // QUESTION: should this be a constant in the code instead and we only expose the API_KEY var
+      IMAGE_CLASSIFIER_API: 'http://localhost:8080/sync', // a constant for now, later might be inside a queue
+      CORS_ORIGIN_REGEX: envCorsRegex(environment),
+      H5P_PATH_PREFIX: 'h5p-content/', // constant
+      PORT: `${BACKEND_PORT}`, // from infra
+      HOSTNAME: '0.0.0.0', // IP to listen to (bind to all ips)
+
+      // can be deducted from the infra itself
+      S3_FILE_ITEM_REGION: environment.region,
+      H5P_CONTENT_REGION: environment.region,
+      REDIS_CONNECTION: `redis://${REDIS_HOSTNAME}:${REDIS_PORT}`,
+      EMBEDDED_LINK_ITEM_IFRAMELY_HREF_ORIGIN: `http://${IFRAMELY_HOSTNAME}:${IFRAMELY_PORT}`,
+      MEILISEARCH_URL: `http://${MEILISEARCH_HOSTNAME}:${MEILISEARCH_PORT}`,
+      DB_CONNECTION,
+      COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
+      ETHERPAD_COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
+      PUBLIC_URL: `https://${subdomainForEnv('api', environment)}`,
+      CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain // FIXME: should be named CLIENT_URL
+      LIBRARY_CLIENT_HOST: `https://${subdomainForEnv('library', environment)}`, // FIXME should be named LIBRARY_URL
+      ETHERPAD_URL: `https://${subdomainForEnv('etherpad', environment)}`,
+      S3_FILE_ITEM_BUCKET: `${id}-file-items`, // i.e: 'graasp-dev-file-items'
+      H5P_CONTENT_BUCKET: `${id}-h5p`, // i.e: 'graasp-dev-h5p'
+      MAILER_CONFIG_FROM_EMAIL: envEmail('noreply', environment), // i.e: 'noreply.dev@graasp.org',
+
+      // env vars
+      MAILER_CONNECTION: toEnvVar(mailerConnection),
+      APPS_PUBLISHER_ID: toEnvVar(appsPublisherID),
+      GRAASPER_CREATOR_ID: toEnvVar(graasperID),
+      SENTRY_DSN: toEnvVar(sentryDSN),
+      OPENAI_ORG_ID: toEnvVar(openAiOrgId),
+
+      // sensitive secrets
+      ETHERPAD_API_KEY: toEnvVar(etherpadApiKey),
+      GEOLOCATION_API_KEY: toEnvVar(geolocationApiKey),
+      H5P_CONTENT_ACCESS_KEY_ID: toEnvVar(h5pAccessKeyId),
+      H5P_CONTENT_SECRET_ACCESS_KEY_ID: toEnvVar(h5pAccessSecretKeyId),
+      S3_FILE_ITEM_ACCESS_KEY_ID: toEnvVar(s3AccessKeyId),
+      S3_FILE_ITEM_SECRET_ACCESS_KEY: toEnvVar(s3AccessSecretKeyId),
+      MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
+      MEILISEARCH_MASTER_KEY: toEnvVar(meilisearchMasterKey), // also defined for meilisearch container
+      RECAPTCHA_SECRET_ACCESS_KEY: toEnvVar(recaptchaSecretKey),
+      OPENAI_API_KEY: toEnvVar(openAiApiKey),
+
+      JWT_SECRET: toEnvVar(jwtSecret),
+      SECURE_SESSION_SECRET_KEY: toEnvVar(secureSessionJwtSecret),
+      PASSWORD_RESET_JWT_SECRET: toEnvVar(passwordResetJwtSecret),
+      EMAIL_CHANGE_JWT_SECRET: toEnvVar(emailChangeJwtSecret),
+      AUTH_TOKEN_JWT_SECRET: toEnvVar(authTokenJwtSecret),
+      REFRESH_TOKEN_JWT_SECRET: toEnvVar(refreshTokenJwtSecret),
+      APPS_JWT_SECRET: toEnvVar(appsJwtSecret),
+    };
+
+    // Task for the backend
+    const coreDefinition = createContainerDefinitions(
+      'core',
+      `${graaspECR.repositoryUrl}`,
+      'core-latest',
+      [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
+      backendEnv,
+      environment,
+    );
+    const nudenetDefinition = createContainerDefinitions(
+      'nudenet',
+      'notaitech/nudenet',
+      'classifier',
+      [{ hostPort: NUDENET_PORT, containerPort: NUDENET_PORT }],
+      {}, // does not need env vars
+      environment,
+    );
+
+    const libraryDefinition = createContainerDefinitions(
+      'graasp-library',
+      `${libraryECR.repositoryUrl}`,
+      'latest',
+      [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
+      {
+        VITE_API_HOST: `https://${subdomainForEnv('api', environment)}`,
+        VITE_CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain
+        VITE_GRAASPER_ID: toEnvVar(graasperID),
+      },
+      environment,
+    );
+
+    // Definitions for third party services changes less often and are managed by Terraform.
+    const etherpadDefinition = createContainerDefinitions(
+      'etherpad',
+      etherpadECR.repositoryUrl,
+      'latest',
+      [{ hostPort: ETHERPAD_PORT, containerPort: ETHERPAD_PORT }],
+      {
+        DB_HOST: backendDb.instance.dbInstanceAddressOutput,
+        DB_NAME: 'etherpad',
+        DB_PASS: toEnvVar(etherpadDbPassword),
+        DB_PORT: '5432',
+        DB_TYPE: 'postgres',
+        DB_USER: 'etherpad',
+        EDIT_ONLY: 'true',
+        PORT: ETHERPAD_PORT.toString(),
+        MINIFY: 'false',
       },
       environment,
     );
@@ -508,9 +647,15 @@ class GraaspStack extends TerraformStack {
       'postgresql-latest',
       [{ hostPort: UMAMI_PORT, containerPort: UMAMI_PORT }],
       {
-        DATABASE_URL: `postgresql://umami:${umamiDbUserPassword}@${backendDb.instance.dbInstanceAddressOutput}:5432/umami`,
+        DATABASE_URL: buildPostgresConnectionString({
+          host: backendDb.instance.dbInstanceAddressOutput,
+          port: '5432',
+          name: 'umami',
+          username: 'umami',
+          password: toEnvVar(umamiDbUserPassword),
+        }),
         APP_SECRET:
-          'a5b20f9ac88eb6d9c2a443664968052ee9f34a3ea8ed1ebe0c0d5c51d5ea78ca',
+          'a5b20f9ac88eb6d9c2a443664968052ee9f34a3ea8ed1ebe0c0d5c51d5ea78ca', // FIXME: use an env var
         DISABLE_TELEMETRY: '1',
         HOSTNAME: '0.0.0.0', // needed for the app to bind to localhost, otherwise never answers the health-checks
       },
@@ -523,10 +668,9 @@ class GraaspStack extends TerraformStack {
       'graasp',
       CONFIG[environment.env].ecsConfig.graasp.taskCount,
       {
-        containerDefinitions: graaspDummyBackendDefinition,
+        containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
-        dummy: true,
       },
       graaspServicesActive,
       backendSecurityGroup,
@@ -545,6 +689,7 @@ class GraaspStack extends TerraformStack {
         host: subdomainForEnv('api', environment),
         port: 80,
         containerPort: BACKEND_PORT,
+        containerName: 'core',
         healthCheckPath: '/health',
         ruleConditions,
       },
@@ -553,7 +698,7 @@ class GraaspStack extends TerraformStack {
     cluster.addService(
       'graasp-library',
       1,
-      { containerDefinitions: libraryDummyBackendDefinition, dummy: false },
+      { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
       librarySecurityGroup,
       undefined,
@@ -570,6 +715,7 @@ class GraaspStack extends TerraformStack {
         priority: 2,
         host: subdomainForEnv('library', environment),
         port: 80,
+        containerName: 'graasp-library',
         containerPort: LIBRARY_PORT,
         healthCheckPath: '/api/status',
         ruleConditions,
@@ -580,10 +726,9 @@ class GraaspStack extends TerraformStack {
       'etherpad',
       1,
       {
-        containerDefinitions: etherpadDefinition,
+        containerDefinitions: [etherpadDefinition],
         cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
         memory: CONFIG[environment.env].ecsConfig.etherpad.memory,
-        dummy: false,
       },
       graaspServicesActive,
       etherpadSecurityGroup,
@@ -594,6 +739,7 @@ class GraaspStack extends TerraformStack {
         priority: 3,
         host: subdomainForEnv('etherpad', environment),
         port: 443,
+        containerName: 'etherpad',
         containerPort: ETHERPAD_PORT,
         healthCheckPath: '/',
         ruleConditions,
@@ -604,10 +750,9 @@ class GraaspStack extends TerraformStack {
       'umami',
       1,
       {
-        containerDefinitions: umamiDefinition,
+        containerDefinitions: [umamiDefinition],
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
         memory: CONFIG[environment.env].ecsConfig.umami.memory,
-        dummy: false,
       },
       isServiceActive(environment).umami,
       umamiSecurityGroup,
@@ -618,6 +763,7 @@ class GraaspStack extends TerraformStack {
         priority: 4,
         host: subdomainForEnv('umami', environment),
         port: 80,
+        containerName: 'umami',
         containerPort: UMAMI_PORT,
         healthCheckPath: '/api/heartbeat',
         ruleConditions:
@@ -630,42 +776,39 @@ class GraaspStack extends TerraformStack {
       'meilisearch',
       1,
       {
-        containerDefinitions: meilisearchDefinition,
+        containerDefinitions: [meilisearchDefinition],
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
         memory: CONFIG[environment.env].ecsConfig.meilisearch.memory,
-        dummy: false,
       },
       graaspServicesActive,
       meilisearchSecurityGroup,
-      { name: 'graasp-meilisearch', port: MEILISEARCH_PORT },
+      { name: MEILISEARCH_HOSTNAME, port: MEILISEARCH_PORT },
     );
 
     cluster.addService(
       'iframely',
       1,
       {
-        containerDefinitions: iframelyDefinition,
+        containerDefinitions: [iframelyDefinition],
         cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
         memory: CONFIG[environment.env].ecsConfig.iframely.memory,
-        dummy: false,
       },
       graaspServicesActive,
       iframelySecurityGroup,
-      { name: 'graasp-iframely', port: IFRAMELY_PORT },
+      { name: IFRAMELY_HOSTNAME, port: IFRAMELY_PORT },
     );
 
     cluster.addService(
       'redis',
       1,
       {
-        containerDefinitions: redisDefinition,
+        containerDefinitions: [redisDefinition],
         cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
         memory: CONFIG[environment.env].ecsConfig.redis.memory,
-        dummy: false,
       },
       graaspServicesActive,
       redisSecurityGroup,
-      { name: 'graasp-redis', port: REDIS_PORT },
+      { name: REDIS_HOSTNAME, port: REDIS_PORT },
     );
 
     // migrate
@@ -675,13 +818,7 @@ class GraaspStack extends TerraformStack {
       'migrate-latest',
       [],
       {
-        DB_CONNECTION: buildPostgresConnectionString({
-          host: backendDb.instance.dbInstanceAddressOutput,
-          port: '5432',
-          name: 'graasp',
-          username: backendDb.instance.dbInstanceUsernameOutput,
-          password: `\$\{${dbPassword.value}\}`,
-        }),
+        DB_CONNECTION,
       },
       environment,
     );
@@ -690,10 +827,9 @@ class GraaspStack extends TerraformStack {
       1,
       isServiceActive(environment).migration,
       {
-        containerDefinitions: migrateDefinition,
+        containerDefinitions: [migrateDefinition],
         cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
         memory: CONFIG[environment.env].ecsConfig.migrate.memory,
-        dummy: false,
       },
       migrateServiceSecurityGroup,
     );
