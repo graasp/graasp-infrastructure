@@ -62,7 +62,7 @@ export class PostgresDB extends Construct {
       identifier: `${name}`,
 
       engine: 'postgres',
-      engineVersion: '15.8',
+      engineVersion: '15.12',
       instanceClass: 'db.t3.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
@@ -75,7 +75,7 @@ export class PostgresDB extends Construct {
       createDbSubnetGroup: true,
       subnetIds: Token.asList(vpc.publicSubnetsOutput),
       createDbParameterGroup: true,
-      autoMinorVersionUpgrade: true,
+      autoMinorVersionUpgrade: false, // Do not allow minor version upgrades because we manage the version manually above.
       enabledCloudwatchLogsExports: undefined, // None
       deletionProtection: true,
       applyImmediately: true,
