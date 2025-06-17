@@ -1,13 +1,13 @@
+# This workflow is triggered on a schedule to update the code deployed to the dev environment.
+# It will deploy the image tagged as "-nightly". Under normal conditions it does not need to be triggered manually.
+# Every morning after the scheduled start of the dev environment it will try to deploy the latest built image available in the private ECR on dev.
+# This ensures that the bleeding edge (main branch) is deployed the next day at the latest.
+# On occasion you might need to deploy changes from main immediately to dev. In such cases, use the workflow_dispatch trigger available.
 name: Deploy dev
-description: >
-  This workflow is triggered on a schedule to update the code deployed to the dev environment.
-  It will deploy the image tagged as "-nightly". Under normal conditions it does not need to be triggered manually.
-  Every morning after the scheduled start of the dev environment it will try to deploy the latest built image available in the private ECR on dev.
-  This ensures that the bleading edge (main branch) is deployed the next day at the latest.
-  On occasion you might need to deploy changes from main immediately to dev. In such cases, use the workflow_dispatch trigger available.
+
 on:
   schedule:
-    - cron: '10 8 * * 1-5'
+    - cron: "10 8 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
         with:
-          state: 'db-only'
+          state: "db-only"
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -66,6 +66,26 @@ jobs:
           graasp-db-gatekeeper-key-name: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+          apps-publisher-id: ${{ vars.TF_VAR_APPS_PUBLISHER_ID }}
+          mailer-connection: ${{ secrets.TF_VAR_MAILER_CONNECTION }}
+          sentry_dsn: ${{ secrets.TF_VAR_SENTRY_DSN }}
+          openai_org_id: ${{ vars.TF_VAR_OPENAI_ORG_ID }}
+          openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
+          recaptcha_secret_key: ${{ secrets.TF_VAR_RECAPTCHA_SECRET_KEY }}
+          meilisearch_rebuild_secret: ${{ secrets.TF_VAR_MEILISEARCH_REBUILD_SECRET }}
+          geolocation_api_key: ${{ secrets.TF_VAR_GEOLOCATION_API_KEY }}
+          etherpad_api_key: ${{ secrets.TF_VAR_ETHERPAD_API_KEY }}
+          h5p_access_key_id: ${{ secrets.TF_VAR_H5P_ACCESS_KEY_ID }}
+          h5p_access_secret_key_id: ${{ secrets.TF_VAR_H5P_ACCESS_SECRET_KEY_ID }}
+          s3_access_key_id: ${{ secrets.TF_VAR_S3_ACCESS_KEY_ID }}
+          s3_access_secret_key_id: ${{ secrets.TF_VAR_S3_ACCESS_SECRET_KEY_ID }}
+          apps_jwt_secret: ${{ secrets.TF_VAR_APPS_JWT_SECRET }}
+          jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
+          secure_session_secret_key: ${{ secrets.TF_VAR_SECURE_SESSION_SECRET_KEY }}
+          password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
+          email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
+          auth_token_jwt_secret: ${{ secrets.TF_VAR_AUTH_TOKEN_JWT_SECRET }}
+          refresh_token_jwt_secret: ${{ secrets.TF_VAR_REFRESH_TOKEN_JWT_SECRET }}
 
       - name: Wait for Migration
         uses: ./.github/actions/wait-for-migration
@@ -75,7 +95,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
   deploy:
-    needs: 'migration'
+    needs: "migration"
     environment: dev
     runs-on: ubuntu-latest
     steps:
@@ -113,7 +133,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: 'running'
+          state: "running"
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -129,6 +149,26 @@ jobs:
           graasper-id: ${{ vars.TF_VAR_GRAASPER_ID }}
           gatekeeper-ami-id: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           gatekeeper-instance-type: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+          apps-publisher-id: ${{ vars.TF_VAR_APPS_PUBLISHER_ID }}
+          mailer-connection: ${{ secrets.TF_VAR_MAILER_CONNECTION }}
+          sentry_dsn: ${{ secrets.TF_VAR_SENTRY_DSN }}
+          openai_org_id: ${{ vars.TF_VAR_OPENAI_ORG_ID }}
+          openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
+          recaptcha_secret_key: ${{ secrets.TF_VAR_RECAPTCHA_SECRET_KEY }}
+          meilisearch_rebuild_secret: ${{ secrets.TF_VAR_MEILISEARCH_REBUILD_SECRET }}
+          geolocation_api_key: ${{ secrets.TF_VAR_GEOLOCATION_API_KEY }}
+          etherpad_api_key: ${{ secrets.TF_VAR_ETHERPAD_API_KEY }}
+          h5p_access_key_id: ${{ secrets.TF_VAR_H5P_ACCESS_KEY_ID }}
+          h5p_access_secret_key_id: ${{ secrets.TF_VAR_H5P_ACCESS_SECRET_KEY_ID }}
+          s3_access_key_id: ${{ secrets.TF_VAR_S3_ACCESS_KEY_ID }}
+          s3_access_secret_key_id: ${{ secrets.TF_VAR_S3_ACCESS_SECRET_KEY_ID }}
+          apps_jwt_secret: ${{ secrets.TF_VAR_APPS_JWT_SECRET }}
+          jwt_secret: ${{ secrets.TF_VAR_JWT_SECRET }}
+          secure_session_secret_key: ${{ secrets.TF_VAR_SECURE_SESSION_SECRET_KEY }}
+          password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
+          email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
+          auth_token_jwt_secret: ${{ secrets.TF_VAR_AUTH_TOKEN_JWT_SECRET }}
+          refresh_token_jwt_secret: ${{ secrets.TF_VAR_REFRESH_TOKEN_JWT_SECRET }}
 
         # configure credentials to assume terraform role
       - name: Configure AWS Credentials to assume terraform Role

@@ -50,6 +50,66 @@ inputs:
   gatekeeper-instance-type:
     description: "Gatekeeper instance type"
     required: true
+  apps-publisher-id:
+    description: "Apps publisher id"
+    required: true
+  mailer-connection:
+    description: "Mailer SMTP connection string"
+    required: true
+  sentry_dsn:
+    description: "Sentry DSN"
+    required: true
+  openai_org_id:
+    description: "Open AI org id"
+    required: true
+  openai_api_key:
+    description: "Open AI API key"
+    required: true
+  recaptcha_secret_key:
+    description: "Recaptcha secret key"
+    required: true
+  meilisearch_rebuild_secret:
+    description: "Meilisearch rebuild secret header"
+    required: true
+  geolocation_api_key:
+    description: "Geolocation API key"
+    required: true
+  etherpad_api_key:
+    description: "Etherpad API key"
+    required: true
+  h5p_access_key_id:
+    description: "H5P s3 bucket access key id"
+    required: true
+  h5p_access_secret_key_id:
+    description: "H5P s3 bucket access secret key id"
+    required: true
+  s3_access_key_id:
+    description: "S3 file bucket access key id"
+    required: true
+  s3_access_secret_key_id:
+    description: "S3 file bucket access secret key id"
+    required: true
+  apps_jwt_secret:
+    description: "Apps JWT secret"
+    required: true
+  jwt_secret:
+    description: "JWT secret for email login validation"
+    required: true
+  secure_session_secret_key:
+    description: "Secure session JWT secret"
+    required: true
+  password_reset_jwt_secret:
+    description: "Password reset JWT secret"
+    required: true
+  email_change_jwt_secret:
+    description: "Email change JWT secret"
+    required: true
+  auth_token_jwt_secret:
+    description: "Auth token JWT secret (mobile)"
+    required: true
+  refresh_token_jwt_secret:
+    description: "Refresh JWT secret"
+    required: true
 
 runs:
   using: composite
@@ -139,6 +199,26 @@ runs:
         TF_VAR_GRAASPER_ID: ${{ inputs.graasper-id }}
         TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ inputs.gatekeeper-ami-id }}
         TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ inputs.gatekeeper-instance-type }}
+        TF_VAR_APPS_PUBLISHER_ID: ${{ inputs.apps-publisher-id }}
+        TF_VAR_MAILER_CONNECTION: ${{ inputs.mailer-connection }}
+        TF_VAR_SENTRY_DSN: ${{ inputs.sentry_dsn }}
+        TF_VAR_OPENAI_ORG_ID: ${{ inputs.openai_org_id }}
+        TF_VAR_OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        TF_VAR_RECAPTCHA_SECRET_KEY: ${{ inputs.recaptcha_secret_key }}
+        TF_VAR_MEILISEARCH_REBUILD_SECRET: ${{ inputs.meilisearch_rebuild_secret }}
+        TF_VAR_GEOLOCATION_API_KEY: ${{ inputs.geolocation_api_key }}
+        TF_VAR_ETHERPAD_API_KEY: ${{ inputs.etherpad_api_key }}
+        TF_VAR_H5P_ACCESS_KEY_ID: ${{ inputs.h5p_access_key_id }}
+        TF_VAR_H5P_ACCESS_SECRET_KEY_ID: ${{ inputs.h5p_access_secret_key_id }}
+        TF_VAR_S3_ACCESS_KEY_ID: ${{ inputs.s3_access_key_id }}
+        TF_VAR_S3_ACCESS_SECRET_KEY_ID: ${{ inputs.s3_access_secret_key_id }}
+        TF_VAR_APPS_JWT_SECRET: ${{ inputs.apps_jwt_secret }}
+        TF_VAR_JWT_SECRET: ${{ inputs.jwt_secret }}
+        TF_VAR_SECURE_SESSION_SECRET_KEY: ${{ inputs.secure_session_secret_key }}
+        TF_VAR_PASSWORD_RESET_JWT_SECRET: ${{ inputs.password_reset_jwt_secret }}
+        TF_VAR_EMAIL_CHANGE_JWT_SECRET: ${{ inputs.email_change_jwt_secret }}
+        TF_VAR_AUTH_TOKEN_JWT_SECRET: ${{ inputs.auth_token_jwt_secret }}
+        TF_VAR_REFRESH_TOKEN_JWT_SECRET: ${{ inputs.refresh_token_jwt_secret }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
