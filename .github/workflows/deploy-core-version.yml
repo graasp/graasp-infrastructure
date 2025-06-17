@@ -57,15 +57,18 @@ jobs:
       - name: Deploy new core version
         run: |
           private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          core_image_tag=core-${{ inputs.version }}
-          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$core_image_tag
-          image_tag=docker://$private_ecr_uri/graasp:core-latest
 
           # login the skopeo client with the ECR credentials derived from the currently authenticated user
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin "$private_ecr_uri"
 
-          # copy
-          skopeo --override-os linux copy $public_ecr_image $image_tag
+          for prefix in core workers; do
+            image_tag=${prefix}-${{ inputs.version }}
+            public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$image_tag
+            private_ecr_image=docker://$private_ecr_uri/graasp:${prefix}-latest
+
+            echo "Copying $public_ecr_image to $private_ecr_image"
+            skopeo --override-os linux copy "$public_ecr_image" "$private_ecr_image"
+          done
 
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
