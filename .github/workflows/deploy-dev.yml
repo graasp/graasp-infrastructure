@@ -122,13 +122,19 @@ jobs:
           exit 1;
           fi
 
-      - name: Copy nightly to latest for core
+      - name: Copy nightly to latest for core and workers
         run: |
-          private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          # login the skopeo client with the ECR credentials derived from the currently authenticated user
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
-          # copy
-          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:core-nightly docker://$private_ecr_uri/graasp:core-latest
+          private_ecr_uri="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
+
+          # Login the skopeo client with the ECR credentials derived from the currently authenticated user
+          aws ecr get-login-password --region "${{ vars.AWS_REGION }}" | skopeo login --username AWS --password-stdin "$private_ecr_uri"
+
+          for prefix in core workers; do
+            src="docker://$private_ecr_uri/graasp:${prefix}-nightly"
+            dest="docker://$private_ecr_uri/graasp:${prefix}-latest"
+            echo "Copying $src to $dest"
+            skopeo --override-os linux copy "$src" "$dest"
+          done
 
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
