@@ -17,6 +17,7 @@ export type GraaspConfiguration = {
     graasp: HardwareLimit & {
       taskCount: number;
     };
+    workers: HardwareLimit;
     migrate: HardwareLimit;
     etherpad: HardwareLimit;
     meilisearch: HardwareLimit;
@@ -43,6 +44,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         cpu: '1024',
         memory: '2048',
         taskCount: 1,
+      },
+      workers: {
+        cpu: '256',
+        memory: '512',
       },
       migrate: {
         cpu: '256',
@@ -83,6 +88,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         memory: '2048',
         taskCount: 1,
       },
+      workers: {
+        cpu: '256',
+        memory: '512',
+      },
       migrate: {
         cpu: '256',
         memory: '512',
@@ -121,6 +130,10 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
         cpu: '1024',
         memory: '2048',
         taskCount: 2,
+      },
+      workers: {
+        cpu: '256',
+        memory: '512',
       },
       migrate: {
         cpu: '256',

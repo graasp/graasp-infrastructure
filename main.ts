@@ -23,6 +23,8 @@ import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
   AllowedSecurityGroupInfo,
+  securityGroupAllowMultipleOtherSecurityGroups,
+  securityGroupEgressOnly,
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import {
@@ -166,6 +168,11 @@ class GraaspStack extends TerraformStack {
       loadBalancerAllowedSecurityGroupInfo,
       BACKEND_PORT,
     );
+    const workerSecurityGroup = securityGroupEgressOnly(
+      this,
+      `${id}-workers`,
+      vpc.vpcIdOutput,
+    );
     const librarySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-library`,
@@ -207,13 +214,23 @@ class GraaspStack extends TerraformStack {
       targetName: 'graasp-backend',
     } satisfies AllowedSecurityGroupInfo;
 
-    const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
-      this,
-      `${id}-meilisearch`,
-      vpc.vpcIdOutput,
-      backendAllowedSecurityGroupInfo,
-      MEILISEARCH_PORT,
-    );
+    // define security groups accepting ingress trafic from the backend
+    const workersServiceAllowedSecurityGroupInfo = {
+      groupId: workerSecurityGroup.id,
+      targetName: 'graasp-workers',
+    } satisfies AllowedSecurityGroupInfo;
+
+    const meilisearchSecurityGroup =
+      securityGroupAllowMultipleOtherSecurityGroups(
+        this,
+        `${id}-meilisearch`,
+        vpc.vpcIdOutput,
+        [
+          backendAllowedSecurityGroupInfo,
+          workersServiceAllowedSecurityGroupInfo,
+        ],
+        MEILISEARCH_PORT,
+      );
     const iframelySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-iframely`,
@@ -221,11 +238,11 @@ class GraaspStack extends TerraformStack {
       backendAllowedSecurityGroupInfo,
       IFRAMELY_PORT,
     );
-    const redisSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+    const redisSecurityGroup = securityGroupAllowMultipleOtherSecurityGroups(
       this,
       `${id}-redis`,
       vpc.vpcIdOutput,
-      backendAllowedSecurityGroupInfo,
+      [backendAllowedSecurityGroupInfo, workersServiceAllowedSecurityGroupInfo],
       REDIS_PORT,
     );
 
@@ -459,6 +476,7 @@ class GraaspStack extends TerraformStack {
       vpc,
       [
         backendAllowedSecurityGroupInfo,
+        workersServiceAllowedSecurityGroupInfo,
         umamiAllowedSecurityGroupInfo,
         etherpadAllowedSecurityGroupInfo,
         migrationServiceAllowedSecurityGroupInfo,
@@ -590,6 +608,18 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    // currently it is the same, but it could be less in the future
+    const workerEnv = backendEnv;
+    const workersDefinition = createContainerDefinitions(
+      'graasp-worker',
+      `${graaspECR.repositoryUrl}`,
+      'workers-latest',
+      // no port mappings necessary
+      [],
+      workerEnv,
+      environment,
+    );
+
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
       `${libraryECR.repositoryUrl}`,
@@ -692,6 +722,27 @@ class GraaspStack extends TerraformStack {
         containerName: 'core',
         healthCheckPath: '/health',
         ruleConditions,
+      },
+    );
+    // workers
+    cluster.addService(
+      'workers',
+      1,
+      {
+        containerDefinitions: [workersDefinition],
+        cpu: CONFIG[environment.env].ecsConfig.workers.cpu,
+        memory: CONFIG[environment.env].ecsConfig.workers.memory,
+      },
+      graaspServicesActive,
+      workerSecurityGroup,
+      undefined,
+      {
+        predefinedMetricSpecification: {
+          predefinedMetricType: 'ECSServiceAverageCPUUtilization',
+        },
+        targetValue: 70,
+        scaleInCooldown: 30,
+        scaleOutCooldown: 30,
       },
     );
 
