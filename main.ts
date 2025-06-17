@@ -220,13 +220,17 @@ class GraaspStack extends TerraformStack {
       targetName: 'graasp-workers',
     } satisfies AllowedSecurityGroupInfo;
 
-    const meilisearchSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
-      this,
-      `${id}-meilisearch`,
-      vpc.vpcIdOutput,
-      backendAllowedSecurityGroupInfo,
-      MEILISEARCH_PORT,
-    );
+    const meilisearchSecurityGroup =
+      securityGroupAllowMultipleOtherSecurityGroups(
+        this,
+        `${id}-meilisearch`,
+        vpc.vpcIdOutput,
+        [
+          backendAllowedSecurityGroupInfo,
+          workersServiceAllowedSecurityGroupInfo,
+        ],
+        MEILISEARCH_PORT,
+      );
     const iframelySecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
       this,
       `${id}-iframely`,
