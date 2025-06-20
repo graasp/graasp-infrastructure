@@ -628,7 +628,7 @@ class GraaspStack extends TerraformStack {
       {
         VITE_API_HOST: `https://${subdomainForEnv('api', environment)}`,
         VITE_CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain
-        VITE_GRAASPER_ID: toEnvVar(graasperID),
+        VITE_HOST: `https://${subdomainForEnv('library', environment)}`,
       },
       environment,
     );
