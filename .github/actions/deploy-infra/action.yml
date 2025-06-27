@@ -105,7 +105,7 @@ inputs:
     description: "Email change JWT secret"
     required: true
   umami_jwt_secret:
-    description: "Auth token JWT secret (mobile)"
+    description: "Umami app secret (JWT signing)"
     required: true
 
 runs:
