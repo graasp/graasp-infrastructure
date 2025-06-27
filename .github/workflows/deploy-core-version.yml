@@ -107,8 +107,7 @@ jobs:
           secure_session_secret_key: ${{ secrets.TF_VAR_SECURE_SESSION_SECRET_KEY }}
           password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
           email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
-          auth_token_jwt_secret: ${{ secrets.TF_VAR_AUTH_TOKEN_JWT_SECRET }}
-          refresh_token_jwt_secret: ${{ secrets.TF_VAR_REFRESH_TOKEN_JWT_SECRET }}
+          umami_jwt_secret: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
 
         # configure credentials to assume terraform role
       - name: Configure AWS Credentials to assume terraform Role

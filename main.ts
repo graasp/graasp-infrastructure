@@ -420,26 +420,12 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-    const authTokenJwtSecret = new TerraformVariable(
-      this,
-      'AUTH_TOKEN_JWT_SECRET',
-      {
-        nullable: false,
-        type: 'string',
-        description: 'JWT secret for signing auth tokens for mobile',
-        sensitive: true,
-      },
-    );
-    const refreshTokenJwtSecret = new TerraformVariable(
-      this,
-      'REFRESH_TOKEN_JWT_SECRET',
-      {
-        nullable: false,
-        type: 'string',
-        description: 'JWT secret for signing refresh tokens for mobile',
-        sensitive: true,
-      },
-    );
+    const umamiJwtSecret = new TerraformVariable(this, 'UMAMI_JWT_SECRET', {
+      nullable: false,
+      type: 'string',
+      description: 'JWT secret for umami service',
+      sensitive: true,
+    });
 
     const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
@@ -585,8 +571,6 @@ class GraaspStack extends TerraformStack {
       SECURE_SESSION_SECRET_KEY: toEnvVar(secureSessionJwtSecret),
       PASSWORD_RESET_JWT_SECRET: toEnvVar(passwordResetJwtSecret),
       EMAIL_CHANGE_JWT_SECRET: toEnvVar(emailChangeJwtSecret),
-      AUTH_TOKEN_JWT_SECRET: toEnvVar(authTokenJwtSecret),
-      REFRESH_TOKEN_JWT_SECRET: toEnvVar(refreshTokenJwtSecret),
       APPS_JWT_SECRET: toEnvVar(appsJwtSecret),
     };
 
@@ -684,8 +668,7 @@ class GraaspStack extends TerraformStack {
           username: 'umami',
           password: toEnvVar(umamiDbUserPassword),
         }),
-        APP_SECRET:
-          'a5b20f9ac88eb6d9c2a443664968052ee9f34a3ea8ed1ebe0c0d5c51d5ea78ca', // FIXME: use an env var
+        APP_SECRET: toEnvVar(umamiJwtSecret),
         DISABLE_TELEMETRY: '1',
         HOSTNAME: '0.0.0.0', // needed for the app to bind to localhost, otherwise never answers the health-checks
       },
