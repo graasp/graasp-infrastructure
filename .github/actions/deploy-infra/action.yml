@@ -214,6 +214,7 @@ runs:
         TF_VAR_SECURE_SESSION_SECRET_KEY: ${{ inputs.secure_session_secret_key }}
         TF_VAR_PASSWORD_RESET_JWT_SECRET: ${{ inputs.password_reset_jwt_secret }}
         TF_VAR_EMAIL_CHANGE_JWT_SECRET: ${{ inputs.email_change_jwt_secret }}
+        TF_VAR_UMAMI_JWT_SECRET: ${{ inputs.umami_jwt_secret }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
