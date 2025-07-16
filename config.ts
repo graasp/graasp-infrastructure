@@ -121,7 +121,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
   [Environment.PRODUCTION]: {
     dbConfig: {
       graasp: {
-        enableReplication: true,
+        enableReplication: false,
         backupRetentionPeriod: 7,
       },
     },
