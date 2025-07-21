@@ -3,15 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: 'Target environment'
         type: environment
         required: true
       version:
-        description: "Version to deploy"
-        type: "string"
+        description: 'Version to deploy'
+        type: 'string'
         required: true
       state:
-        description: "Expected infrastructure state"
+        description: 'Expected infrastructure state'
         type: choice
         options:
           - running
@@ -119,5 +119,7 @@ jobs:
 
       - name: Force new deployment of core service
         run: |
-          # force a new deployment of the cluster
-          aws ecs update-service --cluster graasp-${{ inputs.environment }} --service graasp --force-new-deployment
+          for service in core workers; do
+            # force a new deployment of the service
+            aws ecs update-service --cluster graasp-${{ inputs.environment }} --service ${service} --force-new-deployment
+          done
