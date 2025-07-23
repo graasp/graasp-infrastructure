@@ -119,7 +119,7 @@ jobs:
 
       - name: Force new deployment of core service
         run: |
-          for service in core workers; do
+          for service in graasp workers; do
             # force a new deployment of the service
             aws ecs update-service --cluster graasp-${{ inputs.environment }} --service ${service} --force-new-deployment
           done
