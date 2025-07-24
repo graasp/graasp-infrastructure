@@ -1,4 +1,4 @@
-name: "Comment a Plan on a PR"
+name: 'Comment a Plan on a PR'
 
 on: [pull_request]
 
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   terraform:
-    name: "Terraform CDK Diff"
+    name: 'Terraform CDK Diff'
     environment: dev
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +41,7 @@ jobs:
           TF_VAR_GRAASPER_ID: ${{ vars.TF_VAR_GRAASPER_ID }}
           TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
           TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
-          TF_VAR_APPS_PUBLISHER_ID: ${{ secrets.TF_VAR_APPS_PUBLISHER_ID }}
+          TF_VAR_APPS_PUBLISHER_ID: ${{ vars.TF_VAR_APPS_PUBLISHER_ID }}
           TF_VAR_MAILER_CONNECTION: ${{ secrets.TF_VAR_MAILER_CONNECTION }}
           TF_VAR_SENTRY_DSN: ${{ secrets.TF_VAR_SENTRY_DSN }}
           TF_VAR_OPENAI_ORG_ID: ${{ vars.TF_VAR_OPENAI_ORG_ID }}
