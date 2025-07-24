@@ -1,11 +1,12 @@
 name: Stop infra
+run-name: Stop ${{ inputs.environment || 'dev' }}
 on:
   schedule:
-    - cron: "30 18 * * 1-5"
+    - cron: '30 18 * * 1-5'
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: 'Target environment'
         type: environment
         required: true
 
@@ -26,7 +27,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: "stopped"
+          state: 'stopped'
           environment: ${{ inputs.environment || 'dev' }}
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}

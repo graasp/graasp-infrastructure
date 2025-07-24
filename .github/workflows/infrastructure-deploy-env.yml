@@ -1,14 +1,15 @@
-name: "Apply infrastructure on env"
+name: 'Apply infrastructure on env'
+run-name: Apply "${{ inputs.state }}" on ${{ inputs.environment }}
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: 'Target environment'
         type: environment
         required: true
       state:
-        description: "Expected infrastructure state"
+        description: 'Expected infrastructure state'
         type: choice
         options:
           - running
@@ -21,7 +22,7 @@ on:
 
 jobs:
   plan:
-    name: "Plan (${{ inputs.environment }}) - ${{ inputs.state}}"
+    name: 'Plan (${{ inputs.environment }}) - ${{ inputs.state}}'
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +73,7 @@ jobs:
 
   deploy:
     needs: plan
-    name: "Deploy (${{ inputs.environment }}) - ${{ inputs.state}}"
+    name: 'Deploy (${{ inputs.environment }}) - ${{ inputs.state}}'
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
     steps:

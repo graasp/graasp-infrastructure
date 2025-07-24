@@ -3,7 +3,7 @@ name: Delete untagged images in ECR
 on:
   workflow_dispatch:
   schedule:
-    - cron: "58 1 * * *" # runs everyday at 1:58AM
+    - cron: '58 1 * * *' # runs everyday at 1:58AM
 
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -13,8 +13,8 @@ jobs:
   cleanup:
     strategy:
       matrix:
-        environment: ["dev"] # , "staging", "prod"
-        repository: ["graasp", "graasp/explore"]
+        environment: ['dev', 'staging', 'prod']
+        repository: ['graasp', 'graasp/explore']
     name: Cleanup ${{ matrix.repository }} on ${{ matrix.environment }}
     runs-on: ubuntu-latest
     environment: ${{ matrix.environment }}
