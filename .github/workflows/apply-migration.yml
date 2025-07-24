@@ -1,14 +1,15 @@
 name: Apply Migration
+run-name: Apply migration(${{ inputs.version }}) on ${{ inputs.environment }}
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: 'Target environment'
         type: environment
         required: true
       version:
-        description: "Version to deploy"
-        type: "string"
+        description: 'Version to deploy'
+        type: 'string'
         required: true
 
 permissions:
@@ -52,7 +53,7 @@ jobs:
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
         with:
-          state: "db-only"
+          state: 'db-only'
           environment: ${{ inputs.environment }}
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}

@@ -1,12 +1,13 @@
 name: Start infra
+run-name: Stop ${{ inputs.environment || 'dev' }}
 on:
   schedule:
-    - cron: "30 6 * * 1-5"
+    - cron: '30 6 * * 1-5'
   # allow to start infra of another env manually
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: 'Target environment'
         type: environment
         required: true
 
@@ -27,7 +28,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: "running"
+          state: 'running'
           environment: ${{ inputs.environment || 'dev' }}
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
