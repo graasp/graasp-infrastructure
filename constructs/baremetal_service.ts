@@ -3,6 +3,7 @@ import {
   LbListenerRuleCondition,
 } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import { LbTargetGroup } from '@cdktf/provider-aws/lib/lb-target-group';
+import { LbTargetGroupAttachment } from '@cdktf/provider-aws/lib/lb-target-group-attachment';
 
 import { Construct } from 'constructs';
 
@@ -76,7 +77,11 @@ export class BaremetalService extends Construct {
         interval: 60, // in seconds
       },
     });
-
+    // register the ec2 instance as an attachement to the target group
+    new LbTargetGroupAttachment(this, `${name}-target-group-attachement`, {
+      targetGroupArn: targetGroup.arn,
+      targetId: this.instance.ec2.id,
+    });
     // Makes the listener forward requests from host to the target group
     new LbListenerRule(this, `${name}-rule`, {
       listenerArn: loadBalancerConfig.loadBalancer.lbl.arn,
