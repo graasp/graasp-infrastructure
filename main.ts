@@ -452,7 +452,7 @@ class GraaspStack extends TerraformStack {
             {
               name: 'colab',
               keyName: 'colab',
-              instanceAmi: '',
+              instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
               instanceType: 't4g.micro',
               allowedSecurityGroups: [
                 { ...loadBalancerAllowedSecurityGroupInfo, port: 3000 },
