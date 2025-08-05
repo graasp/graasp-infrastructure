@@ -47,7 +47,7 @@ export class GateKeeper extends Construct {
       this,
       `${name}-gatekeeper`,
       vpc,
-      gatekeeperKeyName,
+      gatekeeperKeyName.value,
       gatekeeperAmiId.value,
       gatekeeperInstanceType.value,
       true,
