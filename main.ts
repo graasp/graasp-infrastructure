@@ -12,6 +12,7 @@ import { Construct } from 'constructs';
 
 import { Vpc } from './.gen/modules/vpc';
 import { CONFIG } from './config';
+import { BaremetalService } from './constructs/baremetal_service';
 import { GraaspS3Bucket } from './constructs/bucket';
 import {
   createMaintenanceFunction,
@@ -442,6 +443,34 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    const colaborativeIdeation =
+      environment.env === Environment.DEV
+        ? new BaremetalService(
+            this,
+            id,
+            vpc,
+            {
+              name: 'colab',
+              keyName: 'colab',
+              instanceAmi: '',
+              instanceType: 't4g.micro',
+              allowedSecurityGroups: [
+                { ...loadBalancerAllowedSecurityGroupInfo, port: 3000 },
+              ],
+            },
+            {
+              loadBalancer: loadBalancer,
+              priority: 9,
+              host: subdomainForEnv('colab', environment),
+              // TODO: ensure this is the correct port
+              port: 3000,
+              // TODO: ensure this is the correct path
+              healthCheckPath: '/health',
+              ruleConditions,
+            },
+          )
+        : undefined;
+
     // define security groups needing access to the database
     const umamiAllowedSecurityGroupInfo = {
       groupId: umamiSecurityGroup.id,
@@ -453,6 +482,21 @@ class GraaspStack extends TerraformStack {
       targetName: 'etherpad',
     } satisfies AllowedSecurityGroupInfo;
 
+    const allowedSecurityGroupsDB = [
+      backendAllowedSecurityGroupInfo,
+      workersServiceAllowedSecurityGroupInfo,
+      umamiAllowedSecurityGroupInfo,
+      etherpadAllowedSecurityGroupInfo,
+      migrationServiceAllowedSecurityGroupInfo,
+    ];
+    // add the colab security group only if the colab service is defined
+    if (colaborativeIdeation) {
+      allowedSecurityGroupsDB.push({
+        groupId: colaborativeIdeation.instance.securityGroup.id,
+        targetName: 'colab',
+      });
+    }
+
     const backendDb = new PostgresDB(
       this,
       id,
@@ -460,13 +504,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       dbPassword,
       vpc,
-      [
-        backendAllowedSecurityGroupInfo,
-        workersServiceAllowedSecurityGroupInfo,
-        umamiAllowedSecurityGroupInfo,
-        etherpadAllowedSecurityGroupInfo,
-        migrationServiceAllowedSecurityGroupInfo,
-      ],
+      allowedSecurityGroupsDB,
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       isServiceActive(environment).database,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
