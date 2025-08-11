@@ -1,5 +1,5 @@
 name: Start infra
-run-name: Stop ${{ inputs.environment || 'dev' }}
+run-name: Start ${{ inputs.environment || 'dev' }}
 on:
   schedule:
     - cron: '30 6 * * 1-5'
