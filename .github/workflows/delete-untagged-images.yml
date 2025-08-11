@@ -3,7 +3,7 @@ name: Delete untagged images in ECR
 on:
   workflow_dispatch:
   schedule:
-    - cron: '58 1 * * *' # runs everyday at 1:58AM
+    - cron: '58 1 * * 1' # runs every monday at 1:58AM
 
 permissions:
   id-token: write # This is required for requesting the JWT
