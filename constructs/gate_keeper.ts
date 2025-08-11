@@ -47,10 +47,12 @@ export class GateKeeper extends Construct {
       this,
       `${name}-gatekeeper`,
       vpc,
-      gatekeeperKeyName,
+      gatekeeperKeyName.value,
       gatekeeperAmiId.value,
       gatekeeperInstanceType.value,
       true,
+      // by default the gatekeeper is off. We start it when needed
+      false,
     );
   }
 }

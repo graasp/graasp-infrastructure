@@ -12,6 +12,7 @@ import { Construct } from 'constructs';
 
 import { Vpc } from './.gen/modules/vpc';
 import { CONFIG } from './config';
+import { BaremetalService } from './constructs/baremetal_service';
 import { GraaspS3Bucket } from './constructs/bucket';
 import {
   createMaintenanceFunction,
@@ -442,6 +443,38 @@ class GraaspStack extends TerraformStack {
       },
     );
 
+    const collaborativeIdeation =
+      // This service is currently only enabled in the "dev" environnement.
+      // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
+      // For now we can keep it like this, we will change if we need.
+      environment.env === Environment.DEV
+        ? new BaremetalService(
+            this,
+            id,
+            vpc,
+            {
+              name: 'collab',
+              keyName: 'collab',
+              instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
+              instanceType: 't4g.micro',
+              allowedSecurityGroups: [
+                { ...loadBalancerAllowedSecurityGroupInfo, port: 3000 },
+              ],
+            },
+            isServiceActive(environment).graasp,
+            {
+              loadBalancer: loadBalancer,
+              priority: 9,
+              host: subdomainForEnv('collab', environment),
+              // TODO: ensure this is the correct port
+              port: 3000,
+              // TODO: ensure this is the correct path
+              healthCheckPath: '/health',
+              ruleConditions,
+            },
+          )
+        : undefined;
+
     // define security groups needing access to the database
     const umamiAllowedSecurityGroupInfo = {
       groupId: umamiSecurityGroup.id,
@@ -453,6 +486,21 @@ class GraaspStack extends TerraformStack {
       targetName: 'etherpad',
     } satisfies AllowedSecurityGroupInfo;
 
+    const allowedSecurityGroupsDB = [
+      backendAllowedSecurityGroupInfo,
+      workersServiceAllowedSecurityGroupInfo,
+      umamiAllowedSecurityGroupInfo,
+      etherpadAllowedSecurityGroupInfo,
+      migrationServiceAllowedSecurityGroupInfo,
+    ];
+    // add the collab security group only if the collab service is defined
+    if (collaborativeIdeation) {
+      allowedSecurityGroupsDB.push({
+        groupId: collaborativeIdeation.instance.securityGroup.id,
+        targetName: 'collab',
+      });
+    }
+
     const backendDb = new PostgresDB(
       this,
       id,
@@ -460,13 +508,7 @@ class GraaspStack extends TerraformStack {
       'graasp',
       dbPassword,
       vpc,
-      [
-        backendAllowedSecurityGroupInfo,
-        workersServiceAllowedSecurityGroupInfo,
-        umamiAllowedSecurityGroupInfo,
-        etherpadAllowedSecurityGroupInfo,
-        migrationServiceAllowedSecurityGroupInfo,
-      ],
+      allowedSecurityGroupsDB,
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       isServiceActive(environment).database,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
