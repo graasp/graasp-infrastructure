@@ -1,3 +1,4 @@
+import { Ec2InstanceState } from '@cdktf/provider-aws/lib/ec2-instance-state';
 import { Instance } from '@cdktf/provider-aws/lib/instance';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
@@ -23,6 +24,7 @@ export class Ec2 extends Construct {
     ami: string,
     instanceType: string,
     associatePublicIpAddress = false,
+    isActive: boolean = true,
   ) {
     super(scope, name);
 
@@ -59,6 +61,12 @@ export class Ec2 extends Construct {
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
       vpcSecurityGroupIds: [this.securityGroup.id],
+    });
+
+    // define an instance state to manage power on and off
+    new Ec2InstanceState(this, `${this.name}-state`, {
+      instanceId: this.ec2.id,
+      state: isActive ? 'running' : 'stopped',
     });
 
     // allow ssh from anywhere

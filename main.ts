@@ -443,25 +443,26 @@ class GraaspStack extends TerraformStack {
       },
     );
 
-    const colaborativeIdeation =
+    const collaborativeIdeation =
       environment.env === Environment.DEV
         ? new BaremetalService(
             this,
             id,
             vpc,
             {
-              name: 'colab',
-              keyName: 'colab',
+              name: 'collab',
+              keyName: 'collab',
               instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
               instanceType: 't4g.micro',
               allowedSecurityGroups: [
                 { ...loadBalancerAllowedSecurityGroupInfo, port: 3000 },
               ],
             },
+            isServiceActive(environment).graasp,
             {
               loadBalancer: loadBalancer,
               priority: 9,
-              host: subdomainForEnv('colab', environment),
+              host: subdomainForEnv('collab', environment),
               // TODO: ensure this is the correct port
               port: 3000,
               // TODO: ensure this is the correct path
@@ -489,11 +490,11 @@ class GraaspStack extends TerraformStack {
       etherpadAllowedSecurityGroupInfo,
       migrationServiceAllowedSecurityGroupInfo,
     ];
-    // add the colab security group only if the colab service is defined
-    if (colaborativeIdeation) {
+    // add the collab security group only if the collab service is defined
+    if (collaborativeIdeation) {
       allowedSecurityGroupsDB.push({
-        groupId: colaborativeIdeation.instance.securityGroup.id,
-        targetName: 'colab',
+        groupId: collaborativeIdeation.instance.securityGroup.id,
+        targetName: 'collab',
       });
     }
 

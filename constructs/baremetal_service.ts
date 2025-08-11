@@ -27,6 +27,7 @@ export class BaremetalService extends Construct {
       instanceType: string;
       allowedSecurityGroups: ({ port: number } & AllowedSecurityGroupInfo)[];
     },
+    isActive: boolean,
     loadBalancerConfig: {
       loadBalancer: LoadBalancer;
       port: number;
@@ -49,6 +50,8 @@ export class BaremetalService extends Construct {
       config.instanceType,
       // use a public ip address
       true,
+      // make the instance state follow on/off of the infra
+      isActive,
     );
 
     if (config.allowedSecurityGroups.length > 0) {
