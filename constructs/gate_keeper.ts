@@ -51,6 +51,8 @@ export class GateKeeper extends Construct {
       gatekeeperAmiId.value,
       gatekeeperInstanceType.value,
       true,
+      // by default the gatekeeper is off. We start it when needed
+      false,
     );
   }
 }
