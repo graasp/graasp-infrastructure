@@ -66,7 +66,7 @@ export class BaremetalService extends Construct {
 
     const targetGroup = new LbTargetGroup(this, `${name}-target-group`, {
       dependsOn: [loadBalancerConfig.loadBalancer.lbl],
-      name: `${name}`,
+      name,
       port: loadBalancerConfig.port,
       protocol: 'HTTP',
       targetType: 'instance',

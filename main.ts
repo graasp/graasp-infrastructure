@@ -444,6 +444,9 @@ class GraaspStack extends TerraformStack {
     );
 
     const collaborativeIdeation =
+      // This service is currently only enabled in the "dev" environnement.
+      // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
+      // For now we can keep it like this, we will change if we need.
       environment.env === Environment.DEV
         ? new BaremetalService(
             this,
