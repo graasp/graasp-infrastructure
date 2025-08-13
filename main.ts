@@ -461,7 +461,7 @@ class GraaspStack extends TerraformStack {
                 { ...loadBalancerAllowedSecurityGroupInfo, port: 3000 },
               ],
             },
-            isServiceActive(environment).graasp,
+            isServiceActive(environment).collab,
             {
               loadBalancer: loadBalancer,
               priority: 9,
