@@ -105,6 +105,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
   umami: boolean;
   graasp: boolean;
   migration: boolean;
+  collab: boolean;
 } {
   const { infraState } = environment;
   switch (infraState) {
@@ -115,6 +116,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
         umami: false,
         graasp: false,
         migration: false,
+        collab: false,
       };
     case InfraState.DBOnly:
       return {
@@ -123,6 +125,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
         umami: true,
         graasp: false,
         migration: true,
+        collab: true,
       };
     case InfraState.Restricted:
       return {
@@ -131,6 +134,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
         umami: true,
         graasp: true,
         migration: false,
+        collab: true,
       };
     case InfraState.Running:
     default:
@@ -140,6 +144,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
         umami: true,
         graasp: true,
         migration: false,
+        collab: true,
       };
   }
 }
