@@ -129,7 +129,7 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       graasp: {
         cpu: '1024',
         memory: '2048',
-        taskCount: 2,
+        taskCount: 1,
       },
       workers: {
         cpu: '256',
