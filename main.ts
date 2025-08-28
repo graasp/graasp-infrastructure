@@ -492,7 +492,7 @@ class GraaspStack extends TerraformStack {
         instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
         instanceType: 't4g.micro',
         allowedSecurityGroups: [
-          { ...loadBalancerAllowedSecurityGroupInfo, port: 443 },
+          { ...loadBalancerAllowedSecurityGroupInfo, port: 4000 },
         ],
       },
       isServiceActive(environment).graasp,
@@ -501,7 +501,7 @@ class GraaspStack extends TerraformStack {
         priority: 8,
         host: subdomainForEnv('admin', environment),
         // TODO: ensure this is the correct port
-        port: 443,
+        port: 4000,
         // TODO: ensure this is the correct path
         healthCheckPath: '/up',
         ruleConditions,
