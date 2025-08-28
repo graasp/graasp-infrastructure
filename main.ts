@@ -1,5 +1,7 @@
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
+import { EcrLifecyclePolicy } from '@cdktf/provider-aws/lib/ecr-lifecycle-policy';
+import { EcrRepository } from '@cdktf/provider-aws/lib/ecr-repository';
 import { LbListenerRuleCondition } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
   AwsProvider,
@@ -480,6 +482,32 @@ class GraaspStack extends TerraformStack {
           )
         : undefined;
 
+    const admin = new BaremetalService(
+      this,
+      id,
+      vpc,
+      {
+        name: 'admin',
+        keyName: 'phoenix', // needs to exist in the env
+        instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
+        instanceType: 't4g.micro',
+        allowedSecurityGroups: [
+          { ...loadBalancerAllowedSecurityGroupInfo, port: 443 },
+        ],
+      },
+      isServiceActive(environment).graasp,
+      {
+        loadBalancer: loadBalancer,
+        priority: 10,
+        host: subdomainForEnv('admin', environment),
+        // TODO: ensure this is the correct port
+        port: 443,
+        // TODO: ensure this is the correct path
+        healthCheckPath: '/up',
+        ruleConditions,
+      },
+    );
+
     // define security groups needing access to the database
     const umamiAllowedSecurityGroupInfo = {
       groupId: umamiSecurityGroup.id,
@@ -491,12 +519,18 @@ class GraaspStack extends TerraformStack {
       targetName: 'etherpad',
     } satisfies AllowedSecurityGroupInfo;
 
+    const adminAllowedSecurityGroupInfo = {
+      groupId: admin.instance.securityGroup.id,
+      targetName: 'admin',
+    } satisfies AllowedSecurityGroupInfo;
+
     const allowedSecurityGroupsDB = [
       backendAllowedSecurityGroupInfo,
       workersServiceAllowedSecurityGroupInfo,
       umamiAllowedSecurityGroupInfo,
       etherpadAllowedSecurityGroupInfo,
       migrationServiceAllowedSecurityGroupInfo,
+      adminAllowedSecurityGroupInfo,
     ];
     // add the collab security group only if the collab service is defined
     if (collaborativeIdeation) {
@@ -538,6 +572,39 @@ class GraaspStack extends TerraformStack {
     });
     const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
+    });
+    const adminECR = new EcrRepository(this, `${id}-admin-ecr`, {
+      name: 'graasp/admin',
+    });
+    // ecr repository policy
+    new EcrLifecyclePolicy(this, `${id}-admin-ecr-lifecycle`, {
+      repository: adminECR.name,
+      policy: JSON.stringify([
+        {
+          rulePriority: 1,
+          selection: {
+            tagStatus: 'untagged',
+            countType: 'sinceImagePushed',
+            countUnit: 'days',
+            countNumber: 1,
+          },
+          action: {
+            type: 'expire',
+          },
+        },
+        {
+          rulePriority: 2,
+          description: 'Keep only the last 2 images',
+          selection: {
+            tagStatus: 'any',
+            countType: 'imageCountMoreThan',
+            countNumber: 2,
+          },
+          action: {
+            type: 'expire',
+          },
+        },
+      ]),
     });
 
     const meilisearchMasterKey = new TerraformVariable(
