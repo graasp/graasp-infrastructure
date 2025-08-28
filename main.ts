@@ -498,7 +498,7 @@ class GraaspStack extends TerraformStack {
       isServiceActive(environment).graasp,
       {
         loadBalancer: loadBalancer,
-        priority: 10,
+        priority: 8,
         host: subdomainForEnv('admin', environment),
         // TODO: ensure this is the correct port
         port: 443,
@@ -579,32 +579,34 @@ class GraaspStack extends TerraformStack {
     // ecr repository policy
     new EcrLifecyclePolicy(this, `${id}-admin-ecr-lifecycle`, {
       repository: adminECR.name,
-      policy: JSON.stringify([
-        {
-          rulePriority: 1,
-          selection: {
-            tagStatus: 'untagged',
-            countType: 'sinceImagePushed',
-            countUnit: 'days',
-            countNumber: 1,
+      policy: JSON.stringify({
+        rules: [
+          {
+            rulePriority: 1,
+            selection: {
+              tagStatus: 'untagged',
+              countType: 'sinceImagePushed',
+              countUnit: 'days',
+              countNumber: 1,
+            },
+            action: {
+              type: 'expire',
+            },
           },
-          action: {
-            type: 'expire',
+          {
+            rulePriority: 2,
+            description: 'Keep only the last 2 images',
+            selection: {
+              tagStatus: 'any',
+              countType: 'imageCountMoreThan',
+              countNumber: 2,
+            },
+            action: {
+              type: 'expire',
+            },
           },
-        },
-        {
-          rulePriority: 2,
-          description: 'Keep only the last 2 images',
-          selection: {
-            tagStatus: 'any',
-            countType: 'imageCountMoreThan',
-            countNumber: 2,
-          },
-          action: {
-            type: 'expire',
-          },
-        },
-      ]),
+        ],
+      }),
     });
 
     const meilisearchMasterKey = new TerraformVariable(
