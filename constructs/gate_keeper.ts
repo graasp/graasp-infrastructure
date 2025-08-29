@@ -53,6 +53,8 @@ export class GateKeeper extends Construct {
       true,
       // by default the gatekeeper is off. We start it when needed
       false,
+      // install psql in the gatekeeper
+      `sudo yum -y update && sudo yum -y install postgresql15`,
     );
   }
 }

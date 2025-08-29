@@ -50,6 +50,14 @@ type TaskDefinitionConfiguration = {
   memory?: string;
 };
 
+export function portMappingRange({ from, to }: { from: number; to: number }) {
+  return Array.from({ length: to - from + 1 }, (_, i) => ({
+    containerPort: from + i,
+    hostPort: from + i,
+    protocol: 'tcp',
+  }));
+}
+
 export function createContainerDefinitions(
   name: string,
   dockerImage: string,

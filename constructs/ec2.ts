@@ -62,8 +62,10 @@ export class Ec2 extends Construct {
       // choose a random subnet in the given vpc
       subnetId: Fn.element(Token.asList(vpc.publicSubnetsOutput), 0),
       vpcSecurityGroupIds: [this.securityGroup.id],
-      userData: `#!/bin/bash
-${userData}`,
+      userData: userData
+        ? `#!/bin/bash
+${userData}`
+        : undefined,
     });
 
     // define an instance state to manage power on and off

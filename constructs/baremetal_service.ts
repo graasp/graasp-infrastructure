@@ -73,14 +73,14 @@ export class BaremetalService extends Construct {
       protocol: 'HTTP',
       targetType: 'instance',
       vpcId: vpc.vpcIdOutput,
-      // healthCheck: {
-      //   enabled: true,
-      //   path: loadBalancerConfig.healthCheckPath,
-      //   healthyThreshold: 3,
-      //   unhealthyThreshold: 3,
-      //   timeout: 6, // in seconds the response time after which the target is considered un-healthy
-      //   interval: 60, // in seconds
-      // },
+      healthCheck: {
+        enabled: true,
+        path: loadBalancerConfig.healthCheckPath,
+        healthyThreshold: 2,
+        unhealthyThreshold: 4,
+        timeout: 5, // in seconds the response time after which the target is considered un-healthy
+        interval: 30, // in seconds
+      },
     });
     // register the ec2 instance as an attachement to the target group
     new LbTargetGroupAttachment(this, `${name}-target-group-attachement`, {

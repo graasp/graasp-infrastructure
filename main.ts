@@ -82,6 +82,7 @@ class GraaspStack extends TerraformStack {
     const REDIS_PORT = 6379;
     const REDIS_HOSTNAME = 'graasp-redis';
     const UMAMI_PORT = 3000;
+    const ADMIN_PORT = 4000;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -227,6 +228,14 @@ class GraaspStack extends TerraformStack {
       groupId: workerSecurityGroup.id,
       targetName: 'graasp-workers',
     } satisfies AllowedSecurityGroupInfo;
+
+    const adminSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-admin`,
+      vpc.vpcIdOutput,
+      loadBalancerAllowedSecurityGroupInfo,
+      ADMIN_PORT,
+    );
 
     const meilisearchSecurityGroup =
       securityGroupAllowMultipleOtherSecurityGroups(
@@ -449,7 +458,14 @@ class GraaspStack extends TerraformStack {
         toPort: MEILISEARCH_PORT,
       },
     );
-
+    new VpcSecurityGroupIngressRule(this, `${id}-allow-gatekeeper-on-admin`, {
+      referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
+      ipProtocol: 'tcp',
+      securityGroupId: adminSecurityGroup.id,
+      // port range for ingress trafic
+      fromPort: 9000,
+      toPort: 9000,
+    });
     const collaborativeIdeation =
       // This service is currently only enabled in the "dev" environnement.
       // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
@@ -482,33 +498,6 @@ class GraaspStack extends TerraformStack {
           )
         : undefined;
 
-    const admin = new BaremetalService(
-      this,
-      id,
-      vpc,
-      {
-        name: 'admin',
-        keyName: 'phoenix', // needs to exist in the env
-        instanceAmi: 'ami-01c79f8fca6bc28c3', // aws linux for arm based graviton instance
-        instanceType: 't4g.micro',
-        allowedSecurityGroups: [
-          { ...loadBalancerAllowedSecurityGroupInfo, port: 4000 },
-        ],
-        userData: `sudo yum update -y && sudo yum install -y docker && sudo systemctl start docker && sudo usermod -aG docker ec2-user && sudo systemctl enable docker`,
-      },
-      isServiceActive(environment).graasp,
-      {
-        loadBalancer: loadBalancer,
-        priority: 8,
-        host: subdomainForEnv('admin', environment),
-        // TODO: ensure this is the correct port
-        port: 4000,
-        // TODO: ensure this is the correct path
-        healthCheckPath: '/up',
-        ruleConditions,
-      },
-    );
-
     // define security groups needing access to the database
     const umamiAllowedSecurityGroupInfo = {
       groupId: umamiSecurityGroup.id,
@@ -521,7 +510,7 @@ class GraaspStack extends TerraformStack {
     } satisfies AllowedSecurityGroupInfo;
 
     const adminAllowedSecurityGroupInfo = {
-      groupId: admin.instance.securityGroup.id,
+      groupId: adminSecurityGroup.id,
       targetName: 'admin',
     } satisfies AllowedSecurityGroupInfo;
 
@@ -721,6 +710,74 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const ECTO_DB_CONNECTION = buildPostgresConnectionString({
+      protocol: 'ecto',
+      host: backendDb.instance.dbInstanceAddressOutput,
+      port: '5432',
+      name: 'graasp',
+      username: backendDb.instance.dbInstanceUsernameOutput,
+      password: toEnvVar(dbPassword),
+    });
+
+    const adminSecretKeyBase = new TerraformVariable(
+      this,
+      'ADMIN_SECRET_KEY_BASE',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Secret key base used for tokens in the admin',
+        sensitive: true,
+      },
+    );
+    const adminReleaseCookie = new TerraformVariable(
+      this,
+      'ADMIN_RELEASE_COOKIE',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Release cookie used for remote IEX debugging',
+        sensitive: true,
+      },
+    );
+    const mailerSESAccessKey = new TerraformVariable(
+      this,
+      'MAILER_SES_ACCESS_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Mailer SES access key',
+        sensitive: true,
+      },
+    );
+    const mailerSESSecret = new TerraformVariable(this, 'MAILER_SES_SECRET', {
+      nullable: false,
+      type: 'string',
+      description: 'Mailer SES secret key',
+      sensitive: true,
+    });
+
+    const adminDefinition = createContainerDefinitions(
+      'graasp-admin',
+      `${adminECR.repositoryUrl}`,
+      'latest',
+      [
+        { hostPort: ADMIN_PORT, containerPort: ADMIN_PORT },
+        // epdm
+        { hostPort: 4369, containerPort: 4369 },
+        // distributed erlang ports
+        { hostPort: 9000, containerPort: 9000 },
+      ],
+      {
+        DATABASE_URL: ECTO_DB_CONNECTION,
+        SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
+        PHX_HOST: subdomainForEnv('admin', environment),
+        MAILER_SES_ACCESS_KEY: toEnvVar(mailerSESAccessKey),
+        MAILER_SES_SECRET: toEnvVar(mailerSESSecret),
+        RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
+      },
+      environment,
+    );
+
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
       `${libraryECR.repositoryUrl}`,
@@ -843,6 +900,30 @@ class GraaspStack extends TerraformStack {
         targetValue: 70,
         scaleInCooldown: 30,
         scaleOutCooldown: 30,
+      },
+    );
+
+    cluster.addService(
+      'admin',
+      1,
+      {
+        containerDefinitions: [adminDefinition],
+        cpu: CONFIG[environment.env].ecsConfig.admin.cpu,
+        memory: CONFIG[environment.env].ecsConfig.admin.memory,
+      },
+      graaspServicesActive,
+      adminSecurityGroup,
+      undefined,
+      undefined,
+      {
+        loadBalancer: loadBalancer,
+        priority: 8,
+        host: subdomainForEnv('admin', environment),
+        port: 80,
+        containerName: 'admin',
+        containerPort: ADMIN_PORT,
+        healthCheckPath: '/up',
+        ruleConditions,
       },
     );
 
