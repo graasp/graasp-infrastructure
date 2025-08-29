@@ -48,6 +48,7 @@ type TaskDefinitionConfiguration = {
   containerDefinitions: ContainerDefinition[];
   cpu?: string;
   memory?: string;
+  cpuArchitecture?: 'X86_64' | 'ARM64';
 };
 
 export function portMappingRange({ from, to }: { from: number; to: number }) {
@@ -183,6 +184,10 @@ export class Cluster extends Construct {
       family: name, // name used to group the definitions versions
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
+      runtimePlatform: {
+        operatingSystemFamily: 'LINUX',
+        cpuArchitecture: taskDefinitionConfig.cpuArchitecture ?? 'X86_64',
+      },
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,

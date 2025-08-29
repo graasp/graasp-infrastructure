@@ -914,6 +914,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [adminDefinition],
         cpu: CONFIG[environment.env].ecsConfig.admin.cpu,
         memory: CONFIG[environment.env].ecsConfig.admin.memory,
+        cpuArchitecture: 'ARM64', // use arm64 since the image is built on arm64
       },
       graaspServicesActive,
       adminSecurityGroup,
