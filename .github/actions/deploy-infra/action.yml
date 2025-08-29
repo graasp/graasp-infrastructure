@@ -3,109 +3,121 @@ description: Deploy the infrastructure in a specific state
 
 inputs:
   state:
-    description: "Infra state"
+    description: 'Infra state'
     required: true
   environment:
-    description: "Environment to target"
+    description: 'Environment to target'
     required: true
   aws-role-to-assume:
-    description: "AWS Role to assume to start/stop the DB"
+    description: 'AWS Role to assume to start/stop the DB'
     required: true
   aws-region:
-    description: "AWS Region for for the deployment"
+    description: 'AWS Region for for the deployment'
     required: true
   aws-access-key-id:
-    description: "AWS Key id"
+    description: 'AWS Key id'
     required: true
   aws-secret-access-key:
-    description: "AWS secret key"
+    description: 'AWS secret key'
     required: true
   maintenance-header-name:
-    description: "Maintenance header name"
+    description: 'Maintenance header name'
     required: true
   maintenance-header-secret:
-    description: "Maintenance header value"
+    description: 'Maintenance header value'
     required: true
   meilisearch-master-key:
-    description: "Meilisearch master key"
+    description: 'Meilisearch master key'
     required: true
   graasp-db-password:
-    description: "Graasp DB password"
+    description: 'Graasp DB password'
     required: true
   etherpad-db-password:
-    description: "Etherpad DB password"
+    description: 'Etherpad DB password'
     required: true
   umami-db-password:
-    description: "Umami DB password"
+    description: 'Umami DB password'
     required: true
   graasp-db-gatekeeper-key-name:
-    description: "Gatekeeper key name for auth"
+    description: 'Gatekeeper key name for auth'
     required: true
   graasper-id:
-    description: "Graasper user id used to fetch featured collections"
+    description: 'Graasper user id used to fetch featured collections'
     required: true
   gatekeeper-ami-id:
-    description: "Gatekeeper AMI for machine setup"
+    description: 'Gatekeeper AMI for machine setup'
     required: true
   gatekeeper-instance-type:
-    description: "Gatekeeper instance type"
+    description: 'Gatekeeper instance type'
     required: true
   apps-publisher-id:
-    description: "Apps publisher id"
+    description: 'Apps publisher id'
     required: true
   mailer-connection:
-    description: "Mailer SMTP connection string"
+    description: 'Mailer SMTP connection string'
     required: true
   sentry_dsn:
-    description: "Sentry DSN"
+    description: 'Sentry DSN'
     required: true
   openai_org_id:
-    description: "Open AI org id"
+    description: 'Open AI org id'
     required: true
   openai_api_key:
-    description: "Open AI API key"
+    description: 'Open AI API key'
     required: true
   recaptcha_secret_key:
-    description: "Recaptcha secret key"
+    description: 'Recaptcha secret key'
     required: true
   meilisearch_rebuild_secret:
-    description: "Meilisearch rebuild secret header"
+    description: 'Meilisearch rebuild secret header'
     required: true
   geolocation_api_key:
-    description: "Geolocation API key"
+    description: 'Geolocation API key'
     required: true
   etherpad_api_key:
-    description: "Etherpad API key"
+    description: 'Etherpad API key'
     required: true
   h5p_access_key_id:
-    description: "H5P s3 bucket access key id"
+    description: 'H5P s3 bucket access key id'
     required: true
   h5p_access_secret_key_id:
-    description: "H5P s3 bucket access secret key id"
+    description: 'H5P s3 bucket access secret key id'
     required: true
   s3_access_key_id:
-    description: "S3 file bucket access key id"
+    description: 'S3 file bucket access key id'
     required: true
   s3_access_secret_key_id:
-    description: "S3 file bucket access secret key id"
+    description: 'S3 file bucket access secret key id'
     required: true
   apps_jwt_secret:
-    description: "Apps JWT secret"
+    description: 'Apps JWT secret'
     required: true
   jwt_secret:
-    description: "JWT secret for email login validation"
+    description: 'JWT secret for email login validation'
     required: true
   secure_session_secret_key:
-    description: "Secure session JWT secret"
+    description: 'Secure session JWT secret'
     required: true
   password_reset_jwt_secret:
-    description: "Password reset JWT secret"
+    description: 'Password reset JWT secret'
     required: true
   email_change_jwt_secret:
-    description: "Email change JWT secret"
+    description: 'Email change JWT secret'
     required: true
   umami_jwt_secret:
-    description: "Umami app secret (JWT signing)"
+    description: 'Umami app secret (JWT signing)'
+    required: true
+  admin_secret_key_base:
+    description: 'Admin secret key base'
+    required: true
+  admin_release_cookie:
+    description: 'Admin release cookie'
+    required: true
+  admin_mailer_ses_access_key:
+    description: 'Admin mailer access key'
+    required: true
+  admin_mailer_ses_access_secret:
+    description: 'Admin mailer access secret'
     required: true
 
 runs:
@@ -164,7 +176,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: "22"
+        node-version: '22'
 
     - name: Install dependencies
       run: yarn install
@@ -215,6 +227,10 @@ runs:
         TF_VAR_PASSWORD_RESET_JWT_SECRET: ${{ inputs.password_reset_jwt_secret }}
         TF_VAR_EMAIL_CHANGE_JWT_SECRET: ${{ inputs.email_change_jwt_secret }}
         TF_VAR_UMAMI_JWT_SECRET: ${{ inputs.umami_jwt_secret }}
+        TF_VAR_ADMIN_SECRET_KEY_BASE: ${{ inputs.admin_secret_key_base }}
+        TF_VAR_ADMIN_RELEASE_COOKIE: ${{ inputs.admin_release_cookie }}
+        TF_VAR_MAILER_SES_ACCESS_KEY: ${{ inputs.admin_mailer_access_key }}
+        TF_VAR_MAILER_SES_SECRET: ${{ inputs.admin_mailer_access_secret }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
