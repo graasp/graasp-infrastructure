@@ -88,6 +88,10 @@ jobs:
           password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
           email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
           umami_jwt_secret: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
+          admin_secret_key_base: ${{ secrets.TF_VAR_ADMIN_SECRET_KEY_BASE }}
+          admin_release_cookie: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
+          admin_mailer_ses_access_key: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_ACCESS_KEY }}
+          admin_mailer_ses_secret: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_SECRET }}
 
       - name: Wait for Migration
         uses: ./.github/actions/wait-for-migration
