@@ -116,7 +116,7 @@ inputs:
   admin_mailer_ses_access_key:
     description: 'Admin mailer access key'
     required: true
-  admin_mailer_ses_access_secret:
+  admin_mailer_ses_secret:
     description: 'Admin mailer access secret'
     required: true
 
