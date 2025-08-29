@@ -494,6 +494,7 @@ class GraaspStack extends TerraformStack {
         allowedSecurityGroups: [
           { ...loadBalancerAllowedSecurityGroupInfo, port: 4000 },
         ],
+        userData: `sudo yum update -y && sudo yum install -y docker && sudo systemctl start docker && sudo usermod -aG docker ec2-user && sudo systemctl enable docker`,
       },
       isServiceActive(environment).graasp,
       {
