@@ -756,7 +756,7 @@ class GraaspStack extends TerraformStack {
     );
 
     const adminDefinition = createContainerDefinitions(
-      'graasp-admin',
+      'admin',
       `${adminECR.repositoryUrl}`,
       'latest',
       [
