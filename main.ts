@@ -741,7 +741,7 @@ class GraaspStack extends TerraformStack {
     );
     const mailerSESAccessKey = new TerraformVariable(
       this,
-      'MAILER_SES_ACCESS_KEY',
+      'ADMIN_MAILER_SES_ACCESS_KEY',
       {
         nullable: false,
         type: 'string',
@@ -749,12 +749,16 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-    const mailerSESSecret = new TerraformVariable(this, 'MAILER_SES_SECRET', {
-      nullable: false,
-      type: 'string',
-      description: 'Mailer SES secret key',
-      sensitive: true,
-    });
+    const mailerSESSecret = new TerraformVariable(
+      this,
+      'ADMIN_MAILER_SES_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Mailer SES secret key',
+        sensitive: true,
+      },
+    );
 
     const adminDefinition = createContainerDefinitions(
       'graasp-admin',
