@@ -151,8 +151,15 @@ export class Cluster extends Construct {
   }
 
   public addService(
-    name: string,
-    desiredCount: number,
+    {
+      name,
+      desiredCount,
+      enableExecuteCommand,
+    }: {
+      name: string;
+      desiredCount: number;
+      enableExecuteCommand?: boolean;
+    },
     taskDefinitionConfig: TaskDefinitionConfiguration,
     isActive: boolean,
     serviceSecurityGroup: SecurityGroup,
@@ -254,6 +261,7 @@ export class Cluster extends Construct {
         assignPublicIp: true,
         securityGroups: [serviceSecurityGroup.id],
       },
+      enableExecuteCommand: enableExecuteCommand ?? false,
       loadBalancer: ecsServiceLoadBalancerOptions,
       serviceConnectConfiguration: {
         enabled: true,

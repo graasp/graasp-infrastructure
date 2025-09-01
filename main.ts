@@ -856,8 +856,10 @@ class GraaspStack extends TerraformStack {
     const graaspServicesActive = isServiceActive(environment).graasp;
     // backend
     cluster.addService(
-      'graasp',
-      CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      {
+        name: 'graasp',
+        desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      },
       {
         containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
@@ -887,8 +889,10 @@ class GraaspStack extends TerraformStack {
     );
     // workers
     cluster.addService(
-      'workers',
-      1,
+      {
+        name: 'workers',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [workersDefinition],
         cpu: CONFIG[environment.env].ecsConfig.workers.cpu,
@@ -908,8 +912,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'admin',
-      1,
+      {
+        name: 'admin',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [adminDefinition],
         cpu: CONFIG[environment.env].ecsConfig.admin.cpu,
@@ -933,8 +939,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'graasp-library',
-      1,
+      {
+        name: 'graasp-library',
+        desiredCount: 1,
+      },
       { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
       librarySecurityGroup,
@@ -960,8 +968,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'etherpad',
-      1,
+      {
+        name: 'etherpad',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [etherpadDefinition],
         cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
@@ -984,8 +994,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'umami',
-      1,
+      {
+        name: 'umami',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [umamiDefinition],
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
@@ -1010,8 +1022,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'meilisearch',
-      1,
+      {
+        name: 'meilisearch',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [meilisearchDefinition],
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
@@ -1023,8 +1037,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'iframely',
-      1,
+      {
+        name: 'iframely',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [iframelyDefinition],
         cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
@@ -1036,8 +1052,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'redis',
-      1,
+      {
+        name: 'redis',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [redisDefinition],
         cpu: CONFIG[environment.env].ecsConfig.redis.cpu,
