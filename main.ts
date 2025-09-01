@@ -915,6 +915,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'admin',
         desiredCount: 1,
+        enableExecuteCommand: true,
       },
       {
         containerDefinitions: [adminDefinition],
