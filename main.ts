@@ -64,6 +64,11 @@ class GraaspStack extends TerraformStack {
   constructor(scope: Construct, id: string, environment: EnvironmentConfig) {
     super(scope, id);
 
+    if (environment.env === Environment.STAGING) {
+      // we want to delete the staging stack
+      return;
+    }
+
     const BACKEND_PORT = 3111;
     const NUDENET_PORT = 8080;
     const LIBRARY_PORT = 3000;
