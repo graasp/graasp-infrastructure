@@ -197,6 +197,10 @@ export class Cluster extends Construct {
       },
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
+      // this allows to execute commands inside the container via the aws cli
+      taskRoleArn: enableExecuteCommand
+        ? this.createECSExecTaskRole(name).arn
+        : undefined,
       executionRoleArn: this.executionRole.arn,
       containerDefinitions: JSON.stringify(
         taskDefinitionConfig.containerDefinitions,
@@ -304,6 +308,46 @@ export class Cluster extends Construct {
     }
 
     return task;
+  }
+
+  private createECSExecTaskRole(name: string) {
+    const taskRole = new IamRole(this, `${name}-ecsExec-task-role`, {
+      name: `${name}-ecsExec-task-role`,
+      // this role shall only be used by an ECS task
+      assumeRolePolicy: JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+            Sid: '',
+            Principal: { Service: 'ecs-tasks.amazonaws.com' },
+          },
+        ],
+      }),
+    });
+    new IamRolePolicy(this, `${name}-ecsExec-task-policy`, {
+      name: `${name}-allow-ecsExec-task-policy`,
+      role: taskRole.id,
+      policy: Token.asString(
+        Fn.jsonencode({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: [
+                'ssmmessages:CreateControlChannel',
+                'ssmmessages:CreateDataChannel',
+                'ssmmessages:OpenControlChannel',
+                'ssmmessages:OpenDataChannel',
+              ],
+              Resource: '*',
+            },
+          ],
+        }),
+      ),
+    });
+    return taskRole;
   }
 
   public addOneOffTask(
