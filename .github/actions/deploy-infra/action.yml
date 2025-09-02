@@ -111,7 +111,7 @@ inputs:
     description: 'Admin secret key base'
     required: true
   admin_release_cookie:
-    description: 'Admin release cookie'
+    description: 'Admin release cookie used to allow communication between different erlang nodes'
     required: true
   admin_mailer_ses_access_key:
     description: 'Admin mailer access key'
