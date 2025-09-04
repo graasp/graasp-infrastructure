@@ -48,7 +48,16 @@ type TaskDefinitionConfiguration = {
   containerDefinitions: ContainerDefinition[];
   cpu?: string;
   memory?: string;
+  cpuArchitecture?: 'X86_64' | 'ARM64';
 };
+
+export function portMappingRange({ from, to }: { from: number; to: number }) {
+  return Array.from({ length: to - from + 1 }, (_, i) => ({
+    containerPort: from + i,
+    hostPort: from + i,
+    protocol: 'tcp',
+  }));
+}
 
 export function createContainerDefinitions(
   name: string,
@@ -142,8 +151,15 @@ export class Cluster extends Construct {
   }
 
   public addService(
-    name: string,
-    desiredCount: number,
+    {
+      name,
+      desiredCount,
+      enableExecuteCommand,
+    }: {
+      name: string;
+      desiredCount: number;
+      enableExecuteCommand?: boolean;
+    },
     taskDefinitionConfig: TaskDefinitionConfiguration,
     isActive: boolean,
     serviceSecurityGroup: SecurityGroup,
@@ -175,8 +191,16 @@ export class Cluster extends Construct {
       family: name, // name used to group the definitions versions
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
+      runtimePlatform: {
+        operatingSystemFamily: 'LINUX',
+        cpuArchitecture: taskDefinitionConfig.cpuArchitecture ?? 'X86_64',
+      },
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
+      // this allows to execute commands inside the container via the aws cli
+      taskRoleArn: enableExecuteCommand
+        ? this.createECSExecTaskRole(name).arn
+        : undefined,
       executionRoleArn: this.executionRole.arn,
       containerDefinitions: JSON.stringify(
         taskDefinitionConfig.containerDefinitions,
@@ -241,6 +265,7 @@ export class Cluster extends Construct {
         assignPublicIp: true,
         securityGroups: [serviceSecurityGroup.id],
       },
+      enableExecuteCommand: enableExecuteCommand ?? false,
       loadBalancer: ecsServiceLoadBalancerOptions,
       serviceConnectConfiguration: {
         enabled: true,
@@ -283,6 +308,46 @@ export class Cluster extends Construct {
     }
 
     return task;
+  }
+
+  private createECSExecTaskRole(name: string) {
+    const taskRole = new IamRole(this, `${name}-ecsExec-task-role`, {
+      name: `${name}-ecsExec-task-role`,
+      // this role shall only be used by an ECS task
+      assumeRolePolicy: JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+            Sid: '',
+            Principal: { Service: 'ecs-tasks.amazonaws.com' },
+          },
+        ],
+      }),
+    });
+    new IamRolePolicy(this, `${name}-ecsExec-task-policy`, {
+      name: `${name}-allow-ecsExec-task-policy`,
+      role: taskRole.id,
+      policy: Token.asString(
+        Fn.jsonencode({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: [
+                'ssmmessages:CreateControlChannel',
+                'ssmmessages:CreateDataChannel',
+                'ssmmessages:OpenControlChannel',
+                'ssmmessages:OpenDataChannel',
+              ],
+              Resource: '*',
+            },
+          ],
+        }),
+      ),
+    });
+    return taskRole;
   }
 
   public addOneOffTask(

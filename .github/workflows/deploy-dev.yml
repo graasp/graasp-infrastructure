@@ -7,7 +7,7 @@ name: Deploy dev
 
 on:
   schedule:
-    - cron: "10 8 * * 1-5"
+    - cron: '10 8 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
           skopeo --override-os linux copy docker://$private_ecr_uri/graasp:migrate-nightly docker://$private_ecr_uri/graasp:migrate-latest
 
   migration:
-    needs: "pre-migration"
+    needs: 'pre-migration'
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -51,7 +51,7 @@ jobs:
       - name: Deploy Migration
         uses: ./.github/actions/deploy-infra
         with:
-          state: "db-only"
+          state: 'db-only'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -85,6 +85,10 @@ jobs:
           password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
           email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
           umami_jwt_secret: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
+          admin_secret_key_base: ${{ secrets.TF_VAR_ADMIN_SECRET_KEY_BASE }}
+          admin_release_cookie: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
+          admin_mailer_ses_access_key: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_ACCESS_KEY }}
+          admin_mailer_ses_secret: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_SECRET }}
 
       - name: Wait for Migration
         uses: ./.github/actions/wait-for-migration
@@ -94,7 +98,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
   deploy:
-    needs: "migration"
+    needs: 'migration'
     environment: dev
     runs-on: ubuntu-latest
     steps:
@@ -138,7 +142,7 @@ jobs:
       - name: Deploy Infra
         uses: ./.github/actions/deploy-infra
         with:
-          state: "running"
+          state: 'running'
           environment: dev
           aws-role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -173,6 +177,10 @@ jobs:
           password_reset_jwt_secret: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
           email_change_jwt_secret: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
           umami_jwt_secret: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
+          admin_secret_key_base: ${{ secrets.TF_VAR_ADMIN_SECRET_KEY_BASE }}
+          admin_release_cookie: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
+          admin_mailer_ses_access_key: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_ACCESS_KEY }}
+          admin_mailer_ses_secret: ${{ secrets.TF_VAR_ADMIN_MAILER_SES_SECRET }}
 
         # configure credentials to assume terraform role
       - name: Configure AWS Credentials to assume terraform Role

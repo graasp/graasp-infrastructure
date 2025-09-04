@@ -1,5 +1,7 @@
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
+import { EcrLifecyclePolicy } from '@cdktf/provider-aws/lib/ecr-lifecycle-policy';
+import { EcrRepository } from '@cdktf/provider-aws/lib/ecr-repository';
 import { LbListenerRuleCondition } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
   AwsProvider,
@@ -80,6 +82,7 @@ class GraaspStack extends TerraformStack {
     const REDIS_PORT = 6379;
     const REDIS_HOSTNAME = 'graasp-redis';
     const UMAMI_PORT = 3000;
+    const ADMIN_PORT = 4000;
 
     new AwsProvider(this, 'AWS', {
       region: environment.region,
@@ -225,6 +228,14 @@ class GraaspStack extends TerraformStack {
       groupId: workerSecurityGroup.id,
       targetName: 'graasp-workers',
     } satisfies AllowedSecurityGroupInfo;
+
+    const adminSecurityGroup = securityGroupOnlyAllowAnotherSecurityGroup(
+      this,
+      `${id}-admin`,
+      vpc.vpcIdOutput,
+      loadBalancerAllowedSecurityGroupInfo,
+      ADMIN_PORT,
+    );
 
     const meilisearchSecurityGroup =
       securityGroupAllowMultipleOtherSecurityGroups(
@@ -447,7 +458,14 @@ class GraaspStack extends TerraformStack {
         toPort: MEILISEARCH_PORT,
       },
     );
-
+    new VpcSecurityGroupIngressRule(this, `${id}-allow-gatekeeper-on-admin`, {
+      referencedSecurityGroupId: gatekeeper.instance.securityGroup.id, // allowed source security group
+      ipProtocol: 'tcp',
+      securityGroupId: adminSecurityGroup.id,
+      // port range for ingress trafic
+      fromPort: 9000,
+      toPort: 9000,
+    });
     const collaborativeIdeation =
       // This service is currently only enabled in the "dev" environnement.
       // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
@@ -491,12 +509,18 @@ class GraaspStack extends TerraformStack {
       targetName: 'etherpad',
     } satisfies AllowedSecurityGroupInfo;
 
+    const adminAllowedSecurityGroupInfo = {
+      groupId: adminSecurityGroup.id,
+      targetName: 'admin',
+    } satisfies AllowedSecurityGroupInfo;
+
     const allowedSecurityGroupsDB = [
       backendAllowedSecurityGroupInfo,
       workersServiceAllowedSecurityGroupInfo,
       umamiAllowedSecurityGroupInfo,
       etherpadAllowedSecurityGroupInfo,
       migrationServiceAllowedSecurityGroupInfo,
+      adminAllowedSecurityGroupInfo,
     ];
     // add the collab security group only if the collab service is defined
     if (collaborativeIdeation) {
@@ -538,6 +562,41 @@ class GraaspStack extends TerraformStack {
     });
     const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
+    });
+    const adminECR = new EcrRepository(this, `${id}-admin-ecr`, {
+      name: 'graasp/admin',
+    });
+    // ecr repository policy
+    new EcrLifecyclePolicy(this, `${id}-admin-ecr-lifecycle`, {
+      repository: adminECR.name,
+      policy: JSON.stringify({
+        rules: [
+          {
+            rulePriority: 1,
+            selection: {
+              tagStatus: 'untagged',
+              countType: 'sinceImagePushed',
+              countUnit: 'days',
+              countNumber: 1,
+            },
+            action: {
+              type: 'expire',
+            },
+          },
+          {
+            rulePriority: 2,
+            description: 'Keep only the last 2 images',
+            selection: {
+              tagStatus: 'any',
+              countType: 'imageCountMoreThan',
+              countNumber: 2,
+            },
+            action: {
+              type: 'expire',
+            },
+          },
+        ],
+      }),
     });
 
     const meilisearchMasterKey = new TerraformVariable(
@@ -651,6 +710,78 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const ECTO_DB_CONNECTION = buildPostgresConnectionString({
+      protocol: 'ecto',
+      host: backendDb.instance.dbInstanceAddressOutput,
+      port: '5432',
+      name: 'graasp',
+      username: backendDb.instance.dbInstanceUsernameOutput,
+      password: toEnvVar(dbPassword),
+    });
+
+    const adminSecretKeyBase = new TerraformVariable(
+      this,
+      'ADMIN_SECRET_KEY_BASE',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Secret key base used for tokens in the admin',
+        sensitive: true,
+      },
+    );
+    const adminReleaseCookie = new TerraformVariable(
+      this,
+      'ADMIN_RELEASE_COOKIE',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Release cookie used for remote IEX debugging',
+        sensitive: true,
+      },
+    );
+    const mailerSESAccessKey = new TerraformVariable(
+      this,
+      'ADMIN_MAILER_SES_ACCESS_KEY',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Mailer SES access key',
+        sensitive: true,
+      },
+    );
+    const mailerSESSecret = new TerraformVariable(
+      this,
+      'ADMIN_MAILER_SES_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description: 'Mailer SES secret key',
+        sensitive: true,
+      },
+    );
+
+    const adminDefinition = createContainerDefinitions(
+      'admin',
+      `${adminECR.repositoryUrl}`,
+      'latest',
+      [
+        { hostPort: ADMIN_PORT, containerPort: ADMIN_PORT },
+        // epdm
+        { hostPort: 4369, containerPort: 4369 },
+        // distributed erlang ports
+        { hostPort: 9000, containerPort: 9000 },
+      ],
+      {
+        DATABASE_URL: ECTO_DB_CONNECTION,
+        SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
+        PHX_HOST: subdomainForEnv('admin', environment),
+        MAILER_SES_ACCESS_KEY: toEnvVar(mailerSESAccessKey),
+        MAILER_SES_SECRET: toEnvVar(mailerSESSecret),
+        RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
+      },
+      environment,
+    );
+
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
       `${libraryECR.repositoryUrl}`,
@@ -725,8 +856,10 @@ class GraaspStack extends TerraformStack {
     const graaspServicesActive = isServiceActive(environment).graasp;
     // backend
     cluster.addService(
-      'graasp',
-      CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      {
+        name: 'graasp',
+        desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
+      },
       {
         containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
@@ -756,8 +889,10 @@ class GraaspStack extends TerraformStack {
     );
     // workers
     cluster.addService(
-      'workers',
-      1,
+      {
+        name: 'workers',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [workersDefinition],
         cpu: CONFIG[environment.env].ecsConfig.workers.cpu,
@@ -777,8 +912,38 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'graasp-library',
-      1,
+      {
+        name: 'admin',
+        desiredCount: 1,
+        enableExecuteCommand: true,
+      },
+      {
+        containerDefinitions: [adminDefinition],
+        cpu: CONFIG[environment.env].ecsConfig.admin.cpu,
+        memory: CONFIG[environment.env].ecsConfig.admin.memory,
+        cpuArchitecture: 'ARM64', // use arm64 since the image is built on arm64
+      },
+      graaspServicesActive,
+      adminSecurityGroup,
+      undefined,
+      undefined,
+      {
+        loadBalancer: loadBalancer,
+        priority: 8,
+        host: subdomainForEnv('admin', environment),
+        port: 80,
+        containerName: 'admin',
+        containerPort: ADMIN_PORT,
+        healthCheckPath: '/up',
+        ruleConditions,
+      },
+    );
+
+    cluster.addService(
+      {
+        name: 'graasp-library',
+        desiredCount: 1,
+      },
       { containerDefinitions: [libraryDefinition] },
       graaspServicesActive,
       librarySecurityGroup,
@@ -804,8 +969,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'etherpad',
-      1,
+      {
+        name: 'etherpad',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [etherpadDefinition],
         cpu: CONFIG[environment.env].ecsConfig.etherpad.cpu,
@@ -828,8 +995,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'umami',
-      1,
+      {
+        name: 'umami',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [umamiDefinition],
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
@@ -854,8 +1023,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'meilisearch',
-      1,
+      {
+        name: 'meilisearch',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [meilisearchDefinition],
         cpu: CONFIG[environment.env].ecsConfig.meilisearch.cpu,
@@ -867,8 +1038,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'iframely',
-      1,
+      {
+        name: 'iframely',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [iframelyDefinition],
         cpu: CONFIG[environment.env].ecsConfig.iframely.cpu,
@@ -880,8 +1053,10 @@ class GraaspStack extends TerraformStack {
     );
 
     cluster.addService(
-      'redis',
-      1,
+      {
+        name: 'redis',
+        desiredCount: 1,
+      },
       {
         containerDefinitions: [redisDefinition],
         cpu: CONFIG[environment.env].ecsConfig.redis.cpu,

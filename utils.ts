@@ -170,17 +170,20 @@ export function toEnvVar(tfVar: TerraformVariable) {
 }
 
 export function buildPostgresConnectionString({
+  protocol,
   host,
   port,
   name,
   username,
   password,
 }: {
+  protocol?: string;
   host: string;
   port: string;
   name: string;
   username: string;
   password: string;
 }) {
-  return `postgres://${username}:${password}@${host}:${port}/${name}`;
+  const proto = protocol ?? 'postgres';
+  return `${proto}://${username}:${password}@${host}:${port}/${name}`;
 }
