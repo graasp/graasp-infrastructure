@@ -778,6 +778,7 @@ class GraaspStack extends TerraformStack {
         MAILER_SES_ACCESS_KEY: toEnvVar(mailerSESAccessKey),
         MAILER_SES_SECRET: toEnvVar(mailerSESSecret),
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
+        MAILER_SES_REGION: environment.region,
       },
       environment,
     );
