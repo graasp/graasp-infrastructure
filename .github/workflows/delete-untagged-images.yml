@@ -13,7 +13,7 @@ jobs:
   cleanup:
     strategy:
       matrix:
-        environment: ['dev', 'staging', 'prod']
+        environment: ['dev', 'prod']
         repository: ['graasp', 'graasp/explore']
     name: Cleanup ${{ matrix.repository }} on ${{ matrix.environment }}
     runs-on: ubuntu-latest
