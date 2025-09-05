@@ -32,29 +32,25 @@ Table of content:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "[Your Terraform user ARN]"
-            },
-            "Action": "s3:ListBucket",
-            "Resource": "arn:aws:s3:::graasp-terraform-state"
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "[Your Terraform user ARN]"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject"
-            ],
-            "Resource": "arn:aws:s3:::graasp-terraform-state/*"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "[Your Terraform user ARN]"
+      },
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::graasp-terraform-state"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "[Your Terraform user ARN]"
+      },
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::graasp-terraform-state/*"
+    }
+  ]
 }
 ```
 
@@ -129,7 +125,7 @@ For the first infrastructure creation, I suggest working locally by creating a n
 Then you can run cdktf for the environment you want i.e.
 
 ```bash
-yarn run cdktf plan 'graasp-staging' # this command won't change anything
+yarn run cdktf plan 'graasp-dev' # this command won't change anything
 ```
 
 Once everything is created properly, you can let the CI handle the infrastructure changes.
@@ -278,7 +274,7 @@ It is possible that after some time deployments will break with an error similar
 
 ```txt
             │ Error: Failed to query available provider packages
-            │ 
+            │
             │ Could not retrieve the list of available versions for provider hashicorp/aws:
             │ no available releases match the given constraints >= 5.46.0, 5.49.0, >=
             │ 5.59.0, >= 5.62.0
