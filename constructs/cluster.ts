@@ -205,6 +205,7 @@ export class Cluster extends Construct {
       containerDefinitions: JSON.stringify(
         taskDefinitionConfig.containerDefinitions,
       ),
+      tags: {},
     });
 
     let ecsServiceLoadBalancerOptions: EcsServiceLoadBalancer[] | undefined;
