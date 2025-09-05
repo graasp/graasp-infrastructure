@@ -80,53 +80,6 @@ export const CONFIG: Record<Environment, GraaspConfiguration> = {
       },
     },
   },
-  [Environment.STAGING]: {
-    dbConfig: {
-      graasp: {
-        enableReplication: false,
-        backupRetentionPeriod: 1,
-      },
-    },
-    ecsConfig: {
-      graasp: {
-        cpu: '1024',
-        memory: '2048',
-        taskCount: 1,
-      },
-      workers: {
-        cpu: '256',
-        memory: '512',
-      },
-      admin: {
-        cpu: '256',
-        memory: '512',
-      },
-      migrate: {
-        cpu: '256',
-        memory: '512',
-      },
-      etherpad: {
-        cpu: '256',
-        memory: '512',
-      },
-      meilisearch: {
-        cpu: '256',
-        memory: '512',
-      },
-      iframely: {
-        cpu: '256',
-        memory: '512',
-      },
-      redis: {
-        cpu: '256',
-        memory: '512',
-      },
-      umami: {
-        cpu: '256',
-        memory: '512',
-      },
-    },
-  },
   [Environment.PRODUCTION]: {
     dbConfig: {
       graasp: {
