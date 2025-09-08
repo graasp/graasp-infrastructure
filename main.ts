@@ -54,9 +54,7 @@ const SHARED_TAGS = { 'terraform-managed': 'true' };
 
 const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
   [Environment.DEV]: [{ roleArn: 'arn:aws:iam::299720865162:role/terraform' }],
-  [Environment.STAGING]: [
-    { roleArn: 'arn:aws:iam::348555061219:role/terraform' },
-  ],
+
   [Environment.PRODUCTION]: [
     { roleArn: 'arn:aws:iam::592217263685:role/terraform' },
   ],
@@ -65,11 +63,6 @@ const ROLE_BY_ENV: Record<Environment, AwsProviderAssumeRole[]> = {
 class GraaspStack extends TerraformStack {
   constructor(scope: Construct, id: string, environment: EnvironmentConfig) {
     super(scope, id);
-
-    if (environment.env === Environment.STAGING) {
-      // we want to delete the staging stack
-      return;
-    }
 
     const BACKEND_PORT = 3111;
     const NUDENET_PORT = 8080;
@@ -1205,13 +1198,6 @@ new GraaspStack(app, 'graasp-dev', {
   env: Environment.DEV,
   subdomain: 'dev',
   region: DEFAULT_REGION,
-  infraState,
-});
-
-new GraaspStack(app, 'graasp-staging', {
-  env: Environment.STAGING,
-  subdomain: 'stage',
-  region: AllowedRegion.Zurich,
   infraState,
 });
 

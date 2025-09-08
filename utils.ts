@@ -7,7 +7,6 @@ export const GRAASP_ROOT_DOMAIN = 'graasp.org';
 
 export enum Environment {
   DEV,
-  STAGING,
   PRODUCTION,
 }
 
