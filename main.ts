@@ -461,7 +461,7 @@ class GraaspStack extends TerraformStack {
     });
     const collaborativeIdeation =
       // This service is currently only enabled in the "dev" environnement.
-      For now we can keep it like this, we will change if we need.
+      // For now we can keep it like this, we will change if we need.
       environment.env === Environment.DEV
         ? new BaremetalService(
             this,
@@ -854,10 +854,7 @@ class GraaspStack extends TerraformStack {
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
       },
       {
-        containerDefinitions: [
-          coreDefinition,
-          nudenetDefinition
-        ],
+        containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
         cpuArchitecture: 'ARM64',
