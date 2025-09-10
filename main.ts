@@ -461,8 +461,7 @@ class GraaspStack extends TerraformStack {
     });
     const collaborativeIdeation =
       // This service is currently only enabled in the "dev" environnement.
-      // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
-      // For now we can keep it like this, we will change if we need.
+      For now we can keep it like this, we will change if we need.
       environment.env === Environment.DEV
         ? new BaremetalService(
             this,
@@ -684,8 +683,8 @@ class GraaspStack extends TerraformStack {
     );
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
-      'notaitech/nudenet',
-      'classifier',
+      `${graaspECR.repositoryUrl}`,
+      'nudenet-latest',
       [{ hostPort: NUDENET_PORT, containerPort: NUDENET_PORT }],
       {}, // does not need env vars
       environment,
@@ -857,8 +856,7 @@ class GraaspStack extends TerraformStack {
       {
         containerDefinitions: [
           coreDefinition,
-          // FIX: temporaily disable nudenet
-          // nudenetDefinition
+          nudenetDefinition
         ],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
