@@ -855,7 +855,11 @@ class GraaspStack extends TerraformStack {
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
       },
       {
-        containerDefinitions: [coreDefinition, nudenetDefinition],
+        containerDefinitions: [
+          coreDefinition,
+          // FIX: temporaily disable nudenet
+          // nudenetDefinition
+        ],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
         cpuArchitecture: 'ARM64',
