@@ -858,6 +858,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
+        cpuArchitecture: 'ARM64',
       },
       graaspServicesActive,
       backendSecurityGroup,
@@ -891,6 +892,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [workersDefinition],
         cpu: CONFIG[environment.env].ecsConfig.workers.cpu,
         memory: CONFIG[environment.env].ecsConfig.workers.memory,
+        cpuArchitecture: 'ARM64',
       },
       graaspServicesActive,
       workerSecurityGroup,
@@ -1080,6 +1082,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [migrateDefinition],
         cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
         memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+        cpuArchitecture: 'ARM64',
       },
       migrateServiceSecurityGroup,
     );
