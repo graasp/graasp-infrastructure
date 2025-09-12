@@ -675,7 +675,7 @@ class GraaspStack extends TerraformStack {
     // Task for the backend
     const coreDefinition = createContainerDefinitions(
       'core',
-      `${graaspECR.repositoryUrl}`,
+      graaspECR.repositoryUrl,
       'core-latest',
       [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
       backendEnv,
@@ -683,7 +683,7 @@ class GraaspStack extends TerraformStack {
     );
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
-      `${graaspECR.repositoryUrl}`,
+      graaspECR.repositoryUrl,
       'nudenet-latest',
       [{ hostPort: NUDENET_PORT, containerPort: NUDENET_PORT }],
       {}, // does not need env vars
@@ -694,7 +694,7 @@ class GraaspStack extends TerraformStack {
     const workerEnv = backendEnv;
     const workersDefinition = createContainerDefinitions(
       'graasp-worker',
-      `${graaspECR.repositoryUrl}`,
+      graaspECR.repositoryUrl,
       'workers-latest',
       // no port mappings necessary
       [],
@@ -754,7 +754,7 @@ class GraaspStack extends TerraformStack {
 
     const adminDefinition = createContainerDefinitions(
       'admin',
-      `${adminECR.repositoryUrl}`,
+      adminECR.repositoryUrl,
       'latest',
       [
         { hostPort: ADMIN_PORT, containerPort: ADMIN_PORT },
@@ -777,7 +777,7 @@ class GraaspStack extends TerraformStack {
 
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
-      `${libraryECR.repositoryUrl}`,
+      libraryECR.repositoryUrl,
       'latest',
       [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
       {
