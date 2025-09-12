@@ -370,6 +370,10 @@ export class Cluster extends Construct {
       ),
       cpu: taskDefinitionConfig.cpu ?? '256',
       memory: taskDefinitionConfig.memory ?? '512',
+      runtimePlatform: {
+        operatingSystemFamily: 'LINUX',
+        cpuArchitecture: taskDefinitionConfig.cpuArchitecture ?? 'X86_64',
+      },
       requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       executionRoleArn: this.executionRole.arn,

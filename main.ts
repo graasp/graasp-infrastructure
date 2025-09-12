@@ -461,7 +461,6 @@ class GraaspStack extends TerraformStack {
     });
     const collaborativeIdeation =
       // This service is currently only enabled in the "dev" environnement.
-      // We can move this to a config-based decision so it is possible to enable or disable a service depending on the env.
       // For now we can keep it like this, we will change if we need.
       environment.env === Environment.DEV
         ? new BaremetalService(
@@ -676,7 +675,7 @@ class GraaspStack extends TerraformStack {
     // Task for the backend
     const coreDefinition = createContainerDefinitions(
       'core',
-      `${graaspECR.repositoryUrl}`,
+      graaspECR.repositoryUrl,
       'core-latest',
       [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
       backendEnv,
@@ -684,8 +683,8 @@ class GraaspStack extends TerraformStack {
     );
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
-      'notaitech/nudenet',
-      'classifier',
+      graaspECR.repositoryUrl,
+      'nudenet-latest',
       [{ hostPort: NUDENET_PORT, containerPort: NUDENET_PORT }],
       {}, // does not need env vars
       environment,
@@ -695,7 +694,7 @@ class GraaspStack extends TerraformStack {
     const workerEnv = backendEnv;
     const workersDefinition = createContainerDefinitions(
       'graasp-worker',
-      `${graaspECR.repositoryUrl}`,
+      graaspECR.repositoryUrl,
       'workers-latest',
       // no port mappings necessary
       [],
@@ -755,7 +754,7 @@ class GraaspStack extends TerraformStack {
 
     const adminDefinition = createContainerDefinitions(
       'admin',
-      `${adminECR.repositoryUrl}`,
+      adminECR.repositoryUrl,
       'latest',
       [
         { hostPort: ADMIN_PORT, containerPort: ADMIN_PORT },
@@ -778,7 +777,7 @@ class GraaspStack extends TerraformStack {
 
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
-      `${libraryECR.repositoryUrl}`,
+      libraryECR.repositoryUrl,
       'latest',
       [{ hostPort: LIBRARY_PORT, containerPort: LIBRARY_PORT }],
       {
@@ -858,6 +857,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [coreDefinition, nudenetDefinition],
         cpu: CONFIG[environment.env].ecsConfig.graasp.cpu,
         memory: CONFIG[environment.env].ecsConfig.graasp.memory,
+        cpuArchitecture: 'ARM64',
       },
       graaspServicesActive,
       backendSecurityGroup,
@@ -891,6 +891,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [workersDefinition],
         cpu: CONFIG[environment.env].ecsConfig.workers.cpu,
         memory: CONFIG[environment.env].ecsConfig.workers.memory,
+        cpuArchitecture: 'ARM64',
       },
       graaspServicesActive,
       workerSecurityGroup,
@@ -1080,6 +1081,7 @@ class GraaspStack extends TerraformStack {
         containerDefinitions: [migrateDefinition],
         cpu: CONFIG[environment.env].ecsConfig.migrate.cpu,
         memory: CONFIG[environment.env].ecsConfig.migrate.memory,
+        cpuArchitecture: 'ARM64',
       },
       migrateServiceSecurityGroup,
     );
