@@ -623,7 +623,7 @@ class GraaspStack extends TerraformStack {
       FILE_STORAGE_TYPE: 's3',
       DB_CONNECTION_POOL_SIZE: '10',
       GEOLOCATION_API_HOST: 'https://api.geoapify.com/v1/geocode', // QUESTION: should this be a constant in the code instead and we only expose the API_KEY var
-      IMAGE_CLASSIFIER_API: 'http://localhost:8080/sync', // a constant for now, later might be inside a queue
+      IMAGE_CLASSIFIER_API: 'http://localhost:8080/infer', // a constant for now, later might be inside a queue
       CORS_ORIGIN_REGEX: envCorsRegex(environment),
       H5P_PATH_PREFIX: 'h5p-content/', // constant
       PORT: `${BACKEND_PORT}`, // from infra
