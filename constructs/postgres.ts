@@ -66,7 +66,7 @@ export class PostgresDB extends Construct {
       instanceClass: 'db.t3.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
-      storageType: 'gp2',
+      storageType: 'gp3',
       allocatedStorage: 20,
       maxAllocatedStorage: 1000,
       publiclyAccessible: false,
