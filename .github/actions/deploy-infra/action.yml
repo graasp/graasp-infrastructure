@@ -246,6 +246,5 @@ runs:
       # 2. pipe result to jq and return one distribution id per line
       # 3. use xargs to execute the invalidation call for each of the distribution Id in input, invalidating the whole bucket
       run: |
-        aws cloudfront list-distributions \
-        | jq -c ".DistributionList.Items.[].Id" \
-        | xargs -L 1 -I {} aws cloudfront create-invalidation --distribution-id {} --paths '/'
+        distribution_id=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='client'].Id" --output text)
+        aws cloudfront create-invalidation --distribution-id $distribution_id --paths '/'
