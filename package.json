@@ -19,17 +19,17 @@
     "node": ">=22.0"
   },
   "dependencies": {
-    "@cdktf/provider-aws": "19.57.0",
-    "cdktf": "^0.20.11",
-    "cdktf-cli": "^0.20.11",
+    "@cdktf/provider-aws": "21.14.0",
+    "cdktf": "^0.21.0",
+    "cdktf-cli": "^0.21.0",
     "constructs": "^10.4.2"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/node": "^22.13.12",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.9.3"
   },
   "packageManager": "yarn@4.7.0"
 }

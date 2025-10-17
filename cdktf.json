@@ -7,12 +7,12 @@
     {
       "name": "vpc",
       "source": "terraform-aws-modules/vpc/aws",
-      "version": "~> 5.0"
+      "version": "~> 6.4.0"
     },
     {
       "name": "rds",
       "source": "terraform-aws-modules/rds/aws",
-      "version": "6.10.0"
+      "version": "6.13.0"
     }
   ],
   "context": {}
