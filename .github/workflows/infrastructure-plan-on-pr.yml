@@ -26,7 +26,7 @@ jobs:
         uses: hashicorp/terraform-cdk-action@v4
         with:
           cdktfVersion: 0.20.11
-          terraformVersion: 1.11.2
+          terraformVersion: 1.13.4
           mode: plan-only
           commentOnPr: true
           updateComment: false # make a new comment
