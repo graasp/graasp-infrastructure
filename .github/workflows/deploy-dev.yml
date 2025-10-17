@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   pre-migration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     environment: dev
     steps:
       # skopeo is a tool to manage image between different registries:
@@ -42,7 +42,7 @@ jobs:
 
   migration:
     needs: 'pre-migration'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     environment: dev
     steps:
       - name: Checkout
@@ -100,7 +100,7 @@ jobs:
   deploy:
     needs: 'migration'
     environment: dev
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
