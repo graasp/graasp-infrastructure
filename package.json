@@ -27,6 +27,7 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/node": "^22.13.12",
+    "artillery": "^2.0.26",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
