@@ -615,6 +615,8 @@ class GraaspStack extends TerraformStack {
       environment,
     );
 
+    const h5pContentBucket = `${id}-h5p`; // i.e: 'graasp-dev-h5p'
+
     const backendEnv = {
       // constants
       SENTRY_ENV: envName(environment),
@@ -641,9 +643,11 @@ class GraaspStack extends TerraformStack {
       PUBLIC_URL: `https://${subdomainForEnv('api', environment)}`,
       CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain // FIXME: should be named CLIENT_URL
       LIBRARY_CLIENT_HOST: `https://${subdomainForEnv('library', environment)}`, // FIXME should be named LIBRARY_URL
+      SHORT_LINK_BASE_URL: `https://${subdomainForEnv('go', environment)}`,
+      H5P_INTEGRATION_URL: `https://${h5pContentBucket}.s3.${environment.region}.amazonaws.com/h5p-integration/index.html`, // this URL points to files upload to a specific s3 bucket to support playing h5p content via the h5p-standalone package
       ETHERPAD_URL: `https://${subdomainForEnv('etherpad', environment)}`,
       S3_FILE_ITEM_BUCKET: `${id}-file-items`, // i.e: 'graasp-dev-file-items'
-      H5P_CONTENT_BUCKET: `${id}-h5p`, // i.e: 'graasp-dev-h5p'
+      H5P_CONTENT_BUCKET: h5pContentBucket,
       MAILER_CONFIG_FROM_EMAIL: envEmail('noreply', environment), // i.e: 'noreply.dev@graasp.org',
 
       // env vars
