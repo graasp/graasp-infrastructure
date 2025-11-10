@@ -39,7 +39,7 @@ export class GraaspDistribution extends Construct {
 
     // define bucket
     this.bucket = new S3Bucket(this, 'client-bucket', {
-      bucket: 'client',
+      bucket: `${id}-client`,
     });
 
     // define origin access control (OAC)
@@ -93,7 +93,7 @@ export class GraaspDistribution extends Construct {
           },
           // API origin
           {
-            domainName: `${props.domainName}/api`,
+            domainName: `${props.domainName}`,
             originId: Origins.API_ORIGIN,
             customOriginConfig: {
               httpPort: 80,
