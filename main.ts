@@ -2,7 +2,10 @@ import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-cert
 import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
 import { EcrLifecyclePolicy } from '@cdktf/provider-aws/lib/ecr-lifecycle-policy';
 import { EcrRepository } from '@cdktf/provider-aws/lib/ecr-repository';
-import { LbListenerRuleCondition } from '@cdktf/provider-aws/lib/lb-listener-rule';
+import {
+  LbListenerRule,
+  LbListenerRuleCondition,
+} from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
   AwsProvider,
   AwsProviderAssumeRole,
@@ -22,6 +25,7 @@ import {
 } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { GateKeeper } from './constructs/gate_keeper';
+import { GraaspDistribution } from './constructs/graasp_distribution';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
@@ -555,10 +559,12 @@ class GraaspStack extends TerraformStack {
     const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
     });
+
+    // This ECR is managed by Terraform (unlike the others)
     const adminECR = new EcrRepository(this, `${id}-admin-ecr`, {
       name: 'graasp/admin',
     });
-    // ecr repository policy
+    // Attach an ECR repository policy for deleting images
     new EcrLifecyclePolicy(this, `${id}-admin-ecr-lifecycle`, {
       repository: adminECR.name,
       policy: JSON.stringify({
@@ -852,7 +858,7 @@ class GraaspStack extends TerraformStack {
 
     const graaspServicesActive = isServiceActive(environment).graasp;
     // backend
-    cluster.addService(
+    const { targetGroup: coreTargetGroup } = cluster.addService(
       {
         name: 'graasp',
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
@@ -1090,6 +1096,27 @@ class GraaspStack extends TerraformStack {
       migrateServiceSecurityGroup,
     );
 
+    // Cloudfront distribution serving the single origin
+    new GraaspDistribution(this, 'single-origin', {
+      domainName: envDomain(environment),
+      albDNSName: loadBalancer.lb.dnsName,
+      certificate: sslCertificateCloudfront,
+    });
+    // add a listener rule in load balancer for core from CF
+
+    // Makes the listener forward requests from host to the target group
+    new LbListenerRule(this, `single-origin-core-rule`, {
+      listenerArn: loadBalancer.lbl.arn,
+      priority: 20,
+      action: [{ type: 'forward', targetGroupArn: coreTargetGroup?.arn }],
+
+      condition: [
+        { hostHeader: { values: [envDomain(environment)] } },
+        { pathPattern: { values: ['/api/*'] } },
+        // TODO: handle maintenance header rules
+      ],
+    });
+
     // S3 buckets
 
     // This has been copied from existing configuration, is it relevant?
@@ -1155,7 +1182,7 @@ class GraaspStack extends TerraformStack {
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      client: { corsConfig: [], apexDomain: true },
+      // client: { corsConfig: [], apexDomain: true },
     };
 
     // define the maintenance function in a function association
