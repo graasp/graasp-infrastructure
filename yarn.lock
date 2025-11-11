@@ -335,13 +335,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cdktf/provider-aws@npm:21.14.0":
-  version: 21.14.0
-  resolution: "@cdktf/provider-aws@npm:21.14.0"
+"@cdktf/provider-aws@npm:21.17.0":
+  version: 21.17.0
+  resolution: "@cdktf/provider-aws@npm:21.17.0"
   peerDependencies:
     cdktf: ^0.21.0
     constructs: ^10.4.2
-  checksum: 10/10470067c6c557282b0b78307c7d8e54625860815f7bc966d4db6b87e3a93c359f48ca55810c97ad36c4d5efe86e98d5da3a847dde71066b117ae2ecc3083aee
+  checksum: 10/9703cc8094ba738c8fb2c3bfbf1a3c30b2a8affc583c535d7bc5b152c0a17520a91e8c75e50f2275e1d4b7e6d84edb46e7e0608a1d86084a2cf83c044d4db74b
   languageName: node
   linkType: hard
 
@@ -1334,7 +1334,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdktf-cli@npm:^0.21.0":
+"cdktf-cli@npm:0.21.0":
   version: 0.21.0
   resolution: "cdktf-cli@npm:0.21.0"
   dependencies:
@@ -1371,7 +1371,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdktf@npm:0.21.0, cdktf@npm:^0.21.0":
+"cdktf@npm:0.21.0":
   version: 0.21.0
   resolution: "cdktf@npm:0.21.0"
   dependencies:
@@ -1590,10 +1590,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"constructs@npm:10.4.2, constructs@npm:^10.4.2":
+"constructs@npm:10.4.2":
   version: 10.4.2
   resolution: "constructs@npm:10.4.2"
   checksum: 10/0322de2ff7bca27dc71419b0437e2bcabc572bdce565b6cc0a34d12c74b32a27c69431975f2947503cbd31166f08ce3c98d1904fe469005b23c95fc2f5cef829
+  languageName: node
+  linkType: hard
+
+"constructs@npm:10.4.3":
+  version: 10.4.3
+  resolution: "constructs@npm:10.4.3"
+  checksum: 10/04b6e406fceffabe1d5016963486f4c8bacdcf5b6f6a4b25732aff512729e15b4fa8422db5baa28abcf1db7bd27f340827a3c89974a7eb7cf4ec9203a849d8f7
   languageName: node
   linkType: hard
 
@@ -2516,12 +2523,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "infra@workspace:."
   dependencies:
-    "@cdktf/provider-aws": "npm:21.14.0"
+    "@cdktf/provider-aws": "npm:21.17.0"
     "@trivago/prettier-plugin-sort-imports": "npm:^5.2.2"
     "@types/node": "npm:^22.13.12"
-    cdktf: "npm:^0.21.0"
-    cdktf-cli: "npm:^0.21.0"
-    constructs: "npm:^10.4.2"
+    cdktf: "npm:0.21.0"
+    cdktf-cli: "npm:0.21.0"
+    constructs: "npm:10.4.3"
     prettier: "npm:^3.6.2"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.9.3"

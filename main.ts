@@ -888,9 +888,35 @@ class GraaspStack extends TerraformStack {
         containerPort: BACKEND_PORT,
         containerName: 'core',
         healthCheckPath: '/health',
-        ruleConditions,
+        ruleConditions: [
+          ...ruleConditions,
+          { pathPattern: { values: ['/api/*'] } },
+        ],
       },
     );
+    // Makes the listener forward requests sent to api.graasp.org without a path prefix to the first rule by adding the path prefix
+    new LbListenerRule(this, `redirect-without-api-prefix-rule`, {
+      listenerArn: loadBalancer.lbl.arn,
+      // this needs to be the second rule that catches all requests to api.graasp.org a rule before it should match on the api prefix and forward to a target to prevent a loop.
+      priority: 2,
+      action: [
+        {
+          type: 'redirect',
+          redirect: {
+            host: subdomainForEnv('api', environment),
+            path: '/api/#{path}',
+            query: '#{query}',
+            statusCode: 'HTTP_302',
+            protocol: 'HTTPS',
+          },
+        },
+      ],
+      condition: [
+        ...ruleConditions,
+        { hostHeader: { values: [subdomainForEnv('api', environment)] } },
+      ],
+    });
+
     // workers
     cluster.addService(
       {
@@ -963,7 +989,7 @@ class GraaspStack extends TerraformStack {
       },
       {
         loadBalancer: loadBalancer,
-        priority: 2,
+        priority: 3,
         host: subdomainForEnv('library', environment),
         port: 80,
         containerName: 'graasp-library',
@@ -989,7 +1015,7 @@ class GraaspStack extends TerraformStack {
       undefined,
       {
         loadBalancer: loadBalancer,
-        priority: 3,
+        priority: 4,
         host: subdomainForEnv('etherpad', environment),
         port: 443,
         containerName: 'etherpad',
@@ -1015,7 +1041,7 @@ class GraaspStack extends TerraformStack {
       undefined,
       {
         loadBalancer: loadBalancer,
-        priority: 4,
+        priority: 5,
         host: subdomainForEnv('umami', environment),
         port: 80,
         containerName: 'umami',
