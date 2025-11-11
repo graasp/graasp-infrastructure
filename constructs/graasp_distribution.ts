@@ -132,7 +132,7 @@ export class GraaspDistribution extends Construct {
               'PATCH',
               'DELETE',
             ],
-            cachedMethods: [],
+            cachedMethods: ['GET', 'HEAD'],
             originRequestPolicyId: allowAllOriginRequestPolicy.id,
           },
         ],
