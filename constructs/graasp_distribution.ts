@@ -93,7 +93,7 @@ export class GraaspDistribution extends Construct {
           },
           // API origin
           {
-            domainName: `${props.domainName}`,
+            domainName: `${props.albDNSName}`,
             originId: Origins.API_ORIGIN,
             customOriginConfig: {
               httpPort: 80,
