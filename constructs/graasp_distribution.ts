@@ -100,9 +100,6 @@ export class GraaspDistribution extends Construct {
               httpsPort: 443,
               originProtocolPolicy: 'https-only',
               originSslProtocols: ['TLSv1.2'],
-              // THINK: not sure we need to set these to hardcoded values.
-              // originReadTimeout: 60,
-              // originKeepaliveTimeout: 5,
             },
           },
         ],

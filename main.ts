@@ -894,7 +894,14 @@ class GraaspStack extends TerraformStack {
         ],
       },
     );
-    // Makes the listener forward requests sent to api.graasp.org without a path prefix to the first rule by adding the path prefix
+
+    // This rule makes the listener redirect requests sent to api.graasp.org without the "/api" path prefix
+    // It allows for legacy requests targeting api.graasp.org to reach the correct route in the backend (which is always prefixed with /api)
+    // The first rule will handle the redirected request.
+    // We will probably never be able to remove this rule.
+    //
+    // Once CDKTF supports the `transform` option on listeners we will be able to directly forward it and transform the path.
+    // This is currently not possible, thus why we are resorting to using an HTTP redirection
     new LbListenerRule(this, `redirect-without-api-prefix-rule`, {
       listenerArn: loadBalancer.lbl.arn,
       // this needs to be the second rule that catches all requests to api.graasp.org a rule before it should match on the api prefix and forward to a target to prevent a loop.
@@ -1128,18 +1135,18 @@ class GraaspStack extends TerraformStack {
       albDNSName: loadBalancer.lb.dnsName,
       certificate: sslCertificateCloudfront,
     });
-    // add a listener rule in load balancer for core from CF
 
-    // Makes the listener forward requests from host to the target group
+    // Requests from the apex domain that have the /api prefix need to be routed to the core target group
     new LbListenerRule(this, `single-origin-core-rule`, {
       listenerArn: loadBalancer.lbl.arn,
       priority: 20,
       action: [{ type: 'forward', targetGroupArn: coreTargetGroup?.arn }],
 
       condition: [
+        // maintenance header bypass
+        ...ruleConditions,
         { hostHeader: { values: [envDomain(environment)] } },
         { pathPattern: { values: ['/api/*'] } },
-        // TODO: handle maintenance header rules
       ],
     });
 
@@ -1208,7 +1215,6 @@ class GraaspStack extends TerraformStack {
       apps: { corsConfig: [] },
       assets: { corsConfig: [] },
       h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      // client: { corsConfig: [], apexDomain: true },
     };
 
     // define the maintenance function in a function association
