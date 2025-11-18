@@ -80,7 +80,7 @@ export class GraaspDistribution extends Construct {
       {
         enabled: true,
         isIpv6Enabled: true,
-        comment: 'Graasp Origin CloudFront Distribution',
+        comment: 'client',
         defaultRootObject: 'index.html',
         aliases: [`${props.domainName}`],
 
