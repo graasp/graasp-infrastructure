@@ -45,9 +45,9 @@ export class GraaspDistribution extends Construct {
     // define origin access control (OAC)
     const oac = new CloudfrontOriginAccessControl(
       this,
-      'client-origin-access-control',
+      `${id}-origin-access-control`,
       {
-        name: 'client-origin-access-control',
+        name: `${id}-origin-access-control`,
         description: 'Client Origin Access Control',
         originAccessControlOriginType: 's3',
         signingBehavior: 'always',
