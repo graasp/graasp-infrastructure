@@ -1130,7 +1130,7 @@ class GraaspStack extends TerraformStack {
     );
 
     // Cloudfront distribution serving the single origin
-    new GraaspDistribution(this, 'single-origin', {
+    new GraaspDistribution(this, id, {
       domainName: envDomain(environment),
       albDNSName: loadBalancer.lb.dnsName,
       certificate: sslCertificateCloudfront,

@@ -35,10 +35,10 @@ export class GraaspDistribution extends Construct {
   private readonly distribution: CloudfrontDistribution;
 
   constructor(scope: Construct, id: string, props: GraaspDistributionProps) {
-    super(scope, id);
+    super(scope, `${id}-single-origin`);
 
     // define bucket
-    this.bucket = new S3Bucket(this, 'client-bucket', {
+    this.bucket = new S3Bucket(this, `${id}-client`, {
       bucket: `${id}-client`,
     });
 
