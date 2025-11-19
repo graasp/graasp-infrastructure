@@ -1,4 +1,5 @@
 import { CloudfrontDistribution } from '@cdktf/provider-aws/lib/cloudfront-distribution';
+import { CloudfrontOriginAccessControl } from '@cdktf/provider-aws/lib/cloudfront-origin-access-control';
 import { CloudfrontOriginRequestPolicy } from '@cdktf/provider-aws/lib/cloudfront-origin-request-policy';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsIamPolicyDocument } from '@cdktf/provider-aws/lib/data-aws-iam-policy-document';
@@ -9,8 +10,6 @@ import {
 } from '@cdktf/provider-aws/lib/route53-record';
 import { S3Bucket } from '@cdktf/provider-aws/lib/s3-bucket';
 import { S3BucketPolicy } from '@cdktf/provider-aws/lib/s3-bucket-policy';
-import { S3BucketPublicAccessBlock } from '@cdktf/provider-aws/lib/s3-bucket-public-access-block';
-import { S3BucketWebsiteConfiguration } from '@cdktf/provider-aws/lib/s3-bucket-website-configuration';
 import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
@@ -50,18 +49,17 @@ export function createClientStack(
   const clientBucket = new S3Bucket(scope, 'bucket', {
     bucket: `${id}-client`,
   });
-  // we need a s3website hosting configuration otherwise requests to paths inside the app will fail, they need to be redirected to the index.html file
-  const clientBucketWebsiteConfiguration = new S3BucketWebsiteConfiguration(
+
+  // define origin access control (OAC)
+  const oac = new CloudfrontOriginAccessControl(
     scope,
-    `s3-website-configuration`,
+    `${id}-origin-access-control`,
     {
-      bucket: clientBucket.id,
-      indexDocument: {
-        suffix: 'index.html',
-      },
-      errorDocument: {
-        key: 'error.html',
-      },
+      name: `${id}-origin-access-control`,
+      description: 'Client Origin Access Control',
+      originAccessControlOriginType: 's3',
+      signingBehavior: 'always',
+      signingProtocol: 'sigv4',
     },
   );
 
@@ -97,15 +95,9 @@ export function createClientStack(
       origin: [
         // S3 Origin
         {
-          domainName: clientBucketWebsiteConfiguration.websiteEndpoint,
+          domainName: clientBucket.bucketRegionalDomainName,
           originId: Origins.S3_ORIGIN,
-          // we need to use custom origin config since we serve it from the website endpoint
-          customOriginConfig: {
-            httpPort: 80,
-            httpsPort: 443,
-            originProtocolPolicy: 'https-only',
-            originSslProtocols: ['TLSv1.2'],
-          },
+          originAccessControlId: oac.id,
         },
         // API origin
         {
@@ -117,6 +109,15 @@ export function createClientStack(
             originProtocolPolicy: 'https-only',
             originSslProtocols: ['TLSv1.2'],
           },
+        },
+      ],
+      customErrorResponse: [
+        {
+          errorCode: 404,
+          errorCachingMinTtl: 10,
+          // this is what makes the SPA work otherwise paths to pages inside the SPA result in 404 in S3.
+          responsePagePath: '/index.html',
+          responseCode: 200,
         },
       ],
 
@@ -162,40 +163,35 @@ export function createClientStack(
     },
   );
 
-  // Allow public access
-  new S3BucketPublicAccessBlock(scope, `s3-allow-public-access`, {
-    blockPublicAcls: false,
-    blockPublicPolicy: false,
-    bucket: clientBucket.id,
-    ignorePublicAcls: false,
-    restrictPublicBuckets: false,
-  });
-
-  const allowPublicAccess = new DataAwsIamPolicyDocument(
+  // create a policy document that allows CloudFront to read objects from the s3 bucket
+  const bucketPolicy = new DataAwsIamPolicyDocument(
     scope,
-    'allow_public_access',
+    'client-bucket-policy-document',
     {
-      version: '2012-10-17',
       statement: [
         {
-          sid: 'PublicReadForGetBucketObjects',
+          sid: 'AllowCloudfrontToRead',
           effect: 'Allow',
-          actions: ['s3:GetObject'],
           principals: [
+            { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
+          ],
+          actions: ['s3:GetObject'],
+          resources: [`${clientBucket.arn}/*`],
+          condition: [
             {
-              identifiers: ['*'],
-              type: '*',
+              test: 'StringEquals',
+              variable: 'AWS:SourceArn',
+              values: [clientDistribution.arn],
             },
           ],
-          resources: [`${clientBucket.arn}/*`],
         },
       ],
     },
   );
-
-  new S3BucketPolicy(scope, `s3-policy`, {
+  // attach it to the bucket
+  new S3BucketPolicy(scope, 'client-bucket-policy', {
     bucket: clientBucket.id,
-    policy: Token.asString(allowPublicAccess.json),
+    policy: Token.asString(bucketPolicy.json),
   });
 
   // setup DNS records in the hosted Zone
