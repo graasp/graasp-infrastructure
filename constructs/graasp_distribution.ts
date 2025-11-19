@@ -175,7 +175,7 @@ export function createClientStack(
           principals: [
             { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
           ],
-          actions: ['s3:GetObject'],
+          actions: ['s3:GetObject', 's3:ListBucket'],
           resources: [`${clientBucket.arn}/*`],
           condition: [
             {
