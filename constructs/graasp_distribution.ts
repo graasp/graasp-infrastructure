@@ -50,12 +50,16 @@ export function createClientStack(
     bucket: `${id}-client`,
   });
   // we need a s3website hosting configuration otherwise requests to paths inside the app will fail, they need to be redirected to the index.html file
-  new S3BucketWebsiteConfiguration(scope, `s3-website-configuration`, {
-    bucket: clientBucket.id,
-    indexDocument: {
-      suffix: 'index.html',
+  const clientBucketWebsiteConfiguration = new S3BucketWebsiteConfiguration(
+    scope,
+    `s3-website-configuration`,
+    {
+      bucket: clientBucket.id,
+      indexDocument: {
+        suffix: 'index.html',
+      },
     },
-  });
+  );
 
   // define origin access control (OAC)
   const oac = new CloudfrontOriginAccessControl(
@@ -102,7 +106,7 @@ export function createClientStack(
       origin: [
         // S3 Origin
         {
-          domainName: clientBucket.websiteDomain,
+          domainName: clientBucketWebsiteConfiguration.websiteDomain,
           originId: Origins.S3_ORIGIN,
           originAccessControlId: oac.id,
         },
