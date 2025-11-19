@@ -109,6 +109,13 @@ export function createClientStack(
           domainName: clientBucketWebsiteConfiguration.websiteDomain,
           originId: Origins.S3_ORIGIN,
           originAccessControlId: oac.id,
+          // we need to use custom origin config since we serve it from the website endpoint
+          customOriginConfig: {
+            httpPort: 80,
+            httpsPort: 443,
+            originProtocolPolicy: 'https-only',
+            originSslProtocols: ['TLSv1.2'],
+          },
         },
         // API origin
         {
