@@ -10,6 +10,7 @@ import {
 } from '@cdktf/provider-aws/lib/route53-record';
 import { S3Bucket } from '@cdktf/provider-aws/lib/s3-bucket';
 import { S3BucketPolicy } from '@cdktf/provider-aws/lib/s3-bucket-policy';
+import { S3BucketWebsiteConfiguration } from '@cdktf/provider-aws/lib/s3-bucket-website-configuration';
 
 import { Construct } from 'constructs';
 
@@ -44,9 +45,16 @@ export function createClientStack(
   id: string,
   props: GraaspDistributionProps,
 ) {
-  // define bucket
+  // define bucket which hosts the client SPA
   const clientBucket = new S3Bucket(scope, 'bucket', {
     bucket: `${id}-client`,
+  });
+  // we need a s3website hosting configuration otherwise requests to paths inside the app will fail, they need to be redirected to the index.html file
+  new S3BucketWebsiteConfiguration(scope, `s3-website-configuration`, {
+    bucket: clientBucket.id,
+    indexDocument: {
+      suffix: 'index.html',
+    },
   });
 
   // define origin access control (OAC)
@@ -94,7 +102,7 @@ export function createClientStack(
       origin: [
         // S3 Origin
         {
-          domainName: clientBucket.bucketRegionalDomainName,
+          domainName: clientBucket.websiteDomain,
           originId: Origins.S3_ORIGIN,
           originAccessControlId: oac.id,
         },
