@@ -59,6 +59,9 @@ export function createClientStack(
       indexDocument: {
         suffix: 'index.html',
       },
+      errorDocument: {
+        key: 'error.html',
+      },
     },
   );
 
