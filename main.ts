@@ -25,7 +25,7 @@ import {
 } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { GateKeeper } from './constructs/gate_keeper';
-import { GraaspDistribution } from './constructs/graasp_distribution';
+import { createClientStack } from './constructs/graasp_distribution';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
@@ -1130,7 +1130,7 @@ class GraaspStack extends TerraformStack {
     );
 
     // Cloudfront distribution serving the single origin
-    new GraaspDistribution(this, id, {
+    createClientStack(this, id, {
       domainName: envDomain(environment),
       albDNSName: loadBalancer.lb.dnsName,
       certificate: sslCertificateCloudfront,

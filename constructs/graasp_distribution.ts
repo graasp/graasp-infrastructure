@@ -30,151 +30,148 @@ type GraaspDistributionProps = {
   certificate: DataAwsAcmCertificate;
 };
 
-export class GraaspDistribution extends Construct {
-  private readonly bucket: S3Bucket;
-  private readonly distribution: CloudfrontDistribution;
+export function createClientStack(
+  scope: Construct,
+  id: string,
+  props: GraaspDistributionProps,
+) {
+  // define bucket
+  const clientBucket = new S3Bucket(scope, `${id}-client`, {
+    bucket: `${id}-client`,
+  });
 
-  constructor(scope: Construct, id: string, props: GraaspDistributionProps) {
-    super(scope, `${id}-single-origin`);
+  // define origin access control (OAC)
+  const oac = new CloudfrontOriginAccessControl(
+    scope,
+    `${id}-origin-access-control`,
+    {
+      name: `${id}-origin-access-control`,
+      description: 'Client Origin Access Control',
+      originAccessControlOriginType: 's3',
+      signingBehavior: 'always',
+      signingProtocol: 'sigv4',
+    },
+  );
 
-    // define bucket
-    this.bucket = new S3Bucket(this, `${id}-client`, {
-      bucket: `${id}-client`,
-    });
-
-    // define origin access control (OAC)
-    const oac = new CloudfrontOriginAccessControl(
-      this,
-      `${id}-origin-access-control`,
-      {
-        name: `${id}-origin-access-control`,
-        description: 'Client Origin Access Control',
-        originAccessControlOriginType: 's3',
-        signingBehavior: 'always',
-        signingProtocol: 'sigv4',
+  const allowAllOriginRequestPolicy = new CloudfrontOriginRequestPolicy(
+    scope,
+    'allow-all-origin-request-policy',
+    {
+      name: 'allow-all-origin-request-policy',
+      comment: 'Allow all origin request policy',
+      cookiesConfig: {
+        cookieBehavior: 'all',
       },
-    );
-
-    const allowAllOriginRequestPolicy = new CloudfrontOriginRequestPolicy(
-      this,
-      'allow-all-origin-request-policy',
-      {
-        name: 'allow-all-origin-request-policy',
-        comment: 'Allow all origin request policy',
-        cookiesConfig: {
-          cookieBehavior: 'all',
-        },
-        headersConfig: {
-          headerBehavior: 'allViewer',
-        },
-        queryStringsConfig: {
-          queryStringBehavior: 'all',
-        },
+      headersConfig: {
+        headerBehavior: 'allViewer',
       },
-    );
+      queryStringsConfig: {
+        queryStringBehavior: 'all',
+      },
+    },
+  );
 
-    // cloudfront distribution
-    this.distribution = new CloudfrontDistribution(
-      this,
-      'graasp-origin-cf-distribution',
-      {
-        enabled: true,
-        isIpv6Enabled: true,
-        comment: 'client',
-        defaultRootObject: 'index.html',
-        aliases: [`${props.domainName}`],
+  // cloudfront distribution
+  const clientDistribution = new CloudfrontDistribution(
+    scope,
+    `${id}-client-distribution`,
+    {
+      enabled: true,
+      isIpv6Enabled: true,
+      comment: 'client',
+      defaultRootObject: 'index.html',
+      aliases: [`${props.domainName}`],
 
-        origin: [
-          // S3 Origin
-          {
-            domainName: this.bucket.bucketRegionalDomainName,
-            originId: Origins.S3_ORIGIN,
-            originAccessControlId: oac.id,
+      origin: [
+        // S3 Origin
+        {
+          domainName: clientBucket.bucketRegionalDomainName,
+          originId: Origins.S3_ORIGIN,
+          originAccessControlId: oac.id,
+        },
+        // API origin
+        {
+          domainName: `${props.albDNSName}`,
+          originId: Origins.API_ORIGIN,
+          customOriginConfig: {
+            httpPort: 80,
+            httpsPort: 443,
+            originProtocolPolicy: 'https-only',
+            originSslProtocols: ['TLSv1.2'],
           },
-          // API origin
-          {
-            domainName: `${props.albDNSName}`,
-            originId: Origins.API_ORIGIN,
-            customOriginConfig: {
-              httpPort: 80,
-              httpsPort: 443,
-              originProtocolPolicy: 'https-only',
-              originSslProtocols: ['TLSv1.2'],
-            },
-          },
-        ],
+        },
+      ],
 
-        // Default behaviour for s3
-        defaultCacheBehavior: {
-          cachePolicyId: CACHING_OPTIMIZED_ID,
-          targetOriginId: Origins.S3_ORIGIN,
+      // Default behaviour for s3
+      defaultCacheBehavior: {
+        cachePolicyId: CACHING_OPTIMIZED_ID,
+        targetOriginId: Origins.S3_ORIGIN,
+        viewerProtocolPolicy: 'redirect-to-https',
+        allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
+        cachedMethods: ['GET', 'HEAD'],
+      },
+
+      // define cache behaviour for API
+      orderedCacheBehavior: [
+        {
+          pathPattern: '/api/*',
+          targetOriginId: Origins.API_ORIGIN,
+          cachePolicyId: CACHING_DISABLED_ID,
           viewerProtocolPolicy: 'redirect-to-https',
-          allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
+          allowedMethods: [
+            'GET',
+            'HEAD',
+            'OPTIONS',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+          ],
           cachedMethods: ['GET', 'HEAD'],
+          originRequestPolicyId: allowAllOriginRequestPolicy.id,
         },
+      ],
 
-        // define cache behaviour for API
-        orderedCacheBehavior: [
-          {
-            pathPattern: '/api/*',
-            targetOriginId: Origins.API_ORIGIN,
-            cachePolicyId: CACHING_DISABLED_ID,
-            viewerProtocolPolicy: 'redirect-to-https',
-            allowedMethods: [
-              'GET',
-              'HEAD',
-              'OPTIONS',
-              'POST',
-              'PUT',
-              'PATCH',
-              'DELETE',
-            ],
-            cachedMethods: ['GET', 'HEAD'],
-            originRequestPolicyId: allowAllOriginRequestPolicy.id,
-          },
-        ],
-
-        restrictions: {
-          geoRestriction: {
-            restrictionType: 'none',
-          },
-        },
-        viewerCertificate: {
-          acmCertificateArn: props.certificate.arn,
-          sslSupportMethod: 'sni-only', // how cloudfront serves HTTPS content
+      restrictions: {
+        geoRestriction: {
+          restrictionType: 'none',
         },
       },
-    );
-
-    // create a policy document that allows CloudFront to read objects from the s3 bucket
-    const bucketPolicy = new DataAwsIamPolicyDocument(
-      this,
-      'client-bucket-policy-document',
-      {
-        statement: [
-          {
-            sid: 'AllowCloudfrontToRead',
-            effect: 'Allow',
-            principals: [
-              { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
-            ],
-            actions: ['s3:GetObject'],
-            resources: [`${this.bucket.arn}/*`],
-            condition: [
-              {
-                test: 'StringEquals',
-                variable: 'AWS:SourceArn',
-                values: [this.distribution.arn],
-              },
-            ],
-          },
-        ],
+      viewerCertificate: {
+        acmCertificateArn: props.certificate.arn,
+        sslSupportMethod: 'sni-only', // how cloudfront serves HTTPS content
       },
-    );
-    // attach it to the bucket
-    new S3BucketPolicy(this, 'client-bucket-policy', {
-      bucket: this.bucket.id,
-      policy: bucketPolicy.json,
-    });
-  }
+    },
+  );
+
+  // create a policy document that allows CloudFront to read objects from the s3 bucket
+  const bucketPolicy = new DataAwsIamPolicyDocument(
+    scope,
+    'client-bucket-policy-document',
+    {
+      statement: [
+        {
+          sid: 'AllowCloudfrontToRead',
+          effect: 'Allow',
+          principals: [
+            { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
+          ],
+          actions: ['s3:GetObject'],
+          resources: [`${clientBucket.arn}/*`],
+          condition: [
+            {
+              test: 'StringEquals',
+              variable: 'AWS:SourceArn',
+              values: [clientDistribution.arn],
+            },
+          ],
+        },
+      ],
+    },
+  );
+  // attach it to the bucket
+  new S3BucketPolicy(scope, 'client-bucket-policy', {
+    bucket: clientBucket.id,
+    policy: bucketPolicy.json,
+  });
 }
