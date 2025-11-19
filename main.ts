@@ -647,7 +647,7 @@ class GraaspStack extends TerraformStack {
       DB_CONNECTION,
       COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
       ETHERPAD_COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
-      PUBLIC_URL: `https://${subdomainForEnv('api', environment)}`,
+      PUBLIC_URL: `https://${envDomain(environment)}`,
       CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain // FIXME: should be named CLIENT_URL
       LIBRARY_CLIENT_HOST: `https://${subdomainForEnv('library', environment)}`, // FIXME should be named LIBRARY_URL
       SHORT_LINK_BASE_URL: `https://${subdomainForEnv('go', environment)}`,
