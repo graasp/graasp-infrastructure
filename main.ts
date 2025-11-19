@@ -1291,6 +1291,7 @@ class GraaspStack extends TerraformStack {
         environment,
         !!bucket.websiteConfiguration,
         website_config.apexDomain,
+        website_config.exposeDNS,
       );
     }
     // File item storage is private
