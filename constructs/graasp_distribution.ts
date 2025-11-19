@@ -94,7 +94,7 @@ export function createClientStack(
       origin: [
         // S3 Origin
         {
-          domainName: clientBucketWebsiteConfiguration.websiteDomain,
+          domainName: clientBucketWebsiteConfiguration.websiteEndpoint,
           originId: Origins.S3_ORIGIN,
           // we need to use custom origin config since we serve it from the website endpoint
           customOriginConfig: {
