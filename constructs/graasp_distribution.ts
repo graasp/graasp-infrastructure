@@ -36,7 +36,7 @@ export function createClientStack(
   props: GraaspDistributionProps,
 ) {
   // define bucket
-  const clientBucket = new S3Bucket(scope, `${id}-client`, {
+  const clientBucket = new S3Bucket(scope, 'bucket', {
     bucket: `${id}-client`,
   });
 

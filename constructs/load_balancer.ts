@@ -171,7 +171,7 @@ export class LoadBalancer extends Construct {
     // for the go.graasp.org service, redirect to an api endpoint
     this.addListenerRuleForHostRedirect(
       'shortener',
-      10,
+      50,
       {
         subDomainOrigin: 'go', // requests from go.graasp.org
         subDomainTarget: 'api', // to api.graasp.org
@@ -184,7 +184,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'account',
-      11,
+      51,
       {
         subDomainOrigin: 'account', // requests from account.graasp.org
         subDomainTarget: '', // to graasp.org
@@ -198,7 +198,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'auth',
-      12,
+      52,
       {
         subDomainOrigin: 'auth', // requests from auth.graasp.org
         subDomainTarget: '', // to graasp.org
@@ -212,7 +212,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'player',
-      13,
+      53,
       {
         subDomainOrigin: 'player', // requests from player.graasp.org
         subDomainTarget: '', // to graasp.org
@@ -226,7 +226,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'builder',
-      14,
+      54,
       {
         subDomainOrigin: 'builder', // requests from builder.graasp.org
         subDomainTarget: '', // to graasp.org
@@ -240,7 +240,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'analytics',
-      15,
+      55,
       {
         subDomainOrigin: 'analytics', // requests from analytics.graasp.org
         subDomainTarget: '', // to graasp.org
@@ -254,7 +254,7 @@ export class LoadBalancer extends Construct {
     );
     this.addListenerRuleForHostRedirect(
       'association',
-      16,
+      56,
       {
         subDomainOrigin: 'association', // requests from association.graasp.org
         subDomainTarget: '', // to graasp.org

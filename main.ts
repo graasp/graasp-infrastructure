@@ -996,7 +996,7 @@ class GraaspStack extends TerraformStack {
       },
       {
         loadBalancer: loadBalancer,
-        priority: 3,
+        priority: 30,
         host: subdomainForEnv('library', environment),
         port: 80,
         containerName: 'graasp-library',
