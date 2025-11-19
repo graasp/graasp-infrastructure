@@ -1,5 +1,4 @@
 import { CloudfrontDistribution } from '@cdktf/provider-aws/lib/cloudfront-distribution';
-import { CloudfrontOriginAccessControl } from '@cdktf/provider-aws/lib/cloudfront-origin-access-control';
 import { CloudfrontOriginRequestPolicy } from '@cdktf/provider-aws/lib/cloudfront-origin-request-policy';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsIamPolicyDocument } from '@cdktf/provider-aws/lib/data-aws-iam-policy-document';
@@ -10,7 +9,9 @@ import {
 } from '@cdktf/provider-aws/lib/route53-record';
 import { S3Bucket } from '@cdktf/provider-aws/lib/s3-bucket';
 import { S3BucketPolicy } from '@cdktf/provider-aws/lib/s3-bucket-policy';
+import { S3BucketPublicAccessBlock } from '@cdktf/provider-aws/lib/s3-bucket-public-access-block';
 import { S3BucketWebsiteConfiguration } from '@cdktf/provider-aws/lib/s3-bucket-website-configuration';
+import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
@@ -61,19 +62,6 @@ export function createClientStack(
     },
   );
 
-  // define origin access control (OAC)
-  const oac = new CloudfrontOriginAccessControl(
-    scope,
-    `${id}-origin-access-control`,
-    {
-      name: `${id}-origin-access-control`,
-      description: 'Client Origin Access Control',
-      originAccessControlOriginType: 's3',
-      signingBehavior: 'always',
-      signingProtocol: 'sigv4',
-    },
-  );
-
   const allowAllOriginRequestPolicy = new CloudfrontOriginRequestPolicy(
     scope,
     'allow-all-origin-request-policy',
@@ -108,7 +96,6 @@ export function createClientStack(
         {
           domainName: clientBucketWebsiteConfiguration.websiteDomain,
           originId: Origins.S3_ORIGIN,
-          originAccessControlId: oac.id,
           // we need to use custom origin config since we serve it from the website endpoint
           customOriginConfig: {
             httpPort: 80,
@@ -172,35 +159,40 @@ export function createClientStack(
     },
   );
 
-  // create a policy document that allows CloudFront to read objects from the s3 bucket
-  const bucketPolicy = new DataAwsIamPolicyDocument(
+  // Allow public access
+  new S3BucketPublicAccessBlock(scope, `s3-allow-public-access`, {
+    blockPublicAcls: false,
+    blockPublicPolicy: false,
+    bucket: clientBucket.id,
+    ignorePublicAcls: false,
+    restrictPublicBuckets: false,
+  });
+
+  const allowPublicAccess = new DataAwsIamPolicyDocument(
     scope,
-    'client-bucket-policy-document',
+    'allow_public_access',
     {
+      version: '2012-10-17',
       statement: [
         {
-          sid: 'AllowCloudfrontToRead',
+          sid: 'PublicReadForGetBucketObjects',
           effect: 'Allow',
-          principals: [
-            { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
-          ],
           actions: ['s3:GetObject'],
-          resources: [`${clientBucket.arn}/*`],
-          condition: [
+          principals: [
             {
-              test: 'StringEquals',
-              variable: 'AWS:SourceArn',
-              values: [clientDistribution.arn],
+              identifiers: ['*'],
+              type: '*',
             },
           ],
+          resources: [`${clientBucket.arn}/*`],
         },
       ],
     },
   );
-  // attach it to the bucket
-  new S3BucketPolicy(scope, 'client-bucket-policy', {
+
+  new S3BucketPolicy(scope, `s3-policy`, {
     bucket: clientBucket.id,
-    policy: bucketPolicy.json,
+    policy: Token.asString(allowPublicAccess.json),
   });
 
   // setup DNS records in the hosted Zone
