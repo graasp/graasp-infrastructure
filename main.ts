@@ -908,13 +908,18 @@ class GraaspStack extends TerraformStack {
       priority: 2,
       action: [
         {
-          type: 'redirect',
-          redirect: {
-            host: subdomainForEnv('api', environment),
-            path: '/api/#{path}',
-            query: '#{query}',
-            statusCode: 'HTTP_302',
-            protocol: 'HTTPS',
+          type: 'forward',
+          targetGroupArn: coreTargetGroup?.arn,
+        },
+      ],
+      transform: [
+        {
+          type: 'url-rewrite',
+          urlRewriteConfig: {
+            rewrite: {
+              regex: '^/(.*)$',
+              replace: '/api/$1',
+            },
           },
         },
       ],

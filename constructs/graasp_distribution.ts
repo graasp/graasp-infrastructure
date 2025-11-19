@@ -185,6 +185,9 @@ export function createClientStack(
             },
           ],
         },
+        // add a policy to allow CloudFront to list bucket contents so we get 404 errors on keys not found
+        // we then convert these 404 errors into 200 responses for the index page
+        // Without this policy we will get 403 errors instead of 404 errors and then we would have issues getting the 403 errors from the backend.
         {
           sid: 'AllowCloudfrontToListBucketContents',
           effect: 'Allow',
