@@ -45,6 +45,7 @@ export type EnvironmentConfig = {
   subdomain?: string;
   region: AllowedRegionOptions;
   infraState: InfraStateOptions;
+  hostedZoneId: string;
 };
 
 export type GraaspWebsiteConfig = {

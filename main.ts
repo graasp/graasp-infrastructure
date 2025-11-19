@@ -1131,8 +1131,9 @@ class GraaspStack extends TerraformStack {
 
     // Cloudfront distribution serving the single origin
     createClientStack(this, id, {
+      hostedZoneId: environment.hostedZoneId,
       domainName: envDomain(environment),
-      albDNSName: loadBalancer.lb.dnsName,
+      alb: loadBalancer.lb,
       certificate: sslCertificateCloudfront,
     });
 
@@ -1262,12 +1263,14 @@ const infraState = validateInfraState(process.env.INFRA_STATE);
 new GraaspStack(app, 'graasp-dev', {
   env: Environment.DEV,
   subdomain: 'dev',
+  hostedZoneId: 'Z09041603R2YNMQV7FSY5',
   region: DEFAULT_REGION,
   infraState,
 });
 
 new GraaspStack(app, 'graasp-prod', {
   env: Environment.PRODUCTION,
+  hostedZoneId: 'Z02416581F69HLSFNMD78',
   region: AllowedRegion.Zurich,
   infraState,
 });

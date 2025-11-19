@@ -3,6 +3,11 @@ import { CloudfrontOriginAccessControl } from '@cdktf/provider-aws/lib/cloudfron
 import { CloudfrontOriginRequestPolicy } from '@cdktf/provider-aws/lib/cloudfront-origin-request-policy';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsIamPolicyDocument } from '@cdktf/provider-aws/lib/data-aws-iam-policy-document';
+import { Lb } from '@cdktf/provider-aws/lib/lb';
+import {
+  Route53Record,
+  Route53RecordConfig,
+} from '@cdktf/provider-aws/lib/route53-record';
 import { S3Bucket } from '@cdktf/provider-aws/lib/s3-bucket';
 import { S3BucketPolicy } from '@cdktf/provider-aws/lib/s3-bucket-policy';
 
@@ -17,13 +22,17 @@ const Origins = {
 };
 type GraaspDistributionProps = {
   /**
+   * The Route 53 Hosted Zone ID. Used to configure the DNS records for the single origin
+   */
+  hostedZoneId: string;
+  /**
    * Domain name of the cloudfront distribution (i.e: graasp.org)
    */
   domainName: string;
   /**
-   * DNS name of the Load Balancer for the API target (i.e: dualstack.eu-central-1.elb.amazonaws.com)
+   * Load Balancer for the API target (i.e: dualstack.eu-central-1.elb.amazonaws.com)
    */
-  albDNSName: string;
+  alb: Lb;
   /**
    * Certificate to attach to the distribution
    */
@@ -91,7 +100,7 @@ export function createClientStack(
         },
         // API origin
         {
-          domainName: `${props.albDNSName}`,
+          domainName: `${props.alb.dnsName}`,
           originId: Origins.API_ORIGIN,
           customOriginConfig: {
             httpPort: 80,
@@ -173,5 +182,44 @@ export function createClientStack(
   new S3BucketPolicy(scope, 'client-bucket-policy', {
     bucket: clientBucket.id,
     policy: bucketPolicy.json,
+  });
+
+  // setup DNS records in the hosted Zone
+  // CF distribution
+  const cfDistributionRecordConfig = {
+    zoneId: props.hostedZoneId,
+    name: props.domainName, // i.e: dev.graasp.org or graasp.org
+    type: 'A',
+    alias: {
+      name: clientDistribution.domainName,
+      zoneId: clientDistribution.hostedZoneId,
+      evaluateTargetHealth: true,
+    },
+  } satisfies Route53RecordConfig;
+  new Route53Record(
+    scope,
+    `${id}-distribution-A-record`,
+    cfDistributionRecordConfig,
+  );
+  new Route53Record(scope, `${id}-distribution-AAAA-record`, {
+    ...cfDistributionRecordConfig,
+    type: 'AAAA',
+  });
+
+  // API domain
+  const apiRecordConfig = {
+    zoneId: props.hostedZoneId,
+    name: `api.${props.domainName}`, // i.e: api.dev.graasp.org or api.graasp.org
+    type: 'A',
+    alias: {
+      name: props.alb.dnsName,
+      zoneId: props.alb.zoneId,
+      evaluateTargetHealth: true,
+    },
+  };
+  new Route53Record(scope, `${id}-api-A-record`, apiRecordConfig);
+  new Route53Record(scope, `${id}-api-AAAA-record`, {
+    ...apiRecordConfig,
+    type: 'AAAA',
   });
 }
