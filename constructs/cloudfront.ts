@@ -6,6 +6,7 @@ import { Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { EnvironmentConfig, envDomain, subdomainForEnv } from '../utils';
+import { createDNSEntry } from './dns';
 
 const CACHING_OPTIMIZED_ID = '658327ea-f89d-4fab-a63d-7e88639e58f6'; // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
 
@@ -19,6 +20,7 @@ export function makeCloudfront(
   env: EnvironmentConfig,
   isUsingWebsiteEndpoint: boolean = false,
   aliasToEnvApex: boolean = false,
+  exposeDNS: boolean = false,
 ) {
   // needed for pointing to the website endpoint of s3
   const customOriginConfig = {
@@ -27,9 +29,12 @@ export function makeCloudfront(
     originProtocolPolicy: 'http-only',
     originSslProtocols: ['TLSv1'],
   };
+  const alias = aliasToEnvApex
+    ? envDomain(env)
+    : subdomainForEnv(`${targetName}`, env);
 
   // TODO: add alternate domain name, and clean description
-  return new CloudfrontDistribution(scope, `${id}-cloudfront`, {
+  const distribution = new CloudfrontDistribution(scope, `${id}-cloudfront`, {
     comment: targetName,
     enabled: true,
     origin: [
@@ -41,9 +46,7 @@ export function makeCloudfront(
           : undefined,
       },
     ],
-    aliases: [
-      aliasToEnvApex ? envDomain(env) : subdomainForEnv(`${targetName}`, env),
-    ],
+    aliases: [alias],
     defaultCacheBehavior: {
       cachePolicyId: CACHING_OPTIMIZED_ID,
       allowedMethods: ['GET', 'HEAD'],
@@ -75,6 +78,19 @@ export function makeCloudfront(
       sslSupportMethod: 'sni-only',
     },
   });
+
+  if (exposeDNS) {
+    createDNSEntry(scope, targetName, {
+      zoneId: env.hostedZoneId,
+      domainName: alias,
+      alias: {
+        dnsName: distribution.domainName,
+        zoneId: distribution.hostedZoneId,
+      },
+    });
+  }
+
+  return distribution;
 }
 
 /**

@@ -24,6 +24,7 @@ import {
   makeCloudfront,
 } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import { createDNSEntry } from './constructs/dns';
 import { GateKeeper } from './constructs/gate_keeper';
 import { createClientStack } from './constructs/graasp_distribution';
 import { LoadBalancer } from './constructs/load_balancer';
@@ -1134,6 +1135,40 @@ class GraaspStack extends TerraformStack {
       migrateServiceSecurityGroup,
     );
 
+    // Create DNS entries for services
+    createDNSEntry(this, 'umami', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('umami', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'admin', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('admin', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'etherpad', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('etherpad', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'go', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('go', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+
     // Cloudfront distribution serving the single origin
     createClientStack(this, id, {
       hostedZoneId: environment.hostedZoneId,
@@ -1218,9 +1253,13 @@ class GraaspStack extends TerraformStack {
     );
 
     const websites: Record<string, GraaspWebsiteConfig> = {
-      apps: { corsConfig: [] },
-      assets: { corsConfig: [] },
-      h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
+      apps: { corsConfig: [], exposeDNS: true },
+      assets: { corsConfig: [], exposeDNS: true },
+      h5p: {
+        corsConfig: H5P_CORS,
+        bucketOwnership: 'BucketOwnerEnforced',
+        exposeDNS: true,
+      },
     };
 
     // define the maintenance function in a function association

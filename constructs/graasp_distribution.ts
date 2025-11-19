@@ -245,7 +245,7 @@ export function createClientStack(
       zoneId: props.alb.zoneId,
       evaluateTargetHealth: true,
     },
-  };
+  } satisfies Route53RecordConfig;
   new Route53Record(scope, `${id}-api-A-record`, apiRecordConfig);
   new Route53Record(scope, `${id}-api-AAAA-record`, {
     ...apiRecordConfig,
