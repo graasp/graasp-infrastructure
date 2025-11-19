@@ -170,13 +170,29 @@ export function createClientStack(
     {
       statement: [
         {
-          sid: 'AllowCloudfrontToRead',
+          sid: 'AllowCloudfrontToReadObjects',
           effect: 'Allow',
           principals: [
             { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
           ],
-          actions: ['s3:GetObject', 's3:ListBucket'],
+          actions: ['s3:GetObject'],
           resources: [`${clientBucket.arn}/*`],
+          condition: [
+            {
+              test: 'StringEquals',
+              variable: 'AWS:SourceArn',
+              values: [clientDistribution.arn],
+            },
+          ],
+        },
+        {
+          sid: 'AllowCloudfrontToListBucketContents',
+          effect: 'Allow',
+          principals: [
+            { type: 'Service', identifiers: ['cloudfront.amazonaws.com'] },
+          ],
+          actions: ['s3:ListBucket'],
+          resources: [`${clientBucket.arn}`],
           condition: [
             {
               test: 'StringEquals',
