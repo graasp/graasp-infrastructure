@@ -38,6 +38,11 @@ type GraaspDistributionProps = {
    * Certificate to attach to the distribution
    */
   certificate: DataAwsAcmCertificate;
+  /**
+   * The funciton to associate with the distribution
+   * This is primarily used to enable the maintenance.
+   */
+  functionAssociationArn?: string;
 };
 
 export function createClientStack(
@@ -128,6 +133,14 @@ export function createClientStack(
         viewerProtocolPolicy: 'redirect-to-https',
         allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
         cachedMethods: ['GET', 'HEAD'],
+        functionAssociation: props.functionAssociationArn
+          ? [
+              {
+                eventType: 'viewer-request',
+                functionArn: props.functionAssociationArn,
+              },
+            ]
+          : undefined,
       },
 
       // define cache behaviour for API

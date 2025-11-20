@@ -1168,6 +1168,22 @@ class GraaspStack extends TerraformStack {
         zoneId: loadBalancer.lb.zoneId,
       },
     });
+    createDNSEntry(this, 'library', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('library', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+
+    // define the maintenance function in a function association
+    const maintenanceFunc = createMaintenanceFunction(
+      this,
+      'maintenance-check-function',
+      environment,
+      maintenanceHeaderValues,
+    );
 
     // Cloudfront distribution serving the single origin
     createClientStack(this, id, {
@@ -1175,6 +1191,7 @@ class GraaspStack extends TerraformStack {
       domainName: envDomain(environment),
       alb: loadBalancer.lb,
       certificate: sslCertificateCloudfront,
+      functionAssociationArn: maintenanceFunc?.arn,
     });
 
     // Requests from the apex domain that have the /api prefix need to be routed to the core target group
@@ -1261,14 +1278,6 @@ class GraaspStack extends TerraformStack {
         exposeDNS: true,
       },
     };
-
-    // define the maintenance function in a function association
-    const maintenanceFunc = createMaintenanceFunction(
-      this,
-      'maintenance-check-function',
-      environment,
-      maintenanceHeaderValues,
-    );
 
     for (const [website_name, website_config] of Object.entries(websites)) {
       const bucket = new GraaspS3Bucket(
