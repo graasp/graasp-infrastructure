@@ -45,9 +45,11 @@ export type EnvironmentConfig = {
   subdomain?: string;
   region: AllowedRegionOptions;
   infraState: InfraStateOptions;
+  hostedZoneId: string;
 };
 
 export type GraaspWebsiteConfig = {
+  exposeDNS: boolean;
   apexDomain?: boolean;
   s3StaticSite?: boolean;
   corsConfig: S3BucketCorsConfigurationCorsRule[];

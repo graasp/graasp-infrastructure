@@ -210,9 +210,10 @@ export class Cluster extends Construct {
 
     let ecsServiceLoadBalancerOptions: EcsServiceLoadBalancer[] | undefined;
 
+    let targetGroup = undefined;
     // If exposed on load balancer
     if (loadBalancerConfig) {
-      const targetGroup = new LbTargetGroup(this, `${name}-target-group`, {
+      targetGroup = new LbTargetGroup(this, `${name}-target-group`, {
         dependsOn: [loadBalancerConfig.loadBalancer.lbl],
         name: `${name}`,
         port: loadBalancerConfig.port,
@@ -308,7 +309,7 @@ export class Cluster extends Construct {
       });
     }
 
-    return task;
+    return { task, service, targetGroup };
   }
 
   private createECSExecTaskRole(name: string) {

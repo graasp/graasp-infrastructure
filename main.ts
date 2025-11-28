@@ -2,7 +2,10 @@ import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-cert
 import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repository';
 import { EcrLifecyclePolicy } from '@cdktf/provider-aws/lib/ecr-lifecycle-policy';
 import { EcrRepository } from '@cdktf/provider-aws/lib/ecr-repository';
-import { LbListenerRuleCondition } from '@cdktf/provider-aws/lib/lb-listener-rule';
+import {
+  LbListenerRule,
+  LbListenerRuleCondition,
+} from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
   AwsProvider,
   AwsProviderAssumeRole,
@@ -21,7 +24,9 @@ import {
   makeCloudfront,
 } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
+import { createDNSEntry } from './constructs/dns';
 import { GateKeeper } from './constructs/gate_keeper';
+import { createClientStack } from './constructs/graasp_distribution';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
@@ -555,10 +560,12 @@ class GraaspStack extends TerraformStack {
     const libraryECR = new DataAwsEcrRepository(this, `${id}-explore-ecr`, {
       name: 'graasp/explore',
     });
+
+    // This ECR is managed by Terraform (unlike the others)
     const adminECR = new EcrRepository(this, `${id}-admin-ecr`, {
       name: 'graasp/admin',
     });
-    // ecr repository policy
+    // Attach an ECR repository policy for deleting images
     new EcrLifecyclePolicy(this, `${id}-admin-ecr-lifecycle`, {
       repository: adminECR.name,
       policy: JSON.stringify({
@@ -640,7 +647,7 @@ class GraaspStack extends TerraformStack {
       DB_CONNECTION,
       COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
       ETHERPAD_COOKIE_DOMAIN: subdomainForEnv('', environment), // i.e: '.dev.graasp.org'
-      PUBLIC_URL: `https://${subdomainForEnv('api', environment)}`,
+      PUBLIC_URL: `https://${envDomain(environment)}`,
       CLIENT_HOST: `https://${envDomain(environment)}`, // apex domain // FIXME: should be named CLIENT_URL
       LIBRARY_CLIENT_HOST: `https://${subdomainForEnv('library', environment)}`, // FIXME should be named LIBRARY_URL
       SHORT_LINK_BASE_URL: `https://${subdomainForEnv('go', environment)}`,
@@ -852,7 +859,7 @@ class GraaspStack extends TerraformStack {
 
     const graaspServicesActive = isServiceActive(environment).graasp;
     // backend
-    cluster.addService(
+    const { targetGroup: coreTargetGroup } = cluster.addService(
       {
         name: 'graasp',
         desiredCount: CONFIG[environment.env].ecsConfig.graasp.taskCount,
@@ -882,9 +889,47 @@ class GraaspStack extends TerraformStack {
         containerPort: BACKEND_PORT,
         containerName: 'core',
         healthCheckPath: '/health',
-        ruleConditions,
+        ruleConditions: [
+          ...ruleConditions,
+          { pathPattern: { values: ['/api/*'] } },
+        ],
       },
     );
+
+    // This rule makes the listener redirect requests sent to api.graasp.org without the "/api" path prefix
+    // It allows for legacy requests targeting api.graasp.org to reach the correct route in the backend (which is always prefixed with /api)
+    // The first rule will handle the redirected request.
+    // We will probably never be able to remove this rule.
+    //
+    // Once CDKTF supports the `transform` option on listeners we will be able to directly forward it and transform the path.
+    // This is currently not possible, thus why we are resorting to using an HTTP redirection
+    new LbListenerRule(this, `redirect-without-api-prefix-rule`, {
+      listenerArn: loadBalancer.lbl.arn,
+      // this needs to be the second rule that catches all requests to api.graasp.org a rule before it should match on the api prefix and forward to a target to prevent a loop.
+      priority: 2,
+      action: [
+        {
+          type: 'forward',
+          targetGroupArn: coreTargetGroup?.arn,
+        },
+      ],
+      transform: [
+        {
+          type: 'url-rewrite',
+          urlRewriteConfig: {
+            rewrite: {
+              regex: '^/(.*)$',
+              replace: '/api/$1',
+            },
+          },
+        },
+      ],
+      condition: [
+        ...ruleConditions,
+        { hostHeader: { values: [subdomainForEnv('api', environment)] } },
+      ],
+    });
+
     // workers
     cluster.addService(
       {
@@ -957,7 +1002,7 @@ class GraaspStack extends TerraformStack {
       },
       {
         loadBalancer: loadBalancer,
-        priority: 2,
+        priority: 30,
         host: subdomainForEnv('library', environment),
         port: 80,
         containerName: 'graasp-library',
@@ -983,7 +1028,7 @@ class GraaspStack extends TerraformStack {
       undefined,
       {
         loadBalancer: loadBalancer,
-        priority: 3,
+        priority: 4,
         host: subdomainForEnv('etherpad', environment),
         port: 443,
         containerName: 'etherpad',
@@ -1009,7 +1054,7 @@ class GraaspStack extends TerraformStack {
       undefined,
       {
         loadBalancer: loadBalancer,
-        priority: 4,
+        priority: 5,
         host: subdomainForEnv('umami', environment),
         port: 80,
         containerName: 'umami',
@@ -1090,6 +1135,79 @@ class GraaspStack extends TerraformStack {
       migrateServiceSecurityGroup,
     );
 
+    // Create DNS entries for services
+    createDNSEntry(this, 'umami', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('umami', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'admin', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('admin', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'etherpad', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('etherpad', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'go', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('go', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'library', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('library', environment),
+      alias: {
+        dnsName: loadBalancer.lb.dnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+
+    // define the maintenance function in a function association
+    const maintenanceFunc = createMaintenanceFunction(
+      this,
+      'maintenance-check-function',
+      environment,
+      maintenanceHeaderValues,
+    );
+
+    // Cloudfront distribution serving the single origin
+    createClientStack(this, id, {
+      hostedZoneId: environment.hostedZoneId,
+      domainName: envDomain(environment),
+      alb: loadBalancer.lb,
+      certificate: sslCertificateCloudfront,
+      functionAssociationArn: maintenanceFunc?.arn,
+    });
+
+    // Requests from the apex domain that have the /api prefix need to be routed to the core target group
+    new LbListenerRule(this, `single-origin-core-rule`, {
+      listenerArn: loadBalancer.lbl.arn,
+      priority: 20,
+      action: [{ type: 'forward', targetGroupArn: coreTargetGroup?.arn }],
+
+      condition: [
+        // maintenance header bypass
+        ...ruleConditions,
+        { hostHeader: { values: [envDomain(environment)] } },
+        { pathPattern: { values: ['/api/*'] } },
+      ],
+    });
+
     // S3 buckets
 
     // This has been copied from existing configuration, is it relevant?
@@ -1152,19 +1270,14 @@ class GraaspStack extends TerraformStack {
     );
 
     const websites: Record<string, GraaspWebsiteConfig> = {
-      apps: { corsConfig: [] },
-      assets: { corsConfig: [] },
-      h5p: { corsConfig: H5P_CORS, bucketOwnership: 'BucketOwnerEnforced' },
-      client: { corsConfig: [], apexDomain: true },
+      apps: { corsConfig: [], exposeDNS: true },
+      assets: { corsConfig: [], exposeDNS: true },
+      h5p: {
+        corsConfig: H5P_CORS,
+        bucketOwnership: 'BucketOwnerEnforced',
+        exposeDNS: true,
+      },
     };
-
-    // define the maintenance function in a function association
-    const maintenanceFunc = createMaintenanceFunction(
-      this,
-      'maintenance-check-function',
-      environment,
-      maintenanceHeaderValues,
-    );
 
     for (const [website_name, website_config] of Object.entries(websites)) {
       const bucket = new GraaspS3Bucket(
@@ -1187,6 +1300,7 @@ class GraaspStack extends TerraformStack {
         environment,
         !!bucket.websiteConfiguration,
         website_config.apexDomain,
+        website_config.exposeDNS,
       );
     }
     // File item storage is private
@@ -1203,12 +1317,14 @@ const infraState = validateInfraState(process.env.INFRA_STATE);
 new GraaspStack(app, 'graasp-dev', {
   env: Environment.DEV,
   subdomain: 'dev',
+  hostedZoneId: 'Z09041603R2YNMQV7FSY5',
   region: DEFAULT_REGION,
   infraState,
 });
 
 new GraaspStack(app, 'graasp-prod', {
   env: Environment.PRODUCTION,
+  hostedZoneId: 'Z02416581F69HLSFNMD78',
   region: AllowedRegion.Zurich,
   infraState,
 });
