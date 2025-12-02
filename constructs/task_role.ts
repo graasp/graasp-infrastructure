@@ -71,11 +71,18 @@ export class TaskRole extends Construct {
             {
               Effect: 'Allow',
               Action: [
-                ...(read ? ['s3:GetObject', 's3:ListBucket'] : []),
+                ...(read ? ['s3:GetObject'] : []),
                 ...(write ? ['s3:PutObject'] : []),
               ],
-              Resource: bucket_arn,
+              Resource: `${bucket_arn}/*`,
             },
+            read
+              ? {
+                  Effect: 'Allow',
+                  Action: ['s3:ListBucket'],
+                  Resource: `${bucket_arn}`,
+                }
+              : undefined,
           ],
         }),
       ),
