@@ -35,6 +35,7 @@ import {
   securityGroupEgressOnly,
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
+import { TaskRole } from './constructs/task_role';
 import {
   AllowedRegion,
   Environment,
@@ -598,6 +599,35 @@ class GraaspStack extends TerraformStack {
       }),
     });
 
+    // This has been copied from existing configuration, is it relevant?
+    const FILE_ITEM_CORS = [
+      {
+        allowedHeaders: ['*'],
+        allowedMethods: ['GET'],
+        allowedOrigins: [`https://${subdomainForEnv('assets', environment)}`],
+        exposeHeaders: [],
+      },
+      {
+        allowedHeaders: ['*'],
+        allowedMethods: ['HEAD', 'PUT', 'GET', 'DELETE'],
+        allowedOrigins: ['null'],
+        exposeHeaders: [],
+      },
+      {
+        allowedHeaders: ['*'],
+        allowedMethods: ['HEAD', 'GET'],
+        allowedOrigins: ['*'],
+        exposeHeaders: [],
+      },
+    ];
+    // File item storage is private
+    const fileItemBucket = new GraaspS3Bucket(
+      this,
+      `${id}-file-items`,
+      false,
+      FILE_ITEM_CORS,
+    );
+
     const meilisearchMasterKey = new TerraformVariable(
       this,
       'MEILISEARCH_MASTER_KEY',
@@ -786,6 +816,9 @@ class GraaspStack extends TerraformStack {
       },
       environment,
     );
+    const adminTaskRole = new TaskRole(this, 'admin')
+      .allowECSExec()
+      .allowS3Access(fileItemBucket.bucket.arn, { read: true });
 
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
@@ -960,6 +993,7 @@ class GraaspStack extends TerraformStack {
       {
         name: 'admin',
         desiredCount: 1,
+        taskRoleArn: adminTaskRole.role.arn,
         enableExecuteCommand: true,
       },
       {
@@ -1211,27 +1245,6 @@ class GraaspStack extends TerraformStack {
 
     // S3 buckets
 
-    // This has been copied from existing configuration, is it relevant?
-    const FILE_ITEM_CORS = [
-      {
-        allowedHeaders: ['*'],
-        allowedMethods: ['GET'],
-        allowedOrigins: [`https://${subdomainForEnv('assets', environment)}`],
-        exposeHeaders: [],
-      },
-      {
-        allowedHeaders: ['*'],
-        allowedMethods: ['HEAD', 'PUT', 'GET', 'DELETE'],
-        allowedOrigins: ['null'],
-        exposeHeaders: [],
-      },
-      {
-        allowedHeaders: ['*'],
-        allowedMethods: ['HEAD', 'GET'],
-        allowedOrigins: ['*'],
-        exposeHeaders: [],
-      },
-    ];
     const H5P_CORS = [
       {
         allowedHeaders: ['*'],
@@ -1304,8 +1317,6 @@ class GraaspStack extends TerraformStack {
         website_config.exposeDNS,
       );
     }
-    // File item storage is private
-    new GraaspS3Bucket(this, `${id}-file-items`, false, FILE_ITEM_CORS);
   }
 }
 
