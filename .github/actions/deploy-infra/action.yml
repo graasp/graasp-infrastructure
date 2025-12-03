@@ -113,12 +113,6 @@ inputs:
   admin_release_cookie:
     description: 'Admin release cookie used to allow communication between different erlang nodes'
     required: true
-  admin_mailer_ses_access_key:
-    description: 'Admin mailer access key'
-    required: true
-  admin_mailer_ses_secret:
-    description: 'Admin mailer access secret'
-    required: true
 
 runs:
   using: composite
@@ -229,8 +223,6 @@ runs:
         TF_VAR_UMAMI_JWT_SECRET: ${{ inputs.umami_jwt_secret }}
         TF_VAR_ADMIN_SECRET_KEY_BASE: ${{ inputs.admin_secret_key_base }}
         TF_VAR_ADMIN_RELEASE_COOKIE: ${{ inputs.admin_release_cookie }}
-        TF_VAR_ADMIN_MAILER_SES_ACCESS_KEY: ${{ inputs.admin_mailer_ses_access_key }}
-        TF_VAR_ADMIN_MAILER_SES_SECRET: ${{ inputs.admin_mailer_ses_secret }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
