@@ -772,26 +772,6 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-    const mailerSESAccessKey = new TerraformVariable(
-      this,
-      'ADMIN_MAILER_SES_ACCESS_KEY',
-      {
-        nullable: false,
-        type: 'string',
-        description: 'Mailer SES access key',
-        sensitive: true,
-      },
-    );
-    const mailerSESSecret = new TerraformVariable(
-      this,
-      'ADMIN_MAILER_SES_SECRET',
-      {
-        nullable: false,
-        type: 'string',
-        description: 'Mailer SES secret key',
-        sensitive: true,
-      },
-    );
 
     const adminDefinition = createContainerDefinitions(
       'admin',
@@ -808,17 +788,15 @@ class GraaspStack extends TerraformStack {
         DATABASE_URL: ECTO_DB_CONNECTION,
         SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
         PHX_HOST: subdomainForEnv('admin', environment),
-        MAILER_SES_ACCESS_KEY: toEnvVar(mailerSESAccessKey),
-        MAILER_SES_SECRET: toEnvVar(mailerSESSecret),
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
-        MAILER_SES_REGION: environment.region,
         FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
       },
       environment,
     );
     const adminTaskRole = new TaskRole(this, 'admin')
       .allowECSExec()
-      .allowS3Access(fileItemBucket.bucket.arn, { read: true });
+      .allowS3Access(fileItemBucket.bucket.arn, { read: true })
+      .allowSESAccess();
 
     const libraryDefinition = createContainerDefinitions(
       'graasp-library',
