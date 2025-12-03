@@ -89,4 +89,25 @@ export class TaskRole extends Construct {
     });
     return this;
   }
+
+  allowSESAccess() {
+    const policyName = `${this.name}-allow-ses-policy`;
+    new IamRolePolicy(this, policyName, {
+      name: policyName,
+      role: this.role.id,
+      policy: Token.asString(
+        Fn.jsonencode({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: ['ses:SendEmail', 'ses:SendRawEmail'],
+              Resource: '*',
+            },
+          ],
+        }),
+      ),
+    });
+    return this;
+  }
 }
