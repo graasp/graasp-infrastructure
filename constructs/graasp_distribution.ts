@@ -133,6 +133,7 @@ export function createClientStack(
         viewerProtocolPolicy: 'redirect-to-https',
         allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
         cachedMethods: ['GET', 'HEAD'],
+        compress: true,
         functionAssociation: props.functionAssociationArn
           ? [
               {
