@@ -50,6 +50,7 @@ export type EnvironmentConfig = {
 
 export type GraaspWebsiteConfig = {
   exposeDNS: boolean;
+  bypassMaintenance?: boolean;
   apexDomain?: boolean;
   s3StaticSite?: boolean;
   corsConfig: S3BucketCorsConfigurationCorsRule[];
