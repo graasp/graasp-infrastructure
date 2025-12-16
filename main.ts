@@ -1262,12 +1262,17 @@ class GraaspStack extends TerraformStack {
     );
 
     const websites: Record<string, GraaspWebsiteConfig> = {
-      apps: { corsConfig: [], exposeDNS: true, bypassMaintenance: true },
-      assets: { corsConfig: [], exposeDNS: true },
+      apps: { corsConfig: [], exposeDNS: true },
+      assets: {
+        corsConfig: [],
+        exposeDNS: true,
+        functionAssociationArn: maintenanceFunc?.arn,
+      },
       h5p: {
         corsConfig: H5P_CORS,
         bucketOwnership: 'BucketOwnerEnforced',
         exposeDNS: true,
+        functionAssociationArn: maintenanceFunc?.arn,
       },
     };
 
@@ -1287,7 +1292,7 @@ class GraaspStack extends TerraformStack {
         `${id}-${website_name}`,
         website_name,
         bucket.websiteConfiguration.websiteEndpoint,
-        website_config.bypassMaintenance ? undefined : maintenanceFunc?.arn,
+        website_config.functionAssociationArn,
         sslCertificateCloudfront,
         environment,
         !!bucket.websiteConfiguration,
