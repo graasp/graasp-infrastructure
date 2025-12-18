@@ -26,7 +26,6 @@ import {
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { createDNSEntry } from './constructs/dns';
 import { GateKeeper } from './constructs/gate_keeper';
-import { createClientStack } from './constructs/graasp_distribution';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
@@ -806,7 +805,7 @@ class GraaspStack extends TerraformStack {
       {
         DATABASE_URL: ECTO_DB_CONNECTION,
         SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
-        PHX_HOST: subdomainForEnv('admin', environment),
+        PHX_HOST: envDomain(environment),
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
         FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
         MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
@@ -1010,16 +1009,17 @@ class GraaspStack extends TerraformStack {
       {
         loadBalancer: loadBalancer,
         priority: 8,
-        host: subdomainForEnv('admin', environment),
+        host: envDomain(environment),
         port: 80,
         containerName: 'admin',
         containerPort: ADMIN_PORT,
         healthCheckPath: '/up',
-        ruleConditions:
+        ruleConditions: [
           // admin service should stay accessible without maintenance unless service is not active.
-          isServiceActive(environment).administration
-            ? undefined
-            : ruleConditions,
+          ...(isServiceActive(environment).administration
+            ? []
+            : ruleConditions),
+        ],
       },
     );
 
@@ -1210,6 +1210,22 @@ class GraaspStack extends TerraformStack {
         zoneId: loadBalancer.lb.zoneId,
       },
     });
+    createDNSEntry(this, 'api', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('api', environment),
+      alias: {
+        dnsName: loadBalancer.dualstackDnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
+    createDNSEntry(this, 'core', {
+      zoneId: environment.hostedZoneId,
+      domainName: envDomain(environment),
+      alias: {
+        dnsName: loadBalancer.dualstackDnsName,
+        zoneId: loadBalancer.lb.zoneId,
+      },
+    });
 
     // define the maintenance function in a function association
     const maintenanceFunc = createMaintenanceFunction(
@@ -1219,19 +1235,10 @@ class GraaspStack extends TerraformStack {
       maintenanceHeaderValues,
     );
 
-    // Cloudfront distribution serving the single origin
-    createClientStack(this, id, {
-      hostedZoneId: environment.hostedZoneId,
-      domainName: envDomain(environment),
-      alb: loadBalancer,
-      certificate: sslCertificateCloudfront,
-      functionAssociationArn: maintenanceFunc?.arn,
-    });
-
     // Requests from the apex domain that have the /api prefix need to be routed to the core target group
     new LbListenerRule(this, `single-origin-core-rule`, {
       listenerArn: loadBalancer.lbl.arn,
-      priority: 20,
+      priority: 7,
       action: [{ type: 'forward', targetGroupArn: coreTargetGroup?.arn }],
 
       condition: [
