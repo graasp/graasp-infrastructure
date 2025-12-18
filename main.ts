@@ -993,7 +993,7 @@ class GraaspStack extends TerraformStack {
         containerPort: ADMIN_PORT,
         healthCheckPath: '/up',
         ruleConditions:
-          // umami service should stay accessible without maintenance unless service is not active.
+          // admin service should stay accessible without maintenance unless service is not active.
           isServiceActive(environment).administration
             ? undefined
             : ruleConditions,
