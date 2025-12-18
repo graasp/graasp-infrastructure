@@ -1259,6 +1259,7 @@ class GraaspStack extends TerraformStack {
       environment,
       !!maintenanceBucket.websiteConfiguration,
       false,
+      true,
     );
 
     const websites: Record<string, GraaspWebsiteConfig> = {
