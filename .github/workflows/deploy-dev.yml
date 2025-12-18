@@ -6,8 +6,6 @@
 name: Deploy dev
 
 on:
-  schedule:
-    - cron: '10 8 * * 1-5'
   workflow_dispatch:
 
 permissions:
