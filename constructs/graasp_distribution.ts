@@ -19,7 +19,7 @@ const CACHING_DISABLED_ID = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad'; // https://d
 
 const Origins = {
   S3_ORIGIN: 's3-origin',
-  API_ORIGIN: 'api-origin',
+  ALB_ORIGIN: 'alb-origin',
 };
 type GraaspDistributionProps = {
   /**
@@ -104,10 +104,10 @@ export function createClientStack(
           originId: Origins.S3_ORIGIN,
           originAccessControlId: oac.id,
         },
-        // API origin
+        // Loadbalancer origin
         {
           domainName: `${props.alb.dnsName}`,
-          originId: Origins.API_ORIGIN,
+          originId: Origins.ALB_ORIGIN,
           customOriginConfig: {
             httpPort: 80,
             httpsPort: 443,
@@ -144,11 +144,29 @@ export function createClientStack(
           : undefined,
       },
 
-      // define cache behaviour for API
       orderedCacheBehavior: [
+        // define cache behaviour for API
         {
           pathPattern: '/api/*',
-          targetOriginId: Origins.API_ORIGIN,
+          targetOriginId: Origins.ALB_ORIGIN,
+          cachePolicyId: CACHING_DISABLED_ID,
+          viewerProtocolPolicy: 'redirect-to-https',
+          allowedMethods: [
+            'GET',
+            'HEAD',
+            'OPTIONS',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+          ],
+          cachedMethods: ['GET', 'HEAD'],
+          originRequestPolicyId: allowAllOriginRequestPolicy.id,
+        },
+        // admin
+        {
+          pathPattern: '/admin/*',
+          targetOriginId: Origins.ALB_ORIGIN,
           cachePolicyId: CACHING_DISABLED_ID,
           viewerProtocolPolicy: 'redirect-to-https',
           allowedMethods: [

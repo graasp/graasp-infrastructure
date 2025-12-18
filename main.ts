@@ -787,7 +787,7 @@ class GraaspStack extends TerraformStack {
       {
         DATABASE_URL: ECTO_DB_CONNECTION,
         SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
-        PHX_HOST: subdomainForEnv('admin', environment),
+        PHX_HOST: envDomain(environment),
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
         FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
       },
@@ -987,16 +987,18 @@ class GraaspStack extends TerraformStack {
       {
         loadBalancer: loadBalancer,
         priority: 8,
-        host: subdomainForEnv('admin', environment),
+        host: envDomain(environment),
         port: 80,
         containerName: 'admin',
         containerPort: ADMIN_PORT,
         healthCheckPath: '/up',
-        ruleConditions:
+        ruleConditions: [
+          { pathPattern: { values: ['/admin/*'] } },
           // admin service should stay accessible without maintenance unless service is not active.
-          isServiceActive(environment).administration
-            ? undefined
-            : ruleConditions,
+          ...(isServiceActive(environment).administration
+            ? []
+            : ruleConditions),
+        ],
       },
     );
 
@@ -1158,14 +1160,6 @@ class GraaspStack extends TerraformStack {
     createDNSEntry(this, 'umami', {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('umami', environment),
-      alias: {
-        dnsName: loadBalancer.lb.dnsName,
-        zoneId: loadBalancer.lb.zoneId,
-      },
-    });
-    createDNSEntry(this, 'admin', {
-      zoneId: environment.hostedZoneId,
-      domainName: subdomainForEnv('admin', environment),
       alias: {
         dnsName: loadBalancer.lb.dnsName,
         zoneId: loadBalancer.lb.zoneId,
