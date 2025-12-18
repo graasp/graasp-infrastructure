@@ -980,7 +980,7 @@ class GraaspStack extends TerraformStack {
         memory: CONFIG[environment.env].ecsConfig.admin.memory,
         cpuArchitecture: 'ARM64', // use arm64 since the image is built on arm64
       },
-      graaspServicesActive,
+      isServiceActive(environment).administration,
       adminSecurityGroup,
       undefined,
       undefined,
@@ -992,7 +992,11 @@ class GraaspStack extends TerraformStack {
         containerName: 'admin',
         containerPort: ADMIN_PORT,
         healthCheckPath: '/up',
-        ruleConditions,
+        ruleConditions:
+          // admin service should stay accessible without maintenance unless service is not active.
+          isServiceActive(environment).administration
+            ? undefined
+            : ruleConditions,
       },
     );
 
@@ -1061,7 +1065,7 @@ class GraaspStack extends TerraformStack {
         cpu: CONFIG[environment.env].ecsConfig.umami.cpu,
         memory: CONFIG[environment.env].ecsConfig.umami.memory,
       },
-      isServiceActive(environment).umami,
+      isServiceActive(environment).administration,
       umamiSecurityGroup,
       { name: 'umami', port: UMAMI_PORT },
       undefined,
@@ -1075,7 +1079,9 @@ class GraaspStack extends TerraformStack {
         healthCheckPath: '/api/heartbeat',
         ruleConditions:
           // umami service should stay accessible without maintenance unless service is not active.
-          isServiceActive(environment).umami ? undefined : ruleConditions,
+          isServiceActive(environment).administration
+            ? undefined
+            : ruleConditions,
       },
     );
 

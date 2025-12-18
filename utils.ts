@@ -104,7 +104,7 @@ export function validateInfraState(
 export function isServiceActive(environment: EnvironmentConfig): {
   maintenance: boolean;
   database: boolean;
-  umami: boolean;
+  administration: boolean;
   graasp: boolean;
   migration: boolean;
   collab: boolean;
@@ -115,7 +115,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
       return {
         maintenance: true,
         database: false,
-        umami: false,
+        administration: false,
         graasp: false,
         migration: false,
         collab: false,
@@ -124,7 +124,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
       return {
         maintenance: true,
         database: true,
-        umami: true,
+        administration: true,
         graasp: false,
         migration: true,
         collab: true,
@@ -133,7 +133,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
       return {
         maintenance: true,
         database: true,
-        umami: true,
+        administration: true,
         graasp: true,
         migration: false,
         collab: true,
@@ -143,7 +143,7 @@ export function isServiceActive(environment: EnvironmentConfig): {
       return {
         maintenance: false,
         database: true,
-        umami: true,
+        administration: true,
         graasp: true,
         migration: false,
         collab: true,
