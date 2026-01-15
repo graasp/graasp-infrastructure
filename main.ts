@@ -790,6 +790,7 @@ class GraaspStack extends TerraformStack {
         PHX_HOST: subdomainForEnv('admin', environment),
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
         FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
+        MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
       },
       environment,
     );
