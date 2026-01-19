@@ -64,3 +64,5 @@ jobs:
           umami_jwt_secret: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
           admin_secret_key_base: ${{ secrets.TF_VAR_ADMIN_SECRET_KEY_BASE }}
           admin_release_cookie: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
+          admin_umami_username: ${{ secrets.TF_VAR_UMAMI_USERNAME }}
+          admin_umami_password: ${{ secrets.TF_VAR_UMAMI_PASSWORD }}

@@ -113,6 +113,12 @@ inputs:
   admin_release_cookie:
     description: 'Admin release cookie used to allow communication between different erlang nodes'
     required: true
+  admin_umami_username:
+    description: 'Admin username to access Umami'
+    required: true
+  admin_umami_password:
+    description: 'Admin password to access Umami'
+    required: true
 
 runs:
   using: composite
@@ -223,6 +229,8 @@ runs:
         TF_VAR_UMAMI_JWT_SECRET: ${{ inputs.umami_jwt_secret }}
         TF_VAR_ADMIN_SECRET_KEY_BASE: ${{ inputs.admin_secret_key_base }}
         TF_VAR_ADMIN_RELEASE_COOKIE: ${{ inputs.admin_release_cookie }}
+        TF_VAR_UMAMI_USERNAME: ${{ inputs.admin_umami_username }}
+        TF_VAR_UMAMI_PASSWORD: ${{ inputs.admin_umami_password }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
