@@ -772,7 +772,18 @@ class GraaspStack extends TerraformStack {
         sensitive: true,
       },
     );
-
+    const adminUmamiUsername = new TerraformVariable(this, 'UMAMI_USERNAME', {
+      nullable: false,
+      type: 'string',
+      description: 'Username for authenticating to umami from admin',
+      sensitive: true,
+    });
+    const adminUmamiPassword = new TerraformVariable(this, 'UMAMI_PASSWORD', {
+      nullable: false,
+      type: 'string',
+      description: 'Password for authenticating to umami from admin',
+      sensitive: true,
+    });
     const adminDefinition = createContainerDefinitions(
       'admin',
       adminECR.repositoryUrl,
@@ -791,6 +802,8 @@ class GraaspStack extends TerraformStack {
         RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
         FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
         MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
+        UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
+        UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
       },
       environment,
     );
