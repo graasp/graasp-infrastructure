@@ -261,7 +261,7 @@ runs:
           exit 1
         fi
         # wait for admin tasks to be all down
-        while [ $(aws ecs describe-services --cluster graasp-${{ inputs.environment }} --services admin --query 'services[0].runningCount') == "0" ]
+        while [ $(aws ecs describe-services --cluster graasp-${{ inputs.environment }} --services admin --query 'services[0].runningCount') != "0" ]
         do
           echo "waiting for admin tasks to be all down $(date -u +%H:%M:%S) (UTC)"
           sleep 30
@@ -270,7 +270,7 @@ runs:
         then
           aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
         fi
-        while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
+        while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
         do
           echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
           sleep 30
