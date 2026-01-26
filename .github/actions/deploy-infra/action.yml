@@ -257,7 +257,7 @@ runs:
         # ensure there is a DB
         if [ $(aws rds describe-db-instances | jq ".DBInstances | length") == "0" ]
         then
-          echo "There is no DB to stop."
+          echo "Not DB found. Ensure there is a DB to stop. This is likely an issue."
           exit 1
         fi
         # wait for admin tasks to be all down
