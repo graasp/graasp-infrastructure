@@ -23,7 +23,7 @@ export class PostgresDB extends Construct {
     vpc: Vpc,
     allowedSecurityGroups: AllowedSecurityGroupInfo[],
     addReplica: boolean,
-    // currently not use because we cant start it (there is a bug)
+    // currently not used because we can't start it (there is a bug)
     // and when we stop it, containers give connection errors because it closes too fast...
     _isActive: boolean,
     backupRetentionPeriod: number,
