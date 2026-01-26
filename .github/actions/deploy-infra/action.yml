@@ -248,3 +248,31 @@ runs:
       run: |
         distribution_id=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='client'].Id" --output text)
         aws cloudfront create-invalidation --distribution-id $distribution_id --paths '/'
+
+    # This is a hack because we need a delay after the containers have been stopped before we stop the DB to prevent connection errors and polluted logs.
+    - name: Stop DB
+      if: ${{ inputs.state == 'stopped' }}
+      shell: bash
+      run: |
+        # ensure there is a DB
+        if [ $(aws rds describe-db-instances | jq ".DBInstances | length") == "0" ]
+        then
+          echo "Not DB found. Ensure there is a DB to stop. This is likely an issue."
+          exit 1
+        fi
+        # wait for admin tasks to be all down
+        while [ $(aws ecs describe-services --cluster graasp-${{ inputs.environment }} --services admin --query 'services[0].runningCount') != "0" ]
+        do
+          echo "waiting for admin tasks to be all down $(date -u +%H:%M:%S) (UTC)"
+          sleep 30
+        done
+        if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "available" ]
+        then
+          aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
+        fi
+        while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
+        do
+          echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
+          sleep 30
+        done
+        echo "DB successfully stopped!"

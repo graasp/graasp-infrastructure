@@ -1,4 +1,3 @@
-import { RdsInstanceState } from '@cdktf/provider-aws/lib/rds-instance-state';
 import { SecurityGroup } from '@cdktf/provider-aws/lib/security-group';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { TerraformVariable, Token } from 'cdktf';
@@ -24,7 +23,9 @@ export class PostgresDB extends Construct {
     vpc: Vpc,
     allowedSecurityGroups: AllowedSecurityGroupInfo[],
     addReplica: boolean,
-    isActive: boolean,
+    // currently not used because we can't start it (there is a bug)
+    // and when we stop it, containers give connection errors because it closes too fast...
+    _isActive: boolean,
     backupRetentionPeriod: number,
     configOverride?: Partial<RdsConfig>,
     gateKeeperSecurityGroup?: SecurityGroup,
@@ -133,12 +134,12 @@ export class PostgresDB extends Construct {
     }
 
     // manage instance state based on the `isActive` param
-    new RdsInstanceState(this, `${this.instance.identifier}-instance-state`, {
-      identifier: this.instance.identifier,
-      // A bug makes it impossible to activate a database in the "stopped" state.
-      // The state of the db is expected to be "available" before performing the state change...
-      // Bur report tracking the issue: https://github.com/hashicorp/terraform-provider-aws/issues/40785
-      state: isActive ? 'available' : 'stopped',
-    });
+    // new RdsInstanceState(this, `${this.instance.identifier}-instance-state`, {
+    //   identifier: this.instance.identifier,
+    //   // A bug makes it impossible to activate a database in the "stopped" state.
+    //   // The state of the db is expected to be "available" before performing the state change...
+    //   // Bur report tracking the issue: https://github.com/hashicorp/terraform-provider-aws/issues/40785
+    //   state: isActive ? 'available' : 'stopped',
+    // });
   }
 }
