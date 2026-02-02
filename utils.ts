@@ -178,6 +178,7 @@ export function buildPostgresConnectionString({
   name,
   username,
   password,
+  applicationName,
 }: {
   protocol?: string;
   host: string;
@@ -185,7 +186,9 @@ export function buildPostgresConnectionString({
   name: string;
   username: string;
   password: string;
+  applicationName?: string;
 }) {
   const proto = protocol ?? 'postgres';
-  return `${proto}://${username}:${password}@${host}:${port}/${name}`;
+  const appName = applicationName ?? 'backend';
+  return `${proto}://${username}:${password}@${host}:${port}/${name}?application_name=${appName}`;
 }

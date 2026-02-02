@@ -750,6 +750,7 @@ class GraaspStack extends TerraformStack {
       name: 'graasp',
       username: backendDb.instance.dbInstanceUsernameOutput,
       password: toEnvVar(dbPassword),
+      applicationName: 'admin',
     });
 
     const adminSecretKeyBase = new TerraformVariable(
