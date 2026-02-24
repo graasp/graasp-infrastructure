@@ -13,6 +13,7 @@ import { Construct } from 'constructs';
 
 import { Vpc } from '../.gen/modules/vpc';
 import { EnvironmentConfig, envDomain, subdomainForEnv } from '../utils';
+import { createDNSEntry } from './dns';
 import { allowAllEgressRule } from './security_group';
 
 export class LoadBalancer extends Construct {
@@ -83,6 +84,7 @@ export class LoadBalancer extends Construct {
       name,
       internal: false,
       loadBalancerType: 'application',
+      ipAddressType: 'dualstack',
       securityGroups: [this.securityGroup.id],
       subnets: Fn.tolist(vpc.publicSubnetsOutput),
       enableCrossZoneLoadBalancing: true,
@@ -182,6 +184,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'go', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('go', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'account',
       51,
@@ -196,6 +207,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'account', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('account', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'auth',
       52,
@@ -210,6 +230,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'auth', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('auth', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'player',
       53,
@@ -224,6 +253,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'player', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('player', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'builder',
       54,
@@ -238,6 +276,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'builder', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('builder', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'analytics',
       55,
@@ -252,6 +299,15 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'analytics', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('analytics', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
+
     this.addListenerRuleForHostRedirect(
       'association',
       56,
@@ -266,5 +322,13 @@ export class LoadBalancer extends Construct {
       environment,
       ruleConditions,
     );
+    createDNSEntry(this, 'association', {
+      zoneId: environment.hostedZoneId,
+      domainName: subdomainForEnv('association', environment),
+      alias: {
+        dnsName: this.lb.dnsName,
+        zoneId: this.lb.zoneId,
+      },
+    });
   }
 }
