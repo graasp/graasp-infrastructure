@@ -23,6 +23,10 @@ export class LoadBalancer extends Construct {
   securityGroup: SecurityGroup;
   name: string;
 
+  get dualstackDnsName() {
+    return `dualstack.${this.lb.dnsName}`;
+  }
+
   constructor(
     scope: Construct,
     name: string,
@@ -84,7 +88,6 @@ export class LoadBalancer extends Construct {
       name,
       internal: false,
       loadBalancerType: 'application',
-      ipAddressType: 'dualstack',
       securityGroups: [this.securityGroup.id],
       subnets: Fn.tolist(vpc.publicSubnetsOutput),
       enableCrossZoneLoadBalancing: true,
@@ -188,7 +191,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('go', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -211,7 +214,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('account', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -234,7 +237,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('auth', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -257,7 +260,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('player', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -280,7 +283,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('builder', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -303,7 +306,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('analytics', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
@@ -326,7 +329,7 @@ export class LoadBalancer extends Construct {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('association', environment),
       alias: {
-        dnsName: this.lb.dnsName,
+        dnsName: this.dualstackDnsName,
         zoneId: this.lb.zoneId,
       },
     });
