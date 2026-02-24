@@ -11,10 +11,10 @@ import { Fn } from 'cdktf';
 
 import { Construct } from 'constructs';
 
-import { Vpc } from '../.gen/modules/vpc';
 import { EnvironmentConfig, envDomain, subdomainForEnv } from '../utils';
 import { createDNSEntry } from './dns';
 import { allowAllEgressRule } from './security_group';
+import { Vpc } from './vpc';
 
 export class LoadBalancer extends Construct {
   lb: Lb;
@@ -40,7 +40,7 @@ export class LoadBalancer extends Construct {
     // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
     this.securityGroup = new SecurityGroup(scope, `${name}-lb-security-group`, {
       name: `${name}-load-balancer`,
-      vpcId: vpc.vpcIdOutput,
+      vpcId: vpc.vpc.id,
       lifecycle: {
         createBeforeDestroy: true, // see https://registry.terraform.io/providers/hashicorp/aws/5.16.1/docs/resources/security_group#recreating-a-security-group
       },

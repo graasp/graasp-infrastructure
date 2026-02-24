@@ -6,8 +6,8 @@ import { Fn, Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
-import { Vpc } from '../.gen/modules/vpc';
 import { allowAllEgressRule } from './security_group';
+import { Vpc } from './vpc';
 
 export type S3BucketObjectOwnership = 'ObjectWriter' | 'BucketOwnerEnforced';
 

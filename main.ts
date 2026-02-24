@@ -15,7 +15,6 @@ import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
 
 import { Construct } from 'constructs';
 
-import { Vpc } from './.gen/modules/vpc';
 import { CONFIG } from './config';
 import { BaremetalService } from './constructs/baremetal_service';
 import { GraaspS3Bucket } from './constructs/bucket';
@@ -36,6 +35,7 @@ import {
   securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import { TaskRole } from './constructs/task_role';
+import { Vpc } from './constructs/vpc';
 import {
   AllowedRegion,
   Environment,
@@ -106,17 +106,7 @@ class GraaspStack extends TerraformStack {
       alias: 'us_east',
     });
 
-    const vpc = new Vpc(this, 'vpc', {
-      name: id,
-      cidr: '172.32.0.0/16',
-      // Use 3 availability zones in our region
-      azs: ['a', 'b', 'c'].map((i) => `${environment.region}${i}`),
-      publicSubnets: ['172.32.1.0/24', '172.32.2.0/24', '172.32.3.0/24'],
-    });
-
-    if (!vpc.azs || vpc.azs.length < 3) {
-      throw new Error('Must define at least 3 availability zones in the VPC');
-    }
+    const vpc = new Vpc(this, 'vpc', { environment: environment });
 
     // Certificate used for accessing apps - Must be an existing valid certificate
     const sslCertificateCloudfront = new DataAwsAcmCertificate(

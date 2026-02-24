@@ -2,8 +2,8 @@ import { TerraformVariable } from 'cdktf';
 
 import { Construct } from 'constructs';
 
-import { Vpc } from '../.gen/modules/vpc';
 import { Ec2 } from './ec2';
+import { Vpc } from './vpc';
 
 export class GateKeeper extends Construct {
   public instance: Ec2;

@@ -7,10 +7,10 @@ import { LbTargetGroupAttachment } from '@cdktf/provider-aws/lib/lb-target-group
 
 import { Construct } from 'constructs';
 
-import { Vpc } from '../.gen/modules/vpc';
 import { Ec2 } from './ec2';
 import { LoadBalancer } from './load_balancer';
 import { AllowedSecurityGroupInfo } from './security_group';
+import { Vpc } from './vpc';
 
 export class BaremetalService extends Construct {
   name: string;

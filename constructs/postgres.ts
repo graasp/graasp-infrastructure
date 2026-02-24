@@ -5,11 +5,11 @@ import { TerraformVariable, Token } from 'cdktf';
 import { Construct } from 'constructs';
 
 import { Rds, RdsConfig } from '../.gen/modules/rds';
-import { Vpc } from '../.gen/modules/vpc';
 import {
   AllowedSecurityGroupInfo,
   securityGroupAllowMultipleOtherSecurityGroups,
 } from './security_group';
+import { Vpc } from './vpc';
 
 export class PostgresDB extends Construct {
   public instance: Rds;
@@ -37,7 +37,7 @@ export class PostgresDB extends Construct {
     const dbSecurityGroup = securityGroupAllowMultipleOtherSecurityGroups(
       this,
       `${name}-db`,
-      vpc.vpcIdOutput,
+      vpc.vpc.id,
       allowedSecurityGroups,
       dbPort,
     );

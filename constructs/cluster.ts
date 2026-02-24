@@ -24,9 +24,9 @@ import { Fn, Token } from 'cdktf';
 
 import { Construct } from 'constructs';
 
-import { Vpc } from '../.gen/modules/vpc';
 import { EnvironmentConfig } from '../utils';
 import { LoadBalancer } from './load_balancer';
+import { Vpc } from './vpc';
 
 type PortMapping = { containerPort: number; hostPort: number };
 type ContainerDefinition = {
