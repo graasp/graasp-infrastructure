@@ -3,7 +3,6 @@ import { CloudfrontOriginAccessControl } from '@cdktf/provider-aws/lib/cloudfron
 import { CloudfrontOriginRequestPolicy } from '@cdktf/provider-aws/lib/cloudfront-origin-request-policy';
 import { DataAwsAcmCertificate } from '@cdktf/provider-aws/lib/data-aws-acm-certificate';
 import { DataAwsIamPolicyDocument } from '@cdktf/provider-aws/lib/data-aws-iam-policy-document';
-import { Lb } from '@cdktf/provider-aws/lib/lb';
 import {
   Route53Record,
   Route53RecordConfig,
@@ -13,6 +12,8 @@ import { S3BucketPolicy } from '@cdktf/provider-aws/lib/s3-bucket-policy';
 import { Token } from 'cdktf';
 
 import { Construct } from 'constructs';
+
+import { LoadBalancer } from './load_balancer';
 
 const CACHING_OPTIMIZED_ID = '658327ea-f89d-4fab-a63d-7e88639e58f6'; // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
 const CACHING_DISABLED_ID = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad'; // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policy-caching-disabled
@@ -33,7 +34,7 @@ type GraaspDistributionProps = {
   /**
    * Load Balancer for the API target (i.e: dualstack.eu-central-1.elb.amazonaws.com)
    */
-  alb: Lb;
+  alb: LoadBalancer;
   /**
    * Certificate to attach to the distribution
    */
@@ -106,7 +107,7 @@ export function createClientStack(
         },
         // API origin
         {
-          domainName: `${props.alb.dnsName}`,
+          domainName: `${props.alb.dualstackDnsName}`,
           originId: Origins.API_ORIGIN,
           customOriginConfig: {
             httpPort: 80,
@@ -255,8 +256,8 @@ export function createClientStack(
     name: `api.${props.domainName}`, // i.e: api.dev.graasp.org or api.graasp.org
     type: 'A',
     alias: {
-      name: props.alb.dnsName,
-      zoneId: props.alb.zoneId,
+      name: props.alb.dualstackDnsName,
+      zoneId: props.alb.lb.zoneId,
       evaluateTargetHealth: true,
     },
   } satisfies Route53RecordConfig;

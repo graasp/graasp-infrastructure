@@ -1174,7 +1174,7 @@ class GraaspStack extends TerraformStack {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('umami', environment),
       alias: {
-        dnsName: loadBalancer.lb.dnsName,
+        dnsName: loadBalancer.dualstackDnsName,
         zoneId: loadBalancer.lb.zoneId,
       },
     });
@@ -1182,7 +1182,7 @@ class GraaspStack extends TerraformStack {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('admin', environment),
       alias: {
-        dnsName: loadBalancer.lb.dnsName,
+        dnsName: loadBalancer.dualstackDnsName,
         zoneId: loadBalancer.lb.zoneId,
       },
     });
@@ -1190,15 +1190,7 @@ class GraaspStack extends TerraformStack {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('etherpad', environment),
       alias: {
-        dnsName: loadBalancer.lb.dnsName,
-        zoneId: loadBalancer.lb.zoneId,
-      },
-    });
-    createDNSEntry(this, 'go', {
-      zoneId: environment.hostedZoneId,
-      domainName: subdomainForEnv('go', environment),
-      alias: {
-        dnsName: loadBalancer.lb.dnsName,
+        dnsName: loadBalancer.dualstackDnsName,
         zoneId: loadBalancer.lb.zoneId,
       },
     });
@@ -1206,7 +1198,7 @@ class GraaspStack extends TerraformStack {
       zoneId: environment.hostedZoneId,
       domainName: subdomainForEnv('library', environment),
       alias: {
-        dnsName: loadBalancer.lb.dnsName,
+        dnsName: loadBalancer.dualstackDnsName,
         zoneId: loadBalancer.lb.zoneId,
       },
     });
@@ -1223,7 +1215,7 @@ class GraaspStack extends TerraformStack {
     createClientStack(this, id, {
       hostedZoneId: environment.hostedZoneId,
       domainName: envDomain(environment),
-      alb: loadBalancer.lb,
+      alb: loadBalancer,
       certificate: sslCertificateCloudfront,
       functionAssociationArn: maintenanceFunc?.arn,
     });
