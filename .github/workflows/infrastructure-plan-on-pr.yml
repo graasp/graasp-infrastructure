@@ -64,3 +64,4 @@ jobs:
           TF_VAR_ADMIN_RELEASE_COOKIE: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
           TF_VAR_UMAMI_USERNAME: ${{ secrets.TF_VAR_UMAMI_USERNAME }}
           TF_VAR_UMAMI_PASSWORD: ${{ secrets.TF_VAR_UMAMI_PASSWORD }}
+          TF_VAR_UMAMI_WEBSITE_ID: ${{ secrets.TF_VAR_UMAMI_WEBSITE_ID }}

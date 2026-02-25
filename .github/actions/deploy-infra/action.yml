@@ -119,6 +119,9 @@ inputs:
   admin_umami_password:
     description: 'Admin password to access Umami'
     required: true
+  umami_website_id:
+    description: 'Umami website id for tracking views'
+    required: true
 
 runs:
   using: composite
@@ -231,6 +234,7 @@ runs:
         TF_VAR_ADMIN_RELEASE_COOKIE: ${{ inputs.admin_release_cookie }}
         TF_VAR_UMAMI_USERNAME: ${{ inputs.admin_umami_username }}
         TF_VAR_UMAMI_PASSWORD: ${{ inputs.admin_umami_password }}
+        TF_VAR_UMAMI_WEBSITE_ID: ${{ inputs.umami_website_id }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
