@@ -785,6 +785,13 @@ class GraaspStack extends TerraformStack {
       description: 'Password for authenticating to umami from admin',
       sensitive: true,
     });
+    const umamiWebsiteId = new TerraformVariable(this, 'UMAMI_WEBSITE_ID', {
+      nullable: false,
+      type: 'string',
+      description:
+        'The website id used to track the views on the pages via Umami service',
+      sensitive: true,
+    });
     const adminDefinition = createContainerDefinitions(
       'admin',
       adminECR.repositoryUrl,
@@ -805,6 +812,7 @@ class GraaspStack extends TerraformStack {
         MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
         UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
         UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
+        UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
       },
       environment,
     );
