@@ -1218,7 +1218,7 @@ class GraaspStack extends TerraformStack {
         zoneId: loadBalancer.lb.zoneId,
       },
     });
-    createDNSEntry(this, 'core', {
+    createDNSEntry(this, 'web', {
       zoneId: environment.hostedZoneId,
       domainName: envDomain(environment),
       alias: {
