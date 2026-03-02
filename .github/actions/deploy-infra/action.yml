@@ -243,16 +243,6 @@ runs:
         role-session-name: GitHub_Action_deploy_infrastructure
         aws-region: ${{ inputs.aws-region }}
 
-    - name: Invalidate Cloudfront distributions
-      shell: bash
-      # invalidate all cloudfront distributions
-      # 1. get the distribution ids by calling "list-distributions" command
-      # 2. pipe result to jq and return one distribution id per line
-      # 3. use xargs to execute the invalidation call for each of the distribution Id in input, invalidating the whole bucket
-      run: |
-        distribution_id=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='client'].Id" --output text)
-        aws cloudfront create-invalidation --distribution-id $distribution_id --paths '/'
-
     # This is a hack because we need a delay after the containers have been stopped before we stop the DB to prevent connection errors and polluted logs.
     - name: Stop DB
       if: ${{ inputs.state == 'stopped' }}
