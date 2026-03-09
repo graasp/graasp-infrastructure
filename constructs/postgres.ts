@@ -63,8 +63,8 @@ export class PostgresDB extends Construct {
       identifier: `${name}`,
 
       engine: 'postgres',
-      engineVersion: '15.12',
-      instanceClass: 'db.t3.micro',
+      engineVersion: '16.11',
+      instanceClass: 'db.t4g.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
       storageType: 'gp3',
@@ -81,8 +81,8 @@ export class PostgresDB extends Construct {
       deletionProtection: true,
       applyImmediately: true,
 
-      parameterGroupName: 'graasp-postgres15',
-      family: 'postgres15',
+      parameterGroupName: 'graasp-postgres16',
+      family: 'postgres16',
       parameters: [{ name: 'rds.force_ssl', value: '0' }],
 
       dbName: dbName,
