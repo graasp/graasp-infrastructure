@@ -63,7 +63,7 @@ export class PostgresDB extends Construct {
       identifier: `${name}`,
 
       engine: 'postgres',
-      engineVersion: '15.12',
+      engineVersion: '16.11',
       instanceClass: 'db.t3.micro',
       multiAz: false,
       availabilityZone: vpc.azs?.[0],
