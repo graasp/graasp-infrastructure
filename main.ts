@@ -812,6 +812,7 @@ class GraaspStack extends TerraformStack {
         UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
         UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
         UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
+        H5P_CONTENT_BUCKET_NAME: `${id}-h5p`
       },
       environment,
     );
