@@ -57,10 +57,10 @@ export class TaskRole extends Construct {
   }
 
   allowS3Access(
-    bucket_arn: string,
+    { arn, name }: { arn: string; name: string },
     { read, write }: { read: boolean; write?: boolean },
   ) {
-    const policyName = `${this.name}-allow-s3-bucket-policy`;
+    const policyName = `${this.name}-allow-s3-bucket-policy-${name}`;
     new IamRolePolicy(this, policyName, {
       name: policyName,
       role: this.role.id,
@@ -74,13 +74,13 @@ export class TaskRole extends Construct {
                 ...(read ? ['s3:GetObject'] : []),
                 ...(write ? ['s3:PutObject'] : []),
               ],
-              Resource: `${bucket_arn}/*`,
+              Resource: `${arn}/*`,
             },
             read
               ? {
                   Effect: 'Allow',
                   Action: ['s3:ListBucket'],
-                  Resource: `${bucket_arn}`,
+                  Resource: `${arn}`,
                 }
               : undefined,
           ],

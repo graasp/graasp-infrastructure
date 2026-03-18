@@ -598,6 +598,14 @@ class GraaspStack extends TerraformStack {
       }),
     });
 
+    // define the maintenance function in a function association
+    const maintenanceFunc = createMaintenanceFunction(
+      this,
+      'maintenance-check-function',
+      environment,
+      maintenanceHeaderValues,
+    );
+
     // This has been copied from existing configuration, is it relevant?
     const FILE_ITEM_CORS = [
       {
@@ -625,6 +633,41 @@ class GraaspStack extends TerraformStack {
       `${id}-file-items`,
       false,
       FILE_ITEM_CORS,
+    );
+
+    const h5pBucket = new GraaspS3Bucket(
+      this,
+      `${id}-h5p`,
+      true,
+      [
+        {
+          allowedHeaders: ['*'],
+          allowedMethods: ['GET'],
+          allowedOrigins: [
+            `https://${subdomainForEnv('builder', environment)}`,
+            `https://${subdomainForEnv('player', environment)}`,
+            // apex domain
+            `https://${envDomain(environment)}`,
+          ],
+          exposeHeaders: [],
+        },
+      ],
+      'BucketOwnerEnforced',
+    );
+    if (!h5pBucket.websiteConfiguration) {
+      throw new Error('Website bucket should have a website configuration');
+    }
+    makeCloudfront(
+      this,
+      `${id}-h5p`,
+      'h5p',
+      h5pBucket.websiteConfiguration.websiteEndpoint,
+      maintenanceFunc?.arn,
+      sslCertificateCloudfront,
+      environment,
+      !!h5pBucket.websiteConfiguration,
+      false,
+      true,
     );
 
     const meilisearchMasterKey = new TerraformVariable(
@@ -812,13 +855,17 @@ class GraaspStack extends TerraformStack {
         UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
         UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
         UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
-        H5P_CONTENT_BUCKET_NAME: `${id}-h5p`
+        H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
       },
       environment,
     );
     const adminTaskRole = new TaskRole(this, 'admin')
       .allowECSExec()
-      .allowS3Access(fileItemBucket.bucket.arn, { read: true })
+      .allowS3Access(
+        { arn: fileItemBucket.bucket.arn, name: 'files' },
+        { read: true },
+      )
+      .allowS3Access({ arn: h5pBucket.bucket.arn, name: 'h5p' }, { read: true })
       .allowSESAccess();
 
     const libraryDefinition = createContainerDefinitions(
@@ -1228,14 +1275,6 @@ class GraaspStack extends TerraformStack {
       },
     });
 
-    // define the maintenance function in a function association
-    const maintenanceFunc = createMaintenanceFunction(
-      this,
-      'maintenance-check-function',
-      environment,
-      maintenanceHeaderValues,
-    );
-
     // Requests from the apex domain that have the /api prefix need to be routed to the core target group
     new LbListenerRule(this, `single-origin-core-rule`, {
       listenerArn: loadBalancer.lbl.arn,
@@ -1251,20 +1290,6 @@ class GraaspStack extends TerraformStack {
     });
 
     // S3 buckets
-
-    const H5P_CORS = [
-      {
-        allowedHeaders: ['*'],
-        allowedMethods: ['GET'],
-        allowedOrigins: [
-          `https://${subdomainForEnv('builder', environment)}`,
-          `https://${subdomainForEnv('player', environment)}`,
-          // apex domain
-          `https://${envDomain(environment)}`,
-        ],
-        exposeHeaders: [],
-      },
-    ];
 
     // maintenance
     const maintenanceBucket = new GraaspS3Bucket(
@@ -1295,12 +1320,6 @@ class GraaspStack extends TerraformStack {
       apps: { corsConfig: [], exposeDNS: true },
       assets: {
         corsConfig: [],
-        exposeDNS: true,
-        functionAssociationArn: maintenanceFunc?.arn,
-      },
-      h5p: {
-        corsConfig: H5P_CORS,
-        bucketOwnership: 'BucketOwnerEnforced',
         exposeDNS: true,
         functionAssociationArn: maintenanceFunc?.arn,
       },
