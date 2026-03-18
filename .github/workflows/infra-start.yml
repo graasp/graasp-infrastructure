@@ -1,8 +1,8 @@
 name: Start infra
 run-name: Start ${{ inputs.environment || 'dev' }}
 on:
-  schedule:
-    - cron: '30 6 * * 1-5'
+  # schedule:
+  # - cron: '30 6 * * 1-5'
   # allow to start infra of another env manually
   workflow_dispatch:
     inputs:
