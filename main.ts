@@ -863,9 +863,12 @@ class GraaspStack extends TerraformStack {
       .allowECSExec()
       .allowS3Access(
         { arn: fileItemBucket.bucket.arn, name: 'files' },
-        { read: true },
+        { read: true, write: true },
       )
-      .allowS3Access({ arn: h5pBucket.bucket.arn, name: 'h5p' }, { read: true })
+      .allowS3Access(
+        { arn: h5pBucket.bucket.arn, name: 'h5p' },
+        { read: true, write: true },
+      )
       .allowSESAccess();
 
     const libraryDefinition = createContainerDefinitions(
