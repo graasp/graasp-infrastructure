@@ -538,7 +538,10 @@ class GraaspStack extends TerraformStack {
       CONFIG[environment.env].dbConfig.graasp.enableReplication,
       isServiceActive(environment).database,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
-      undefined,
+      environment.env === Environment.PRODUCTION
+        ? // keep using the t3.micro we have reservations for until 2026-05-06
+          { instanceClass: 'db.t3.micro' }
+        : undefined,
       gatekeeper.instance.securityGroup,
     );
 
