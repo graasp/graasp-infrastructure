@@ -540,7 +540,12 @@ class GraaspStack extends TerraformStack {
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       environment.env === Environment.PRODUCTION
         ? // keep using the t3.micro we have reservations for until 2026-05-06
-          { instanceClass: 'db.t3.micro' }
+          {
+            instanceClass: 'db.t3.micro',
+            engineVersion: '15.12',
+            parameterGroupName: 'graasp-postgres15',
+            family: 'postgres15',
+          }
         : undefined,
       gatekeeper.instance.securityGroup,
     );
