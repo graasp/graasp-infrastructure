@@ -225,7 +225,7 @@ export class Cluster extends Construct {
           path: loadBalancerConfig.healthCheckPath,
           healthyThreshold: 3,
           unhealthyThreshold: 3,
-          timeout: 6, // in seconds the response time after which the target is considered un-healthy
+          timeout: 15, // in seconds the response time after which the target is considered un-healthy
           interval: 60, // in seconds
         },
       });
