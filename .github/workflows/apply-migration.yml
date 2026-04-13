@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 360 # 6 hours
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
         # skopeo is a tool to manage image between different registries:
         # https://github.com/containers/skopeo
