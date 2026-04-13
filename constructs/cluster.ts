@@ -43,6 +43,13 @@ type ContainerDefinition = {
       'awslogs-stream-prefix': string;
     };
   };
+  healthCheck?: {
+    command: string[];
+    interval: number;
+    timeout: number;
+    retries: number;
+    startPeriod: number;
+  };
 };
 type TaskDefinitionConfiguration = {
   containerDefinitions: ContainerDefinition[];
@@ -67,6 +74,7 @@ export function createContainerDefinitions(
   env: Record<string, string | undefined>,
   deployEnv: EnvironmentConfig,
   command?: string[],
+  healthCheck?: ContainerDefinition['healthCheck'],
 ): ContainerDefinition {
   return {
     name,
@@ -88,6 +96,7 @@ export function createContainerDefinitions(
         'awslogs-stream-prefix': 'ecs',
       },
     },
+    healthCheck: healthCheck ? healthCheck : undefined,
   };
 }
 
