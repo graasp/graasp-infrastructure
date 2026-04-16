@@ -75,12 +75,13 @@ export function createContainerDefinitions(
   env: Record<string, string | undefined>,
   deployEnv: EnvironmentConfig,
   command?: string[],
+  disableVersionConsistency?: boolean,
   healthCheck?: ContainerDefinition['healthCheck'],
 ): ContainerDefinition {
   return {
     name,
     image: `${dockerImage}:${dockerTag}`,
-    versionConsistency: 'disabled',
+    versionConsistency: disableVersionConsistency ? 'disabled' : undefined,
     environment: Object.entries(env).map(([name, value]) => ({
       name,
       value,

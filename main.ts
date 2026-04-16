@@ -868,6 +868,7 @@ class GraaspStack extends TerraformStack {
       },
       environment,
       undefined,
+      true,
       // {
       //   command: [
       //     'CMD-SHELL',
