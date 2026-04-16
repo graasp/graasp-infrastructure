@@ -32,6 +32,7 @@ type PortMapping = { containerPort: number; hostPort: number };
 type ContainerDefinition = {
   name: string;
   image: string;
+  versionConsistency?: 'enabled' | 'disabled';
   environment: { name: string; value: string | undefined }[];
   portMappings: (PortMapping & { name: string })[];
   command: string[] | undefined;
@@ -79,6 +80,7 @@ export function createContainerDefinitions(
   return {
     name,
     image: `${dockerImage}:${dockerTag}`,
+    versionConsistency: 'disabled',
     environment: Object.entries(env).map(([name, value]) => ({
       name,
       value,
