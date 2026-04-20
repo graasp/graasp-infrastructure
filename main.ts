@@ -869,16 +869,18 @@ class GraaspStack extends TerraformStack {
       environment,
       undefined,
       true,
-      // {
-      //   command: [
-      //     'CMD-SHELL',
-      //     `curl -f http://localhost:${ADMIN_PORT}/health || exit 1`,
-      //   ],
-      //   interval: 60,
-      //   timeout: 10,
-      //   retries: 3,
-      //   startPeriod: 60,
-      // },
+      environment.env === Environment.DEV
+        ? {
+            command: [
+              'CMD-SHELL',
+              `curl -f http://localhost:${ADMIN_PORT}/up?aws=true || exit 1`,
+            ],
+            interval: 60,
+            timeout: 10,
+            retries: 3,
+            startPeriod: 60,
+          }
+        : undefined,
     );
     const adminTaskRole = new TaskRole(this, 'admin')
       .allowECSExec()
