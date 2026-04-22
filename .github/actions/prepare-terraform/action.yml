@@ -3,13 +3,13 @@ description: Runs a plan or deploy action for terraform cdktf
 
 inputs:
   aws-access-key-id:
-    description: "AWS Key id"
+    description: 'AWS Key id'
     required: true
   aws-secret-access-key:
-    description: "AWS secret key"
+    description: 'AWS secret key'
     required: true
   aws-region:
-    description: "AWS region"
+    description: 'AWS region'
     required: true
 
 runs:
@@ -17,9 +17,9 @@ runs:
   steps:
     - uses: hashicorp/setup-terraform@v3
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
       with:
-        node-version: "22"
+        node-version: '22'
 
     - name: Install dependencies
       run: yarn install
