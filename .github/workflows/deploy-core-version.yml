@@ -114,6 +114,7 @@ jobs:
           admin_umami_username: ${{ secrets.TF_VAR_UMAMI_USERNAME }}
           admin_umami_password: ${{ secrets.TF_VAR_UMAMI_PASSWORD }}
           umami_website_id: ${{ secrets.TF_VAR_UMAMI_WEBSITE_ID }}
+          admin_sentry_dsn: ${{ vars.TF_VAR_ADMIN_SENTRY_DSN }}
 
         # configure credentials to assume terraform role
       - name: Configure AWS Credentials to assume terraform Role
