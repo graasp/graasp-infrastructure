@@ -122,6 +122,9 @@ inputs:
   umami_website_id:
     description: 'Umami website id for tracking views'
     required: true
+  admin_sentry_dsn:
+    description: 'Admin Sentry DSN'
+    required: true
 
 runs:
   using: composite
@@ -235,6 +238,7 @@ runs:
         TF_VAR_UMAMI_USERNAME: ${{ inputs.admin_umami_username }}
         TF_VAR_UMAMI_PASSWORD: ${{ inputs.admin_umami_password }}
         TF_VAR_UMAMI_WEBSITE_ID: ${{ inputs.umami_website_id }}
+        TF_VAR_ADMIN_SENTRY_DSN: ${{ inputs.admin_sentry_dsn }}
 
     - name: Configure AWS Credentials to assume terraform Role
       uses: aws-actions/configure-aws-credentials@v4
