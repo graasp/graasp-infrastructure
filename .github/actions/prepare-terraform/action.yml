@@ -15,7 +15,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: hashicorp/setup-terraform@v3
+    - uses: hashicorp/setup-terraform@v4
 
     - uses: actions/setup-node@v6
       with:
