@@ -127,7 +127,7 @@ runs:
   using: composite
   steps:
     - name: Configure AWS Credentials to assume terraform Role
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         role-session-name: GitHub_Action_deploy_infrastructure
@@ -190,7 +190,7 @@ runs:
       shell: bash
 
     - name: Configure AWS Credentials for terraform user
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
@@ -237,7 +237,7 @@ runs:
         TF_VAR_UMAMI_WEBSITE_ID: ${{ inputs.umami_website_id }}
 
     - name: Configure AWS Credentials to assume terraform Role
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         role-session-name: GitHub_Action_deploy_infrastructure
