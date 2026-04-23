@@ -842,6 +842,12 @@ class GraaspStack extends TerraformStack {
         'The website id used to track the views on the pages via Umami service',
       sensitive: true,
     });
+    const adminSentryDsn = new TerraformVariable(this, 'ADMIN_SENTRY_DSN', {
+      nullable: true,
+      type: 'string',
+      description: 'The DSN used to send errors from admin to Sentry',
+      sensitive: false,
+    });
     const adminDefinition = createContainerDefinitions(
       'admin',
       adminECR.repositoryUrl,
@@ -864,6 +870,7 @@ class GraaspStack extends TerraformStack {
         UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
         UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
         H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
+        SENTRY_DSN: toEnvVar(adminSentryDsn),
         AWS_REGION: environment.region,
       },
       environment,
