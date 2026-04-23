@@ -2,7 +2,7 @@ name: Stop infra
 run-name: Stop ${{ inputs.environment || 'dev' }}
 on:
   schedule:
-    - cron: '30 18 * * 1-5'
+    - cron: '30 16 * * 1-5'
   workflow_dispatch:
     inputs:
       environment:
