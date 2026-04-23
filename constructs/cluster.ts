@@ -331,8 +331,10 @@ export class Cluster extends Construct {
       name,
       cluster: this.cluster.id,
       desiredCount: isActive ? desiredCount : 0,
+      // conflicts with capacityProviderStrategy, so should only be set if capacityProviderStrategy is not set
       launchType: capacityProviderStrategy ? undefined : 'FARGATE',
       capacityProviderStrategy,
+      forceNewDeployment: true,
       deploymentMinimumHealthyPercent: 100,
       deploymentMaximumPercent: 200,
       taskDefinition: task.arn,
