@@ -3,10 +3,10 @@ description: Login as the specified role and watch the migration until completio
 
 inputs:
   aws-role-to-assume:
-    description: "AWS Role to assume to start/stop the DB"
+    description: 'AWS Role to assume to start/stop the DB'
     required: true
   aws-region:
-    description: "AWS Region for for the deployment"
+    description: 'AWS Region for for the deployment'
     required: true
 
 runs:
@@ -14,7 +14,7 @@ runs:
   steps:
     # Need to re-log as the terraform role because the deploy-infra step logs in as the terraform USER.
     - name: Configure AWS Credentials to assume terraform Role
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         role-session-name: GitHub_Action_deploy_migration
