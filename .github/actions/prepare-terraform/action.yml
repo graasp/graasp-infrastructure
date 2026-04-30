@@ -16,6 +16,8 @@ runs:
   using: composite
   steps:
     - uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: '1.14.9'
 
     - uses: actions/setup-node@v6
       with:
