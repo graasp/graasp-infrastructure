@@ -19,7 +19,12 @@ Table of content:
 
 ### Locally
 
-- install [terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+- install [terraform]
+  please install version 1.14.9 at most, later versions of terraform (starting at 1.15.0) are incompatible with cdktf which is not maintained anymore.
+  - Download version 1.14.9 from https://developer.hashicorp.com/terraform/install
+  - unzip locally
+  - move the terraform exec to /usr/bin/local (on macos) `sudo mv ~/Downloads/terraform_1.14.9_darwin_arm64/terraform /usr/local/bin/`
+  - ensure the version of terraform is at most 1.14.9 with `terraform --version`
 
 ### Infrastructure
 

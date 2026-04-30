@@ -178,6 +178,8 @@ runs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: '1.14.9'
 
     - name: Setup Node
       uses: actions/setup-node@v6
