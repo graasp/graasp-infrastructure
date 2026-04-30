@@ -17,9 +17,8 @@ runs:
   steps:
     - uses: hashicorp/setup-terraform@v4
 
-    - uses: actions/setup-node@v6
-      with:
-        node-version: '22'
+    - name: Install Mise
+      uses: jdx/mise-action@v3
 
     - name: Install dependencies
       run: yarn install
