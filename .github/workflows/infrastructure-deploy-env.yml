@@ -37,7 +37,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Plan
-        run: npx cdktf plan graasp-${{ inputs.environment }}
+        run: yarn cdktf plan graasp-${{ inputs.environment }}
         shell: bash
         env:
           INFRA_STATE: ${{ inputs.state }}
@@ -94,7 +94,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
 
       - name: Deploy
-        run: npx cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
+        run: yarn cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
         shell: bash
         env:
           INFRA_STATE: ${{ inputs.state }}

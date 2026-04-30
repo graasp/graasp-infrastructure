@@ -19,16 +19,15 @@ runs:
       with:
         terraform_version: '1.14.9'
 
-    - uses: actions/setup-node@v6
-      with:
-        node-version: '22'
+    - name: Install Mise
+      uses: jdx/mise-action@v3
 
     - name: Install dependencies
       run: yarn install
       shell: bash
 
     - name: Generate module and provider bindings
-      run: npx cdktf get
+      run: yarn cdktf get
       shell: bash
 
     - name: Configure AWS Credentials
