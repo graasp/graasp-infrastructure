@@ -27,7 +27,7 @@ runs:
       shell: bash
 
     - name: Generate module and provider bindings
-      run: npx cdktf get
+      run: yarn cdktf get
       shell: bash
 
     - name: Configure AWS Credentials
