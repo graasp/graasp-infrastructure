@@ -771,6 +771,8 @@ class GraaspStack extends TerraformStack {
       [{ hostPort: BACKEND_PORT, containerPort: BACKEND_PORT }],
       backendEnv,
       environment,
+      undefined,
+      true,
     );
     const nudenetDefinition = createContainerDefinitions(
       'nudenet',
@@ -791,6 +793,8 @@ class GraaspStack extends TerraformStack {
       [],
       workerEnv,
       environment,
+      undefined,
+      true,
     );
 
     const ECTO_DB_CONNECTION = buildPostgresConnectionString({
