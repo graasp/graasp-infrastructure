@@ -5,10 +5,11 @@ import { S3BucketObjectOwnership } from './constructs/bucket';
 
 export const GRAASP_ROOT_DOMAIN = 'graasp.org';
 
-export enum Environment {
-  DEV,
-  PRODUCTION,
-}
+export const Environment = {
+  DEV: 'dev',
+  PRODUCTION: 'production',
+} as const;
+export type EnvironmentOptions = (typeof Environment)[keyof typeof Environment];
 
 export const AllowedRegion = {
   Frankfurt: 'eu-central-1',
@@ -40,8 +41,17 @@ const InfraState = {
 } as const;
 export type InfraStateOptions = (typeof InfraState)[keyof typeof InfraState];
 
+export const SpotPreference = {
+  OnlySpot: 'OnlySpot',
+  NoSpot: 'NoSpot',
+  UpscaleWithSpot: 'UpscaleWithSpot',
+} as const;
+
+export type SpotPreferenceOptions =
+  (typeof SpotPreference)[keyof typeof SpotPreference];
+
 export type EnvironmentConfig = {
-  env: Environment;
+  env: EnvironmentOptions;
   subdomain?: string;
   region: AllowedRegionOptions;
   infraState: InfraStateOptions;
