@@ -3,12 +3,12 @@ import { DataAwsEcrRepository } from '@cdktf/provider-aws/lib/data-aws-ecr-repos
 import { EcrLifecyclePolicy } from '@cdktf/provider-aws/lib/ecr-lifecycle-policy';
 import { EcrRepository } from '@cdktf/provider-aws/lib/ecr-repository';
 import {
-  LbListenerRule,
-  LbListenerRuleCondition,
+    LbListenerRule,
+    LbListenerRuleCondition,
 } from '@cdktf/provider-aws/lib/lb-listener-rule';
 import {
-  AwsProvider,
-  AwsProviderAssumeRole,
+    AwsProvider,
+    AwsProviderAssumeRole,
 } from '@cdktf/provider-aws/lib/provider';
 import { VpcSecurityGroupIngressRule } from '@cdktf/provider-aws/lib/vpc-security-group-ingress-rule';
 import { App, S3Backend, TerraformStack, TerraformVariable } from 'cdktf';
@@ -20,8 +20,8 @@ import { CONFIG } from './config';
 import { BaremetalService } from './constructs/baremetal_service';
 import { GraaspS3Bucket } from './constructs/bucket';
 import {
-  createMaintenanceFunction,
-  makeCloudfront,
+    createMaintenanceFunction,
+    makeCloudfront,
 } from './constructs/cloudfront';
 import { Cluster, createContainerDefinitions } from './constructs/cluster';
 import { createDNSEntry } from './constructs/dns';
@@ -29,29 +29,29 @@ import { GateKeeper } from './constructs/gate_keeper';
 import { LoadBalancer } from './constructs/load_balancer';
 import { PostgresDB } from './constructs/postgres';
 import {
-  AllowedSecurityGroupInfo,
-  securityGroupAllowMultipleOtherSecurityGroups,
-  securityGroupEgressOnly,
-  securityGroupOnlyAllowAnotherSecurityGroup,
+    AllowedSecurityGroupInfo,
+    securityGroupAllowMultipleOtherSecurityGroups,
+    securityGroupEgressOnly,
+    securityGroupOnlyAllowAnotherSecurityGroup,
 } from './constructs/security_group';
 import { TaskRole } from './constructs/task_role';
 import {
-  AllowedRegion,
-  Environment,
-  EnvironmentConfig,
-  EnvironmentOptions,
-  GraaspWebsiteConfig,
-  SpotPreference,
-  buildPostgresConnectionString,
-  envCorsRegex,
-  envDomain,
-  envEmail,
-  envName,
-  getMaintenanceHeaderPair,
-  isServiceActive,
-  subdomainForEnv,
-  toEnvVar,
-  validateInfraState,
+    AllowedRegion,
+    Environment,
+    EnvironmentConfig,
+    EnvironmentOptions,
+    GraaspWebsiteConfig,
+    SpotPreference,
+    buildPostgresConnectionString,
+    envCorsRegex,
+    envDomain,
+    envEmail,
+    envName,
+    getMaintenanceHeaderPair,
+    isServiceActive,
+    subdomainForEnv,
+    toEnvVar,
+    validateInfraState,
 } from './utils';
 
 const DEFAULT_REGION = AllowedRegion.Frankfurt;
@@ -541,12 +541,9 @@ class GraaspStack extends TerraformStack {
       isServiceActive(environment).database,
       CONFIG[environment.env].dbConfig.graasp.backupRetentionPeriod,
       environment.env === Environment.PRODUCTION
-        ? // keep using the t3.micro we have reservations for until 2026-05-06
+        ? // use a larger instance (t4g.small) for production
           {
-            instanceClass: 'db.t3.micro',
-            // engineVersion: '15.12',
-            // parameterGroupName: 'graasp-postgres15',
-            // family: 'postgres15',
+            instanceClass: 'db.t4g.small',
           }
         : undefined,
       gatekeeper.instance.securityGroup,

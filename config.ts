@@ -1,8 +1,8 @@
 import {
-  Environment,
-  EnvironmentOptions,
-  SpotPreference,
-  SpotPreferenceOptions,
+    Environment,
+    EnvironmentOptions,
+    SpotPreference,
+    SpotPreferenceOptions,
 } from './utils';
 
 export type HardwareLimit = {
@@ -140,8 +140,8 @@ export const CONFIG: Record<EnvironmentOptions, GraaspConfiguration> = {
         spotPreference: SpotPreference.UpscaleWithSpot,
       },
       admin: {
-        cpu: '256',
-        memory: '512',
+        cpu: '512',
+        memory: '1024',
         spotPreference: SpotPreference.UpscaleWithSpot,
       },
       migrate: {
