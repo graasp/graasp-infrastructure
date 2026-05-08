@@ -6,6 +6,7 @@ The code is written in Typescript and the deployment is run via GitHub Actions.
 Table of content:
 
 - [Why infrastructure as code?](#why-infrastructure-as-code)
+- [Workflows](#workflows)
 - [Infrastructure Architecture](#architecture)
 - [Troubleshoot](#troubleshoot)
 
@@ -116,6 +117,50 @@ At this point shouldn't have any difference with the current deployed stack.
 Terraform has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 ```
+
+## Workflows
+
+All CI/CD is driven by GitHub Actions. Workflows are triggered either automatically (on push/PR/schedule) or manually via **Actions → Run workflow** in the GitHub UI.
+
+The secret block shared by all deployment workflows lives in a single place: [`.github/workflows/_deploy-infra.yml`](.github/workflows/_deploy-infra.yml). Adding or rotating a secret only requires editing that file.
+
+### I want to test a change to the infrastructure code
+
+Open a pull request. The [`infrastructure-plan-on-pr`](.github/workflows/infrastructure-plan-on-pr.yml) workflow runs automatically and posts a Terraform plan diff as a comment so you can review what will change before merging.
+
+Once the PR is merged to `main`, [`infrastructure-deploy-dev-on-merge`](.github/workflows/infrastructure-deploy-dev-on-merge.yml) automatically applies the change to the **dev** environment.
+
+### I want to test a new application version on dev
+
+Run the [`deploy-dev`](.github/workflows/deploy-dev.yml) workflow manually (**Actions → Deploy dev → Run workflow**). It:
+
+1. Copies the `*-nightly` images (migrate, core, workers) to `*-latest` in the private ECR.
+2. Runs the database migration and waits for it to complete.
+3. Deploys the infrastructure and forces a new ECS deployment.
+
+This is also the workflow to run immediately after a `main` branch build when you don't want to wait for the next scheduled run.
+
+### I want to deploy a specific version to production
+
+Two steps, run them in order:
+
+1. **[`apply-migration`](.github/workflows/apply-migration.yml)** — copies the `migrate-<version>` image from the public ECR and runs the database migration. Wait for it to succeed before proceeding.
+2. **[`deploy-core-version`](.github/workflows/deploy-core-version.yml)** — copies `core-<version>` and `workers-<version>` from the public ECR, applies the infrastructure, and forces a new ECS deployment. Both workflows prompt for `environment` and `version`.
+
+### I want to apply an infrastructure state change manually
+
+Use [`infrastructure-deploy-env`](.github/workflows/infrastructure-deploy-env.yml). It lets you target any environment and choose a state (`running`, `stopped`, `db-only`, `restricted`). It runs a plan first and requires a manual approval before applying, making it the safest option for ad-hoc changes.
+
+### I want to start or stop the dev environment
+
+- **[`infra-start`](.github/workflows/infra-start.yml)** — sets the environment to `running` state (starts the RDS instance and ECS services).
+- **[`infra-stop`](.github/workflows/infra-stop.yml)** — sets the environment to `stopped` state. This also runs automatically on a schedule every weekday at 4:30 PM UTC to avoid paying for an idle dev environment overnight.
+
+Both accept an `environment` input so they can target non-dev environments if needed.
+
+### Automatic ECR cleanup
+
+[`delete-untagged-images`](.github/workflows/delete-untagged-images.yml) runs every Monday at 1:58 AM UTC. It removes untagged images from the `graasp` and `graasp/explore` repositories on both dev and prod, keeping the ECR tidy. It can also be triggered manually.
 
 ## Migrate existing data
 
