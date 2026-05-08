@@ -68,6 +68,9 @@ inputs:
   recaptcha_secret_key:
     description: 'Recaptcha secret key'
     required: true
+  recaptcha_site_key:
+    description: 'Recaptcha site key'
+    required: true
   meilisearch_rebuild_secret:
     description: 'Meilisearch rebuild secret header'
     required: true
@@ -220,6 +223,7 @@ runs:
         TF_VAR_OPENAI_ORG_ID: ${{ inputs.openai_org_id }}
         TF_VAR_OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         TF_VAR_RECAPTCHA_SECRET_KEY: ${{ inputs.recaptcha_secret_key }}
+        TF_VAR_RECAPTCHA_SITE_KEY: ${{ inputs.recaptcha_site_key }}
         TF_VAR_MEILISEARCH_REBUILD_SECRET: ${{ inputs.meilisearch_rebuild_secret }}
         TF_VAR_GEOLOCATION_API_KEY: ${{ inputs.geolocation_api_key }}
         TF_VAR_ETHERPAD_API_KEY: ${{ inputs.etherpad_api_key }}

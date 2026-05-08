@@ -49,6 +49,7 @@ jobs:
           openai_org_id: ${{ vars.TF_VAR_OPENAI_ORG_ID }}
           openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
           recaptcha_secret_key: ${{ secrets.TF_VAR_RECAPTCHA_SECRET_KEY }}
+          recaptcha_site_key: ${{ secrets.TF_VAR_RECAPTCHA_SITE_KEY }}
           meilisearch_rebuild_secret: ${{ secrets.TF_VAR_MEILISEARCH_REBUILD_SECRET }}
           geolocation_api_key: ${{ secrets.TF_VAR_GEOLOCATION_API_KEY }}
           etherpad_api_key: ${{ secrets.TF_VAR_ETHERPAD_API_KEY }}
