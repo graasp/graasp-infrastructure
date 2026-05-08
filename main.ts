@@ -851,6 +851,12 @@ class GraaspStack extends TerraformStack {
       description: 'The DSN used to send errors from admin to Sentry',
       sensitive: false,
     });
+    const adminRecaptchaSiteKey = new TerraformVariable(this, 'RECAPTCHA_SITE_KEY', {
+      nullable: true,
+      type: 'string',
+      description: 'The site key for recaptcha',
+      sensitive: true,
+    });
     const adminDefinition = createContainerDefinitions(
       'admin',
       adminECR.repositoryUrl,
@@ -872,6 +878,7 @@ class GraaspStack extends TerraformStack {
         UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
         UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
         UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
+        RECAPTCHA_SITE_KEY: toEnvVar(adminRecaptchaSiteKey),
         H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
         SENTRY_DSN: toEnvVar(adminSentryDsn),
         AWS_REGION: environment.region,
@@ -1092,7 +1099,7 @@ class GraaspStack extends TerraformStack {
       },
       isServiceActive(environment).administration,
       adminSecurityGroup,
-      undefined,
+      { name: 'admin', port: ADMIN_PORT },
       undefined,
       {
         loadBalancer: loadBalancer,
