@@ -1,0 +1,150 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_call:
+    inputs:
+      state:
+        description: 'Infrastructure state (running, stopped, db-only, restricted)'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy "${{ inputs.state }}" to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_infrastructure
+          aws-region: ${{ vars.AWS_REGION }}
+
+        # This is a hack because there is a bug in the Terraform AWS provider where it is not possible to start a stopped instance
+        # https://github.com/hashicorp/terraform-provider-aws/issues/40785
+      - name: Start DB
+        if: ${{ inputs.state != 'stopped' }}
+        run: |
+          if [ $(aws rds describe-db-instances | jq ".DBInstances | length") == "0" ]
+          then
+            echo "There is no DB to start."
+            exit 1
+          fi
+          if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "stopped" ]
+          then
+            aws rds start-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
+          fi
+          while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "available" ]
+          do
+            echo "waiting for DB to be up $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
+          echo "DB successfully started!"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.14.9'
+
+      - name: Install Mise
+        uses: jdx/mise-action@v4
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Generate module and provider bindings
+        run: yarn cdktf get
+
+      - name: Configure AWS Credentials for terraform user
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.TF_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TF_SECRET_AWS_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy
+        run: yarn cdktf deploy --auto-approve 'graasp-${{ inputs.environment }}'
+        env:
+          INFRA_STATE: ${{ inputs.state }}
+          MAINTENANCE_HEADER_NAME: ${{ secrets.MAINTENANCE_HEADER_NAME }}
+          MAINTENANCE_HEADER_SECRET: ${{ secrets.MAINTENANCE_HEADER_SECRET }}
+          TF_VAR_MEILISEARCH_MASTER_KEY: ${{ secrets.TF_MEILISEARCH_MASTER_KEY }}
+          TF_VAR_GRAASP_DB_PASSWORD: ${{ secrets.TF_GRAASP_DB_PASSWORD }}
+          TF_VAR_ETHERPAD_DB_PASSWORD: ${{ secrets.TF_ETHERPAD_DB_PASSWORD }}
+          TF_VAR_UMAMI_DB_PASSWORD: ${{ secrets.TF_VAR_UMAMI_DB_PASSWORD }}
+          TF_VAR_GRAASP_DB_GATEKEEPER_KEY_NAME: ${{ secrets.TF_GRAASP_DB_GATEKEEPER_KEY_NAME }}
+          TF_VAR_GRAASPER_ID: ${{ vars.TF_VAR_GRAASPER_ID }}
+          TF_VAR_DB_GATEKEEPER_AMI_ID: ${{ vars.TF_DB_GATEKEEPER_AMI_ID }}
+          TF_VAR_DB_GATEKEEPER_INSTANCE_TYPE: ${{ vars.TF_DB_GATEKEEPER_INSTANCE_TYPE }}
+          TF_VAR_APPS_PUBLISHER_ID: ${{ vars.TF_VAR_APPS_PUBLISHER_ID }}
+          TF_VAR_MAILER_CONNECTION: ${{ secrets.TF_VAR_MAILER_CONNECTION }}
+          TF_VAR_SENTRY_DSN: ${{ secrets.TF_VAR_SENTRY_DSN }}
+          TF_VAR_OPENAI_ORG_ID: ${{ vars.TF_VAR_OPENAI_ORG_ID }}
+          TF_VAR_OPENAI_API_KEY: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
+          TF_VAR_RECAPTCHA_SECRET_KEY: ${{ secrets.TF_VAR_RECAPTCHA_SECRET_KEY }}
+          TF_VAR_RECAPTCHA_SITE_KEY: ${{ secrets.TF_VAR_RECAPTCHA_SITE_KEY }}
+          TF_VAR_MEILISEARCH_REBUILD_SECRET: ${{ secrets.TF_VAR_MEILISEARCH_REBUILD_SECRET }}
+          TF_VAR_GEOLOCATION_API_KEY: ${{ secrets.TF_VAR_GEOLOCATION_API_KEY }}
+          TF_VAR_ETHERPAD_API_KEY: ${{ secrets.TF_VAR_ETHERPAD_API_KEY }}
+          TF_VAR_H5P_ACCESS_KEY_ID: ${{ secrets.TF_VAR_H5P_ACCESS_KEY_ID }}
+          TF_VAR_H5P_ACCESS_SECRET_KEY_ID: ${{ secrets.TF_VAR_H5P_ACCESS_SECRET_KEY_ID }}
+          TF_VAR_S3_ACCESS_KEY_ID: ${{ secrets.TF_VAR_S3_ACCESS_KEY_ID }}
+          TF_VAR_S3_ACCESS_SECRET_KEY_ID: ${{ secrets.TF_VAR_S3_ACCESS_SECRET_KEY_ID }}
+          TF_VAR_APPS_JWT_SECRET: ${{ secrets.TF_VAR_APPS_JWT_SECRET }}
+          TF_VAR_JWT_SECRET: ${{ secrets.TF_VAR_JWT_SECRET }}
+          TF_VAR_SECURE_SESSION_SECRET_KEY: ${{ secrets.TF_VAR_SECURE_SESSION_SECRET_KEY }}
+          TF_VAR_PASSWORD_RESET_JWT_SECRET: ${{ secrets.TF_VAR_PASSWORD_RESET_JWT_SECRET }}
+          TF_VAR_EMAIL_CHANGE_JWT_SECRET: ${{ secrets.TF_VAR_EMAIL_CHANGE_JWT_SECRET }}
+          TF_VAR_UMAMI_JWT_SECRET: ${{ secrets.TF_VAR_UMAMI_JWT_SECRET }}
+          TF_VAR_ADMIN_SECRET_KEY_BASE: ${{ secrets.TF_VAR_ADMIN_SECRET_KEY_BASE }}
+          TF_VAR_ADMIN_RELEASE_COOKIE: ${{ secrets.TF_VAR_ADMIN_RELEASE_COOKIE }}
+          TF_VAR_UMAMI_USERNAME: ${{ secrets.TF_VAR_UMAMI_USERNAME }}
+          TF_VAR_UMAMI_PASSWORD: ${{ secrets.TF_VAR_UMAMI_PASSWORD }}
+          TF_VAR_UMAMI_WEBSITE_ID: ${{ secrets.TF_VAR_UMAMI_WEBSITE_ID }}
+          TF_VAR_ADMIN_SENTRY_DSN: ${{ vars.TF_VAR_ADMIN_SENTRY_DSN }}
+
+      - name: Configure AWS Credentials to assume terraform Role
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
+          role-session-name: GitHub_Action_deploy_infrastructure
+          aws-region: ${{ vars.AWS_REGION }}
+
+        # This is a hack because we need a delay after the containers have been stopped before we stop the DB to prevent connection errors and polluted logs.
+      - name: Stop DB
+        if: ${{ inputs.state == 'stopped' }}
+        run: |
+          if [ $(aws rds describe-db-instances | jq ".DBInstances | length") == "0" ]
+          then
+            echo "Not DB found. Ensure there is a DB to stop. This is likely an issue."
+            exit 1
+          fi
+          taskArns=$(aws ecs list-tasks --cluster graasp-${{ inputs.environment }} --service-name admin --desired-status STOPPED --query 'taskArns[*]' --output text)
+          while [ $(aws ecs describe-tasks --cluster graasp-${{ inputs.environment }} --tasks $taskArns --query 'length(tasks[?lastStatus!=`STOPPED`])') != "0" ]
+          do
+            echo "waiting for admin tasks to be all down $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
+          if [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") == "available" ]
+          then
+            aws rds stop-db-instance --db-instance-identifier graasp-${{ inputs.environment }} | jq -r ".DBInstance.DBInstanceStatus"
+          fi
+          while [ $(aws rds describe-db-instances | jq -r ".DBInstances.[0].DBInstanceStatus") != "stopped" ]
+          do
+            echo "waiting for DB to be down $(date -u +%H:%M:%S) (UTC)"
+            sleep 30
+          done
+          echo "DB successfully stopped!"
