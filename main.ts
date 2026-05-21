@@ -443,6 +443,17 @@ class GraaspStack extends TerraformStack {
       description: 'JWT secret for umami service',
       sensitive: true,
     });
+    const adminSharedSecret = new TerraformVariable(
+      this,
+      'ADMIN_SHARED_SECRET',
+      {
+        nullable: false,
+        type: 'string',
+        description:
+          'Shared secret for authenticated communication between core and admin',
+        sensitive: true,
+      },
+    );
 
     const gatekeeper = new GateKeeper(this, id, vpc);
     // allow communication between the gatekeeper and meilisearch
@@ -760,6 +771,7 @@ class GraaspStack extends TerraformStack {
       PASSWORD_RESET_JWT_SECRET: toEnvVar(passwordResetJwtSecret),
       EMAIL_CHANGE_JWT_SECRET: toEnvVar(emailChangeJwtSecret),
       APPS_JWT_SECRET: toEnvVar(appsJwtSecret),
+      ADMIN_SHARED_SECRET: toEnvVar(adminSharedSecret),
     };
 
     // Task for the backend
@@ -882,6 +894,7 @@ class GraaspStack extends TerraformStack {
         H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
         SENTRY_DSN: toEnvVar(adminSentryDsn),
         AWS_REGION: environment.region,
+        ADMIN_SHARED_SECRET: toEnvVar(adminSharedSecret),
       },
       environment,
       undefined,
