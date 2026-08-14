@@ -131,7 +131,7 @@ export const CONFIG: Record<EnvironmentOptions, GraaspConfiguration> = {
       graasp: {
         cpu: '1024',
         memory: '2048',
-        taskCount: 1,
+        taskCount: 2,
         spotPreference: SpotPreference.UpscaleWithSpot,
       },
       workers: {
