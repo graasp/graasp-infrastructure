@@ -116,6 +116,7 @@ jobs:
           TF_VAR_UMAMI_WEBSITE_ID: ${{ secrets.TF_VAR_UMAMI_WEBSITE_ID }}
           TF_VAR_ADMIN_SENTRY_DSN: ${{ vars.TF_VAR_ADMIN_SENTRY_DSN }}
           TF_VAR_ADMIN_SHARED_SECRET: ${{ secrets.TF_VAR_ADMIN_SHARED_SECRET }}
+          TF_VAR_CHATBOT_APP_KEY: ${{ secrets.TF_VAR_CHATBOT_APP_KEY }}
 
       - name: Configure AWS Credentials to assume terraform Role
         uses: aws-actions/configure-aws-credentials@v6
