@@ -930,7 +930,7 @@ class GraaspStack extends TerraformStack {
       .allowECSExec()
       .allowS3Access(
         { arn: fileItemBucket.bucket.arn, name: 'files' },
-        { read: true, write: true },
+        { read: true, write: true, remove: true },
       )
       .allowS3Access(
         { arn: h5pBucket.bucket.arn, name: 'h5p' },
