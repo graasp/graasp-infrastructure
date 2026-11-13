@@ -3,6 +3,8 @@
 # Every morning after the scheduled start of the dev environment it will try to deploy the latest built image available in the private ECR on dev.
 # This ensures that the bleeding edge (main branch) is deployed the next day at the latest.
 # On occasion you might need to deploy changes from main immediately to dev. In such cases, use the workflow_dispatch trigger available.
+# Database migrations come from the admin app, which owns the schema: the migrate task runs the admin image deployed on dev
+# (pushed by the admin repository on every merge to main).
 name: Deploy dev
 
 on:
@@ -13,31 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  copy-migrate:
-    name: Copy migrate-nightly to migrate-latest
-    runs-on: ubuntu-24.04-arm
-    environment: dev
-    steps:
-        # skopeo is a tool to manage image between different registries:
-        # https://github.com/containers/skopeo
-      - name: Install skopeo
-        run: sudo apt-get -y update && sudo apt-get -y install skopeo
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          role-session-name: GitHub_Action_deploy_core
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Copy migrate-nightly to migrate-latest
-        run: |
-          private_ecr_uri=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr_uri
-          skopeo --override-os linux copy docker://$private_ecr_uri/graasp:migrate-nightly docker://$private_ecr_uri/graasp:migrate-latest
-
   deploy-migration:
-    needs: copy-migrate
     uses: ./.github/workflows/_deploy-infra.yml
     with:
       state: 'db-only'

@@ -880,6 +880,27 @@ class GraaspStack extends TerraformStack {
       sensitive: true,
     });
 
+    // shared by the admin service and the migrate task, which runs the admin release
+    const adminEnvironment = {
+      DATABASE_URL: ECTO_DB_CONNECTION,
+      SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
+      PHX_HOST: envDomain(environment),
+      RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
+      FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
+      MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
+      UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
+      UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
+      UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
+      RECAPTCHA_SITE_KEY: toEnvVar(adminRecaptchaSiteKey),
+      H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
+      SENTRY_DSN: toEnvVar(adminSentryDsn),
+      AWS_REGION: environment.region,
+      ADMIN_SHARED_SECRET: toEnvVar(adminSharedSecret),
+      GRAASP_APPS_JWT_SECRET: toEnvVar(appsJwtSecret),
+      GRAASP_APP_KEY: toEnvVar(chatbotAppKey),
+      OPENAI_API_KEY: toEnvVar(openAiApiKey),
+    };
+
     const adminDefinition = createContainerDefinitions(
       'admin',
       adminECR.repositoryUrl,
@@ -891,25 +912,7 @@ class GraaspStack extends TerraformStack {
         // distributed erlang ports
         { hostPort: 9000, containerPort: 9000 },
       ],
-      {
-        DATABASE_URL: ECTO_DB_CONNECTION,
-        SECRET_KEY_BASE: toEnvVar(adminSecretKeyBase),
-        PHX_HOST: envDomain(environment),
-        RELEASE_COOKIE: toEnvVar(adminReleaseCookie),
-        FILE_ITEMS_BUCKET_NAME: `${id}-file-items`,
-        MEILISEARCH_REBUILD_SECRET: toEnvVar(meilisearchRebuildSecret),
-        UMAMI_USERNAME: toEnvVar(adminUmamiUsername),
-        UMAMI_PASSWORD: toEnvVar(adminUmamiPassword),
-        UMAMI_WEBSITE_ID: toEnvVar(umamiWebsiteId),
-        RECAPTCHA_SITE_KEY: toEnvVar(adminRecaptchaSiteKey),
-        H5P_CONTENT_BUCKET_NAME: `${id}-h5p`,
-        SENTRY_DSN: toEnvVar(adminSentryDsn),
-        AWS_REGION: environment.region,
-        ADMIN_SHARED_SECRET: toEnvVar(adminSharedSecret),
-        GRAASP_APPS_JWT_SECRET: toEnvVar(appsJwtSecret),
-        GRAASP_APP_KEY: toEnvVar(chatbotAppKey),
-        OPENAI_API_KEY: toEnvVar(openAiApiKey),
-      },
+      adminEnvironment,
       environment,
       undefined,
       true,
@@ -1285,15 +1288,23 @@ class GraaspStack extends TerraformStack {
     );
 
     // migrate
+    // The admin app owns the database schema (graasp/graasp-web ADR 0002): the
+    // migrations are those of the admin image currently deployed in this
+    // environment. The log lines are what the wait-for-migration action looks for.
     const migrateDefinition = createContainerDefinitions(
       'migrate',
-      graaspECR.repositoryUrl,
-      'migrate-latest',
+      adminECR.repositoryUrl,
+      'latest',
       [],
-      {
-        DB_CONNECTION,
-      },
+      adminEnvironment,
       environment,
+      [
+        '/app/bin/admin',
+        'eval',
+        'try do Admin.Release.migrate(); IO.puts("migrations applied successfully") catch kind, reason -> IO.puts("migrations failed: " <> Exception.format(kind, reason, __STACKTRACE__)); System.halt(1) end',
+      ],
+      // always pull the latest admin image, like the admin service
+      true,
     );
     cluster.addOneOffTask(
       'migrate',

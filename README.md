@@ -134,8 +134,8 @@ Once the PR is merged to `main`, [`infrastructure-deploy-dev-on-merge`](.github/
 
 Run the [`deploy-dev`](.github/workflows/deploy-dev.yml) workflow manually (**Actions → Deploy dev → Run workflow**). It:
 
-1. Copies the `*-nightly` images (migrate, core, workers) to `*-latest` in the private ECR.
-2. Runs the database migration and waits for it to complete.
+1. Runs the database migration and waits for it to complete. Migrations come from the admin app, which owns the database schema: the `migrate` task runs `Admin.Release.migrate()` with the admin image deployed on dev.
+2. Copies the `*-nightly` images (core, workers) to `*-latest` in the private ECR.
 3. Deploys the infrastructure and forces a new ECS deployment.
 
 This is also the workflow to run immediately after a `main` branch build when you don't want to wait for the next scheduled run.
@@ -144,8 +144,8 @@ This is also the workflow to run immediately after a `main` branch build when yo
 
 Two steps, run them in order:
 
-1. **[`apply-migration`](.github/workflows/apply-migration.yml)** — copies the `migrate-<version>` image from the public ECR and runs the database migration. Wait for it to succeed before proceeding.
-2. **[`deploy-core-version`](.github/workflows/deploy-core-version.yml)** — copies `core-<version>` and `workers-<version>` from the public ECR, applies the infrastructure, and forces a new ECS deployment. Both workflows prompt for `environment` and `version`.
+1. **[`apply-migration`](.github/workflows/apply-migration.yml)** — runs the database migration with the admin image deployed in that environment (`Admin.Release.migrate()`). Deploy the admin version that holds the migrations first, then wait for this to succeed before proceeding.
+2. **[`deploy-core-version`](.github/workflows/deploy-core-version.yml)** — copies `core-<version>` and `workers-<version>` from the public ECR, applies the infrastructure, and forces a new ECS deployment. `apply-migration` prompts for `environment`, `deploy-core-version` for `environment` and `version`.
 
 ### I want to apply an infrastructure state change manually
 
