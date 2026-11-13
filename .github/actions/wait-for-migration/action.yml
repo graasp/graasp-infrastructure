@@ -21,20 +21,20 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         role-duration-seconds: 18000 # assume the role for 5 hours, so the migrations polling works
 
+    # The migrate task runs the admin release (Admin.Release.migrate) and prints
+    # one of these two lines when it is done. See the migrate task in main.ts.
     - name: Wait for migration to be done
       shell: bash
       run: |
-        until aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
+        until aws logs tail '/ecs/migrate' | grep -Eq "migrations (applied successfully|failed)"
         do
           echo "waiting for Migrations to be applied $(date -u +%H:%M:%S) (UTC)"
           sleep 30
         done
         aws logs tail '/ecs/migrate'
-        if aws logs tail '/ecs/migrate' | grep -Fq "migrations applied successfully"
+        if aws logs tail '/ecs/migrate' | grep -Fq "migrations failed"
         then
-          # command succeeded
-          echo '# Migrations done with success' >> $GITHUB_STEP_SUMMARY
-        else
-          # command failed
           echo '# Migrations failed' >> $GITHUB_STEP_SUMMARY
+          exit 1
         fi
+        echo '# Migrations done with success' >> $GITHUB_STEP_SUMMARY

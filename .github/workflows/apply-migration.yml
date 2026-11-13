@@ -1,5 +1,7 @@
+# Runs the database migrations of the admin image deployed in the target environment.
+# The admin app owns the database schema: deploy the admin version that holds the migrations first.
 name: Apply Migration
-run-name: Apply migration(${{ inputs.version }}) on ${{ inputs.environment }}
+run-name: Apply migration on ${{ inputs.environment }}
 on:
   workflow_dispatch:
     inputs:
@@ -7,44 +9,13 @@ on:
         description: 'Target environment'
         type: environment
         required: true
-      version:
-        description: 'Version to deploy'
-        type: 'string'
-        required: true
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  prepare:
-    name: Copy migrate-${{ inputs.version }} to private ECR
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
-    steps:
-        # skopeo is a tool to manage image between different registries:
-        # https://github.com/containers/skopeo
-      - name: Install skopeo
-        run: sudo apt-get -y update && sudo apt-get -y install skopeo
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.TF_AWS_ROLE_ARN }}
-          role-session-name: GitHub_Action_deploy_migration
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Copy migrate-${{ inputs.version }} to private repo as latest
-        run: |
-          migrate_image_tag=migrate-${{ inputs.version }}
-          public_ecr_image=docker://${{ vars.AWS_PUBLIC_ECR_URI }}/graasp:$migrate_image_tag
-          private_ecr=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-          image_tag=docker://$private_ecr/graasp:migrate-latest
-          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | skopeo login --username AWS --password-stdin $private_ecr
-          skopeo --override-os linux copy $public_ecr_image $image_tag
-
   deploy:
-    needs: prepare
     uses: ./.github/workflows/_deploy-infra.yml
     with:
       state: 'db-only'

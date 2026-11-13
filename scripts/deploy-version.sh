@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function show_help() {
-    echo "This script allows to deploy a new version of the graasp ecs service and push the docker images for the core and the migration"
+    echo "This script allows to deploy a new version of the graasp ecs service and push the docker images for the core and the workers"
     echo "Usage: bash docker/build.sh ECR_URI VERSION"
     echo "Arguments:"
     echo "  PUBLIC_ECR_URI       URI of the ECR in AWS, example: public.ecr.aws/qzuer78"
